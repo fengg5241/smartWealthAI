@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: smart-wealth-ai
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_wealth_ai
+    username: postgres
+    password: postgres
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: always
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.2
+          max-tokens: 900
+      embedding:
+        options:
+          model: text-embedding-3-small
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 1536
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+wealth-advisor:
+  rag:
+    bootstrap-enabled: true
+    top-k: 4
+    similarity-threshold: 0.35
+    vector-dimensions: 1536
+  recommendation:
+    max-products: 3
+
+server:
+  port: 8080
