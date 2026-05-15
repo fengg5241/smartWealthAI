@@ -1,0 +1,14 @@
+{
+  "products": [
+    {
+      "productCode": "SG9999013486",
+      "productName": "LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND USD-H",
+      "supportedRiskLevel": "MODERATE",
+      "annualReturnRate": 0.5124,
+      "minHoldingDays": 90,
+      "liquidityLevel": "HIGH",
+      "description": "请填写产品定位、投资方向、适用场景。",
+      "complianceNote": "请填写合规提示、风险揭示、适配客群说明。"
+    }
+  ]
+}

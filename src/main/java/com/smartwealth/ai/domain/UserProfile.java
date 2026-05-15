@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,6 +25,9 @@ public class UserProfile {
     @Enumerated(EnumType.STRING)
     @Column(name = "risk_level", nullable = false, length = 32)
     private RiskLevel riskLevel;
+
+    @Column(name = "available_savings_balance", nullable = false, precision = 18, scale = 2)
+    private BigDecimal availableSavingsBalance;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -50,6 +54,14 @@ public class UserProfile {
 
     public void setRiskLevel(RiskLevel riskLevel) {
         this.riskLevel = riskLevel;
+    }
+
+    public BigDecimal getAvailableSavingsBalance() {
+        return availableSavingsBalance;
+    }
+
+    public void setAvailableSavingsBalance(BigDecimal availableSavingsBalance) {
+        this.availableSavingsBalance = availableSavingsBalance;
     }
 
     public LocalDateTime getCreatedAt() {

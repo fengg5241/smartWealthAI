@@ -1,16 +1,28 @@
-insert into user_profile (id, full_name, risk_level)
+delete from financial_transaction;
+delete from savings_goal;
+delete from financial_product;
+delete from user_profile;
+
+insert into user_profile (id, full_name, risk_level, available_savings_balance)
 values
-    (1, 'Olivia Zhao', 'CONSERVATIVE'),
-    (2, 'Lina Chen', 'BALANCED'),
-    (3, 'Ethan Xu', 'AGGRESSIVE')
-on conflict do nothing;
+    (1, 'Olivia Zhao', 'CONSERVATIVE', 3000.00),
+    (2, 'Lina Chen', 'MODERATE', 52000.00),
+    (3, 'Ethan Xu', 'AGGRESSIVE', 98000.00)
+on conflict (id) do update
+set full_name = excluded.full_name,
+    risk_level = excluded.risk_level,
+    available_savings_balance = excluded.available_savings_balance;
 
 insert into savings_goal (id, user_id, goal_name, target_amount, target_date)
 values
     (1, 1, 'Emergency Reserve Upgrade', 90000.00, (current_date + interval '12 month')::date),
     (2, 2, 'Family Travel Fund', 120000.00, (current_date + interval '10 month')::date),
     (3, 3, 'Home Down Payment Booster', 300000.00, (current_date + interval '18 month')::date)
-on conflict do nothing;
+on conflict (id) do update
+set user_id = excluded.user_id,
+    goal_name = excluded.goal_name,
+    target_amount = excluded.target_amount,
+    target_date = excluded.target_date;
 
 insert into financial_product (
     id, product_code, product_name, supported_risk_level, annual_return_rate,
@@ -33,46 +45,64 @@ values
         'Suitable only for conservative risk clients. Investors should still review redemption rules and interest-rate sensitivity.'
     ),
     (
-        4, 'BAL-001', 'Balanced Growth Portfolio', 'BALANCED', 0.0480, 180, 'MEDIUM',
-        'Hybrid allocation product combining fixed-income stability and moderate equity upside for medium-risk investors.',
-        'Suitable only for balanced risk clients. Net value may fluctuate and past performance does not guarantee future returns.'
+        4, 'SG9999013486', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND USD-H', 'MODERATE', 0.5124, 90, 'HIGH',
+        '狮城全球新加坡股息权益基金（美元对冲版），聚焦新加坡股息型股票，每季度派息，股息率5.17%，适合追求稳定收益与亚洲市场增长的平衡型投资者。',
+        '风险等级：平衡型（Balanced）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：新加坡。对冲版本可减少汇率风险，但不能完全消除。'
     ),
     (
-        5, 'BAL-002', 'Target Saver Plus', 'BALANCED', 0.0420, 90, 'HIGH',
-        'Short-to-mid term balanced product focused on liquidity and steady accumulation toward medium-term savings goals.',
-        'Suitable only for balanced risk clients. Investors should review product terms and redemption rules before purchase.'
+        5, 'SG9999013478', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND USD', 'MODERATE', 0.5085, 90, 'HIGH',
+        '狮城全球新加坡股息权益基金（美元版），聚焦新加坡股息型股票，每季度派息，股息率5.32%，3年回报107.74%，适合寻求亚洲市场收益与增值的平衡型投资者。',
+        '风险等级：平衡型（Balanced）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：新加坡。股息水平可能随市场变化而波动。'
     ),
     (
-        6, 'BAL-003', 'Quality Dividend Select', 'BALANCED', 0.0550, 365, 'LOW',
-        'Balanced strategy emphasizing dividend quality and controlled volatility for long-horizon wealth accumulation.',
-        'Suitable only for balanced risk clients. Longer holding period and market fluctuation risks apply.'
+        6, 'SG9999013460', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND SGD', 'MODERATE', 0.4714, 90, 'HIGH',
+        '狮城全球新加坡股息权益基金（新加坡元版），聚焦亚洲发达市场股息型股票，每季度派息，股息率5.21%，5年回报68.07%，适合新币计价的平衡型投资者。',
+        '风险等级：平衡型（Balanced）。ESG评级：A。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：新加坡。适合寻求定期收入与中长期增长的投资者。'
     ),
     (
-        7, 'GRO-001', 'Growth Momentum Mix', 'GROWTH', 0.0720, 365, 'LOW',
-        'Growth-oriented mixed allocation product designed for clients seeking stronger medium-to-long term capital appreciation.',
-        'Suitable only for growth risk clients. Higher volatility and drawdown risk must be accepted.'
+        7, 'SG9999011415', 'LIONGLOBAL JAPAN GROWTH FUND (USD HEDGED)', 'MODERATE', 0.4585, 90, 'MEDIUM',
+        '狮城全球日本成长基金（美元对冲版），专注于日本股票市场，累积型权益基金，5年回报高达137.42%，适合看好日本市场长期增长的平衡型投资者。',
+        '风险等级：平衡型（Balanced）。ESG评级：AA。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：新加坡。日元汇率风险通过对冲部分缓解，但市场风险仍存。'
     ),
     (
-        8, 'GRO-002', 'Innovation Leaders Fund', 'GROWTH', 0.0810, 540, 'LOW',
-        'Equity-biased thematic product investing in innovation-led sectors for long-horizon asset growth.',
-        'Suitable only for growth risk clients. Sector concentration and market volatility risks are material.'
+        8, 'LU0548575426', 'FIDELITY EMERGING MARKETS FUND A USD', 'AGGRESSIVE', 0.6318, 90, 'MEDIUM',
+        '富达新兴市场基金（美元），专注于EMEA地区权益类资产，采用累积型策略，适合寻求长期资本增值的投资者。3年回报81.26%，5年回报17.23%。',
+        '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：卢森堡。投资者需承担新兴市场波动风险及汇率风险。'
     ),
     (
-        9, 'AGG-001', 'Alpha Equity Opportunity', 'AGGRESSIVE', 0.1080, 540, 'LOW',
-        'High-risk active equity strategy targeting aggressive capital appreciation across cyclical and emerging sectors.',
-        'Suitable only for aggressive risk clients. Large short-term fluctuations and principal loss risk are significant.'
+        9, 'LU0251143458', 'FIDELITY EMERGING MARKETS FUND A SGD', 'AGGRESSIVE', 0.5919, 90, 'MEDIUM',
+        '富达新兴市场基金（新加坡元），专注于EMEA地区权益类资产，采用累积型策略，提供年化股息0.56%，适合新币计价的长期增值需求投资者。',
+        '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：卢森堡。投资者需承担新兴市场波动风险。'
     ),
     (
-        10, 'AGG-002', 'Global Tech Acceleration', 'AGGRESSIVE', 0.1250, 720, 'LOW',
-        'Aggressive long-term growth product with global technology and frontier growth exposure.',
-        'Suitable only for aggressive risk clients. High volatility, valuation risk and drawdown risk apply.'
+        10, 'SG9999000251', 'SCHRODER EMERGING MARKETS FUND SGD', 'AGGRESSIVE', 0.5656, 90, 'MEDIUM',
+        '施罗德新兴市场基金（新加坡元），国际化权益类配置，每年派息，适合希望定期获得收益同时参与全球新兴市场增长的投资者。3年回报75.51%，5年回报23.39%。',
+        '风险等级：成长型（Growth）。无ESG评级。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：新加坡。新兴市场投资存在较高波动性风险。'
     ),
     (
-        11, 'AGG-003', 'Dynamic Sector Rotation', 'AGGRESSIVE', 0.0980, 365, 'MEDIUM',
-        'High-beta tactical allocation product rotating among sectors to capture medium-term market opportunities.',
-        'Suitable only for aggressive risk clients. Tactical losses and rapid market swings may occur.'
+        11, 'SG9999003342', 'ABRDN GLOBAL EMERGING MARKETS FUND SGD', 'AGGRESSIVE', 0.4943, 90, 'MEDIUM',
+        '安本全球新兴市场基金（新加坡元），全球新兴市场权益累积型基金，ESG评级A，适合关注可持续投资并寻求长期资本增值的积极型投资者。',
+        '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：新加坡。新兴市场投资波动较大，需具备较强风险承受能力。'
+    ),
+    (
+        12, 'LU0192582467', 'SCHRODER ISF ASIAN EQUITY YIELD A (DIS) USD', 'AGGRESSIVE', 0.4535, 90, 'MEDIUM',
+        '施罗德亚洲股息基金（派息型，美元），专注亚太（除日本）地区月度派息权益基金，股息率4%，适合希望每月获得收益并参与亚洲市场增长的投资者。',
+        '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：卢森堡。每月分红金额不保证固定，受市场表现影响。'
+    ),
+    (
+        13, 'LU0188438110', 'SCHRODER ISF ASIAN EQUITY YIELD A(ACC) USD', 'AGGRESSIVE', 0.4535, 90, 'MEDIUM',
+        '施罗德亚洲股息基金（累积型，美元），专注亚太（除日本）地区权益累积基金，总资产规模USD 7.23亿，3年回报67.11%，适合追求长期资本增值的积极型投资者。',
+        '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：卢森堡。累积型基金不派发股息，收益自动再投资。'
     )
-on conflict do nothing;
+on conflict (id) do update
+set product_code = excluded.product_code,
+    product_name = excluded.product_name,
+    supported_risk_level = excluded.supported_risk_level,
+    annual_return_rate = excluded.annual_return_rate,
+    min_holding_days = excluded.min_holding_days,
+    liquidity_level = excluded.liquidity_level,
+    description = excluded.description,
+    compliance_note = excluded.compliance_note;
 
 insert into financial_transaction (user_id, transaction_date, transaction_type, category, amount, description)
 values

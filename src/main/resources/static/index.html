@@ -32,7 +32,7 @@
         }
 
         .page {
-            width: min(1280px, calc(100vw - 32px));
+            width: min(1400px, calc(100vw - 32px));
             margin: 24px auto 48px;
         }
 
@@ -110,9 +110,9 @@
             margin-top: 8px;
         }
 
-        .grid {
+        .workspace {
             display: grid;
-            grid-template-columns: 360px 1fr;
+            grid-template-columns: 380px 1fr;
             gap: 20px;
         }
 
@@ -154,8 +154,15 @@
         }
 
         textarea {
-            min-height: 140px;
             resize: vertical;
+        }
+
+        .seed-input {
+            min-height: 120px;
+        }
+
+        .chat-input {
+            min-height: 84px;
         }
 
         button {
@@ -203,8 +210,7 @@
             font-size: 15px;
         }
 
-        .mini-card p,
-        .mini-card li {
+        .mini-card p {
             color: var(--muted);
             line-height: 1.6;
             margin: 0;
@@ -225,20 +231,93 @@
             font-weight: 700;
         }
 
-        .answer {
+        .chat-shell {
+            display: grid;
+            grid-template-rows: 1fr auto;
+            gap: 14px;
+            min-height: 560px;
+        }
+
+        .chat-messages {
+            padding: 14px;
+            border-radius: 24px;
+            border: 1px solid var(--line);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.7), rgba(245,239,229,0.88)),
+                radial-gradient(circle at top, rgba(15,118,110,0.05), transparent 40%);
+            overflow-y: auto;
+            max-height: 620px;
+        }
+
+        .message-row {
+            display: flex;
+            margin: 12px 0;
+        }
+
+        .message-row.user {
+            justify-content: flex-end;
+        }
+
+        .message-row.assistant {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 78%;
+            padding: 14px 16px;
+            border-radius: 22px;
+            line-height: 1.75;
             white-space: pre-wrap;
-            line-height: 1.8;
+            box-shadow: 0 10px 24px rgba(63, 46, 31, 0.08);
+        }
+
+        .message-row.user .bubble {
+            background: linear-gradient(135deg, var(--accent), #115e59);
+            color: #fff;
+            border-bottom-right-radius: 8px;
+        }
+
+        .message-row.assistant .bubble {
+            background: rgba(255,255,255,0.92);
             color: var(--text);
+            border: 1px solid var(--line);
+            border-bottom-left-radius: 8px;
+        }
+
+        .chat-input-row {
+            display: grid;
+            grid-template-columns: 1fr 140px;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .chat-action-row {
+            display: grid;
+            grid-template-columns: 1fr 140px 140px;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .session-note,
+        .loading {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
         }
 
         .loading {
-            color: var(--accent);
             font-weight: 700;
+            color: var(--accent);
         }
 
-        @media (max-width: 980px) {
+        .secondary-btn {
+            background: linear-gradient(135deg, #b45309, #92400e);
+            box-shadow: 0 18px 30px rgba(146, 64, 14, 0.22);
+        }
+
+        @media (max-width: 1100px) {
             .hero,
-            .grid,
+            .workspace,
             .card-grid {
                 grid-template-columns: 1fr;
             }
@@ -251,39 +330,40 @@
         <div class="hero-card">
             <span class="eyebrow">RAG + Spring AI</span>
             <h1>财富管理 AI 顾问 Demo</h1>
-            <p>这个页面直接调用后端 Spring Boot 接口，展示用户财富分析、RAG 候选产品筛选，以及大模型最终给出的理财建议与推荐结果。</p>
+            <p>左侧用于选择用户和初始化测试场景，右侧保留财富数据分析与推荐展示，同时升级为连续会话式聊天窗口，方便测试首付、储蓄达成、风险调整与省钱建议。</p>
         </div>
         <div class="hero-card hero-side">
             <div class="stat">
                 <div class="stat-label">核心能力</div>
-                <div class="stat-value">交易分析</div>
+                <div class="stat-value">Smart Wealth AI</div>
             </div>
             <div class="stat">
                 <div class="stat-label">增强方式</div>
-                <div class="stat-value">RAG 检索</div>
+                <div class="stat-value">RAG + pgvector</div>
             </div>
             <div class="stat">
-                <div class="stat-label">最终输出</div>
-                <div class="stat-value">LLM 推荐</div>
+                <div class="stat-label">输出</div>
+                <div class="stat-value">Session Chat</div>
             </div>
         </div>
     </section>
 
-    <section class="grid">
+    <section class="workspace">
         <aside class="panel">
-            <h2>调试面板</h2>
+            <h2>会话控制台</h2>
             <div class="field">
                 <label for="userSelect">选择用户</label>
                 <select id="userSelect"></select>
             </div>
             <div class="field">
-                <label for="messageInput">咨询问题</label>
-                <textarea id="messageInput">我想在目标期限内完成储蓄目标，结合我的风险等级和最近两个月收支情况，给我推荐最适合的理财产品并说明原因。</textarea>
+                <label for="messageInput">首条问题</label>
+                <textarea id="messageInput" class="seed-input">我想购买一个价值300k SGD的公寓，我能够支付25%的首付吗？</textarea>
             </div>
-            <button id="runBtn" type="button">运行 AI 财富顾问</button>
+            <button id="runBtn" type="button">开始对话</button>
             <div class="muted-note">
-                页面会先加载用户概览，再发起聊天接口。<br>
-                最终结果会同时展示候选产品、LLM 最终推荐产品和自然语言回答。
+                选择用户后会自动刷新上方概览。<br>
+                点击按钮时会创建一个会话并发送首条消息。<br>
+                后续追问将复用同一个 `sessionId`，由后端维护上下文。
             </div>
         </aside>
 
@@ -297,26 +377,46 @@
             <section class="panel">
                 <h2>候选产品与 LLM 最终推荐</h2>
                 <div id="recommendationGrid" class="card-grid" hidden></div>
-                <div id="recommendationStatus" class="muted-note">请选择用户并运行。</div>
+                <div id="recommendationStatus" class="muted-note">请选择用户并开始会话。</div>
             </section>
 
             <section class="panel">
-                <h2>AI 最终回答</h2>
-                <div id="answerBox" class="answer">等待执行。</div>
+                <h2>AI 聊天窗口</h2>
+                <div class="chat-shell">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="message-row assistant">
+                            <div class="bubble">欢迎使用财富管理 AI 顾问。你可以测试：首付是否可支付、如何达成目标、产品风险过高时如何调整、如何通过收支优化更快达成目标。</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="chat-action-row">
+                            <textarea id="chatInput" class="chat-input">如果首付不够，我该如何实现这个目标？</textarea>
+                            <button id="sendBtn" type="button">发送</button>
+                            <button id="resetBtn" type="button" class="secondary-btn">重置会话</button>
+                        </div>
+                        <div id="sessionNote" class="session-note">当前没有会话。</div>
+                    </div>
+                </div>
             </section>
         </main>
     </section>
 </div>
 
 <script>
+    let sessionId = "";
+
     const userSelect = document.getElementById("userSelect");
     const messageInput = document.getElementById("messageInput");
     const runBtn = document.getElementById("runBtn");
+    const sendBtn = document.getElementById("sendBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const chatInput = document.getElementById("chatInput");
     const overviewStatus = document.getElementById("overviewStatus");
     const overviewCards = document.getElementById("overviewCards");
     const recommendationGrid = document.getElementById("recommendationGrid");
     const recommendationStatus = document.getElementById("recommendationStatus");
-    const answerBox = document.getElementById("answerBox");
+    const chatMessages = document.getElementById("chatMessages");
+    const sessionNote = document.getElementById("sessionNote");
 
     async function request(url, options) {
         const response = await fetch(url, options);
@@ -327,12 +427,15 @@
         return response.json();
     }
 
-    function money(value) {
+    function money(value, currency = "CNY") {
+        if (value === undefined || value === null) {
+            return "-";
+        }
         return new Intl.NumberFormat("zh-CN", {
             style: "currency",
-            currency: "CNY",
+            currency,
             maximumFractionDigits: 2
-        }).format(Number(value || 0));
+        }).format(Number(value));
     }
 
     function renderOverview(data) {
@@ -360,6 +463,12 @@
                 <p>是否按期：${data.goalProjection.onTrack ? "是" : "否"}</p>
             </div>
             <div class="mini-card">
+                <h3>场景测算</h3>
+                <p>当前存款：${money(data.goalScenario?.currentSavingsBalance, data.goalScenario?.currency || "CNY")}</p>
+                <p>资金缺口：${money(data.goalScenario?.savingsGap, data.goalScenario?.currency || "CNY")}</p>
+                <p>预计达成：${data.goalScenario?.estimatedReachDate || "-"}</p>
+            </div>
+            <div class="mini-card">
                 <h3>建议摘要</h3>
                 <div class="chips">
                     ${(data.advisoryHighlights || []).map(item => `<span class="chip">${item}</span>`).join("")}
@@ -373,7 +482,7 @@
         recommendationStatus.textContent = data.llmSelectionSummary || "已完成推荐。";
         const candidateCards = (data.candidateProducts || []).map(item => `
             <div class="mini-card">
-                <h3>候选产品 · ${item.productName}</h3>
+                <h3>候选产品 · ${item.productDisplayName || item.productName}</h3>
                 <p>编码：${item.productCode}</p>
                 <p>年化收益：${item.annualReturnRate}</p>
                 <p>最短持有：${item.minHoldingDays} 天</p>
@@ -383,12 +492,36 @@
         `);
         const finalCards = (data.finalRecommendedProducts || []).map(item => `
             <div class="mini-card">
-                <h3>LLM 最终推荐 · ${item.productName}</h3>
+                <h3>LLM 最终推荐 · ${item.productDisplayName || item.productName}</h3>
                 <p>编码：${item.productCode}</p>
+                <p>年化收益：${item.annualReturnRate}</p>
+                <p>最短持有：${item.minHoldingDays} 天</p>
+                <p>流动性：${item.liquidityLevel}</p>
                 <p>${item.reason}</p>
             </div>
         `);
-        recommendationGrid.innerHTML = [...candidateCards, ...finalCards].join("");
+        const planCards = (data.investmentPlans || []).map(item => `
+            <div class="mini-card">
+                <h3>投资方案 · ${item.productName}</h3>
+                <p>编码：${item.productCode}</p>
+                <p>产品年化收益：${item.annualReturnRate}</p>
+                <p>月投入：${money(item.monthlyInvestmentAmount, "SGD")}</p>
+                <p>投入月数：${item.investmentMonths} 个月</p>
+                <p>预计收益：${money(item.estimatedInvestmentGain, "SGD")}</p>
+                <p>预计达成：${item.estimatedReachDate}</p>
+                <p>节约时间：${item.savedMonthsComparedToSavingOnly} 个月</p>
+            </div>
+        `);
+        recommendationGrid.innerHTML = [...candidateCards, ...finalCards, ...planCards].join("");
+    }
+
+    function renderMessages(messages) {
+        chatMessages.innerHTML = (messages || []).map(item => `
+            <div class="message-row ${item.role === "user" ? "user" : "assistant"}">
+                <div class="bubble">${item.content}</div>
+            </div>
+        `).join("");
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     async function loadUsers() {
@@ -396,10 +529,19 @@
         userSelect.innerHTML = users.map(user => `
             <option value="${user.userId}">${user.fullName} · ${user.riskLevel}</option>
         `).join("");
-        return users;
+        if (users.length > 0) {
+            await loadOverview(users[0].userId);
+        }
     }
 
-    async function run() {
+    async function loadOverview(userId) {
+        overviewStatus.hidden = false;
+        overviewStatus.textContent = "正在加载用户概览...";
+        const overview = await request(`/api/v1/wealth-advisor/users/${userId}/overview`);
+        renderOverview(overview);
+    }
+
+    async function startConversation() {
         const userId = Number(userSelect.value);
         const message = messageInput.value.trim();
         if (!userId || !message) {
@@ -407,37 +549,109 @@
         }
 
         runBtn.disabled = true;
-        overviewStatus.hidden = false;
-        overviewStatus.textContent = "正在分析用户财富数据...";
-        recommendationStatus.textContent = "正在计算候选产品并调用大模型...";
-        answerBox.textContent = "处理中...";
+        recommendationStatus.textContent = "正在创建会话并调用顾问...";
+        sessionNote.textContent = "正在初始化会话...";
 
         try {
-            const overview = await request(`/api/v1/wealth-advisor/users/${userId}/overview`);
-            renderOverview(overview);
+            sessionId = "";
             const chat = await request("/api/v1/wealth-advisor/chat", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({userId, message})
+                body: JSON.stringify({userId, message, sessionId})
             });
+
+            sessionId = chat.sessionId || "";
             renderRecommendations(chat);
-            answerBox.textContent = chat.answer || "未返回回答。";
+            renderMessages(chat.messages || []);
+            sessionNote.textContent = `当前会话：${sessionId || "未创建"}`;
+            chatInput.value = "如果首付不够，我该如何实现这个目标？";
         } catch (error) {
             overviewStatus.hidden = false;
             overviewStatus.textContent = "请求失败";
             recommendationStatus.textContent = error.message;
-            answerBox.textContent = error.message;
+            sessionNote.textContent = error.message;
         } finally {
             runBtn.disabled = false;
         }
     }
 
-    runBtn.addEventListener("click", run);
+    async function sendChatMessage() {
+        const userId = Number(userSelect.value);
+        const message = chatInput.value.trim();
+        if (!userId || !message) {
+            return;
+        }
+
+        sendBtn.disabled = true;
+        recommendationStatus.textContent = "正在继续对话...";
+
+        try {
+            const chat = await request("/api/v1/wealth-advisor/chat", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({userId, message, sessionId})
+            });
+
+            sessionId = chat.sessionId || sessionId;
+            renderRecommendations(chat);
+            renderMessages(chat.messages || []);
+            sessionNote.textContent = `当前会话：${sessionId}`;
+            chatInput.value = "";
+        } catch (error) {
+            recommendationStatus.textContent = error.message;
+            sessionNote.textContent = error.message;
+        } finally {
+            sendBtn.disabled = false;
+        }
+    }
+
+    async function resetSession() {
+        if (sessionId) {
+            try {
+                await fetch(`/api/v1/wealth-advisor/sessions/${sessionId}`, { method: "DELETE" });
+            } catch (error) {
+                console.warn("Failed to delete session on server", error);
+            }
+        }
+        sessionId = "";
+        sessionNote.textContent = "当前没有会话。";
+        recommendationStatus.textContent = "会话已重置，请重新开始。";
+        recommendationGrid.hidden = true;
+        recommendationGrid.innerHTML = "";
+        chatMessages.innerHTML = `
+            <div class="message-row assistant">
+                <div class="bubble">会话已重置。你可以重新发起新的财富管理问题。</div>
+            </div>
+        `;
+    }
+
+    runBtn.addEventListener("click", startConversation);
+    sendBtn.addEventListener("click", sendChatMessage);
+    resetBtn.addEventListener("click", resetSession);
+    userSelect.addEventListener("change", async () => {
+        sessionId = "";
+        await loadOverview(Number(userSelect.value));
+        recommendationGrid.hidden = true;
+        recommendationGrid.innerHTML = "";
+        recommendationStatus.textContent = "用户已切换，请发送新的问题。";
+        sessionNote.textContent = "当前没有会话。";
+        chatMessages.innerHTML = `
+            <div class="message-row assistant">
+                <div class="bubble">已切换用户。你可以开始新的财富管理对话。</div>
+            </div>
+        `;
+    });
+    chatInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            sendChatMessage();
+        }
+    });
 
     (async function init() {
         try {
             await loadUsers();
-            overviewStatus.textContent = "用户已加载，请点击运行。";
+            overviewStatus.textContent = "用户已加载。";
         } catch (error) {
             overviewStatus.textContent = `用户加载失败：${error.message}`;
         }

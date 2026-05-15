@@ -4,8 +4,12 @@ create table if not exists user_profile (
     id bigserial primary key,
     full_name varchar(100) not null,
     risk_level varchar(32) not null,
+    available_savings_balance numeric(18, 2) not null default 0,
     created_at timestamp not null default current_timestamp
 );
+
+alter table user_profile
+    add column if not exists available_savings_balance numeric(18, 2) not null default 0;
 
 create table if not exists savings_goal (
     id bigserial primary key,

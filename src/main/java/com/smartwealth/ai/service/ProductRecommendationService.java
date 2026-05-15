@@ -40,7 +40,30 @@ public class ProductRecommendationService {
                         .thenComparing(FinancialProduct::getAnnualReturnRate)
                         .reversed())
                 .limit(properties.getRecommendation().getMaxProducts())
-                .map(product -> new ProductRecommendation(product, buildReason(product, goalProjection, targetDays)))
+                .map(product -> new ProductRecommendation(product, buildReason(product, goalProjection, targetDays), false))
+                .toList();
+    }
+
+    public List<ProductRecommendation> recommendLowerRiskAlternatives(RiskLevel currentRiskLevel, GoalProjection goalProjection) {
+        RiskLevel fallbackRiskLevel = switch (currentRiskLevel) {
+            case AGGRESSIVE -> RiskLevel.MODERATE;
+            case GROWTH -> RiskLevel.MODERATE;
+            case MODERATE, BALANCED -> RiskLevel.CONSERVATIVE;
+            case CONSERVATIVE -> RiskLevel.CONSERVATIVE;
+        };
+
+        long targetDays = ChronoUnit.DAYS.between(LocalDate.now(clock), goalProjection.targetDate());
+        return financialProductRepository.findBySupportedRiskLevelOrderByAnnualReturnRateDesc(fallbackRiskLevel).stream()
+                .sorted(Comparator
+                        .comparing((FinancialProduct product) -> holdingFitScore(product, targetDays))
+                        .thenComparing(FinancialProduct::getAnnualReturnRate)
+                        .reversed())
+                .limit(2)
+                .map(product -> new ProductRecommendation(
+                        product,
+                        "Lower-risk alternative selected because the user expressed discomfort with current product risk level.",
+                        true
+                ))
                 .toList();
     }
 

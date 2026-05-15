@@ -4,6 +4,7 @@ import com.smartwealth.ai.domain.FinancialProduct;
 
 public record ProductRecommendation(
         FinancialProduct product,
-        String reason
+        String reason,
+        boolean lowerRiskAlternative
 ) {
 }

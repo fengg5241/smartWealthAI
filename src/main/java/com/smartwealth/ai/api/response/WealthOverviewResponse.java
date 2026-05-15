@@ -8,6 +8,7 @@ public record WealthOverviewResponse(
         RiskLevel riskLevel,
         List<MonthlyCashflowSummary> monthlySummaries,
         GoalProjectionView goalProjection,
+        GoalScenarioView goalScenario,
         List<ProductRecommendationView> candidateProducts,
         List<String> advisoryHighlights
 ) {
