@@ -2,13 +2,41 @@
 
 基于 `Spring Boot + Spring AI + pgvector` 的财富管理 RAG AI 顾问，提供后端接口和可直接验收的 demo 页面。
 
+当前版本已经从“统一问答链路”升级为“语言识别 + 轻量意图分类 + 专属业务处理/通用理财回答”双轨架构，尤其补强了英文财富管理问题的处理。
+
 ## 功能
 
 - 分析用户上个月和本月交易数据，输出收入、支出、净结余、储蓄率和消费结构。
 - 通过 Spring AI `VectorStore` 检索用户风险等级、储蓄目标和理财产品私有知识。
-- 先基于风险等级和目标期限生成候选理财产品。
-- 再把候选产品、RAG 片段和财富分析结果交给 LLM，输出最终推荐产品和自然语言回答。
+- 先做语言识别和轻量 LLM 意图分类，再按固定意图编码路由到专属业务逻辑。
+- 对通用财富管理问题，继续基于风险等级、目标期限和产品池生成候选理财产品，再交给 LLM 输出最终回答。
+- 对三个专属场景，优先走“专属处理器先计算，再由 LLM 只做润色”的半结构化链路：
+  - `FUND_SELECTION`：`What is the best funds for $50,000?`
+  - `PRODUCT_COMPARISON`：`Fixed deposits or bonds is better for me?`
+  - `PORTFOLIO_REBALANCING`：`The market is so volatile now, how should I adjust my portfolio?`
 - 暴露前端可调用接口，并提供浏览器 demo 页面用于验收。
+
+## 当前问答链路
+
+聊天主链路分为三段：
+
+1. `语言识别`
+2. `轻量 LLM 意图分类`
+3. `按意图走专属业务逻辑`
+4. `对专属英文场景，将结构化结果交给 LLM 做受限润色`
+
+当前已定义的主要意图包括：
+
+- `WEALTH_OVERVIEW`
+- `CASHFLOW_ANALYSIS`
+- `GOAL_PROGRESS`
+- `GOAL_FEASIBILITY`
+- `PRODUCT_RECOMMENDATION`
+- `RISK_REBALANCING`
+- `FUND_SELECTION`
+- `PRODUCT_COMPARISON`
+- `PORTFOLIO_REBALANCING`
+- `OUT_OF_SCOPE`
 
 ## 技术栈
 
@@ -18,6 +46,17 @@
 - Spring Web / Spring Data JPA / Validation / Actuator
 - PostgreSQL + pgvector
 - OpenAI Chat + Embedding
+
+## 数据模型
+
+除原有用户画像、储蓄目标、交易流水、理财产品外，当前版本还补充了两块关键数据：
+
+- `financial_product.product_category`
+- `financial_product.currency`
+- `financial_product.minimum_investment_amount`
+- `user_portfolio_holding`
+
+这样 demo 用户不仅有风险等级和收支目标，还有实际持仓数据，可以支撑组合再平衡类问题。
 
 ## 启动方式
 
@@ -48,7 +87,7 @@ mvn spring-boot:run
 应用启动后会自动：
 
 - 执行 `schema.sql` 和 `data.sql`
-- 初始化演示用户、目标、产品和交易数据
+- 初始化演示用户、目标、产品、持仓和交易数据
 - 通过 [RagKnowledgeService.java](src/main/java/com/smartwealth/ai/service/RagKnowledgeService.java) 将私有知识写入 Spring AI `PgVectorStore`
 
 ## Demo 页面
@@ -93,12 +132,48 @@ curl -X POST http://localhost:8080/api/v1/wealth-advisor/chat \
   }'
 ```
 
+专属场景示例：
+
+```bash
+curl -X POST http://localhost:8080/api/v1/wealth-advisor/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 1,
+    "message": "What is the best funds for $50,000?"
+  }'
+```
+
+```bash
+curl -X POST http://localhost:8080/api/v1/wealth-advisor/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 2,
+    "message": "Fixed deposits or bonds is better for me?"
+  }'
+```
+
+```bash
+curl -X POST http://localhost:8080/api/v1/wealth-advisor/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 3,
+    "message": "The market is so volatile now, how should I adjust my portfolio?"
+  }'
+```
+
 ## 响应重点字段
 
 - `candidateProducts`：规则筛选后的候选产品
 - `finalRecommendedProducts`：LLM 最终选出的推荐产品
 - `llmSelectionSummary`：LLM 对最终筛选逻辑的摘要
 - `answer`：最终自然语言回答
+
+对于专属英文场景：
+
+- `candidateProducts`：专属处理器筛出的基金/比较产品/防御型候选资产
+- `finalRecommendedProducts`：专属处理器保留的最终候选
+- `advisoryHighlights`：会包含预算分配、比较结论或再平衡提示
+- `answer`：先由专属处理器生成结构化结论，再交给 LLM 做受限润色
 
 ## 关键代码
 
@@ -107,8 +182,12 @@ curl -X POST http://localhost:8080/api/v1/wealth-advisor/chat \
 - 财富分析：[TransactionAnalysisService.java](src/main/java/com/smartwealth/ai/service/TransactionAnalysisService.java)
 - 储蓄目标测算：[GoalProjectionService.java](src/main/java/com/smartwealth/ai/service/GoalProjectionService.java)
 - 候选产品筛选：[ProductRecommendationService.java](src/main/java/com/smartwealth/ai/service/ProductRecommendationService.java)
+- 持仓查询：[PortfolioQueryService.java](src/main/java/com/smartwealth/ai/service/PortfolioQueryService.java)
+- 专属英文场景处理：[SpecializedAdvisoryService.java](src/main/java/com/smartwealth/ai/service/SpecializedAdvisoryService.java)
 - Spring AI RAG 写入与检索：[RagKnowledgeService.java](src/main/java/com/smartwealth/ai/service/RagKnowledgeService.java)
-- Spring AI 对话编排：[LlmAdvisoryService.java](src/main/java/com/smartwealth/ai/service/LlmAdvisoryService.java)
+- 轻量意图分类：[IntentClassificationService.java](src/main/java/com/smartwealth/ai/service/IntentClassificationService.java)
+- 主聊天编排：[AiWealthChatService.java](src/main/java/com/smartwealth/ai/service/AiWealthChatService.java)
+- 通用理财回答生成与专属结果润色：[LlmAdvisoryService.java](src/main/java/com/smartwealth/ai/service/LlmAdvisoryService.java)
 - Demo 页面：[index.html](src/main/resources/static/index.html)
 
 ## 验证
@@ -116,7 +195,7 @@ curl -X POST http://localhost:8080/api/v1/wealth-advisor/chat \
 已执行：
 
 ```bash
-mvn -Dmaven.repo.local=/Users/lijinze/.m2/repository test
+mvn test -Dtest=SpecializedAdvisoryServiceTest,IntentRoutingServiceTest,TransactionAnalysisServiceTest
 ```
 
 结果：`BUILD SUCCESS`

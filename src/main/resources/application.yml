@@ -47,6 +47,13 @@ wealth-advisor:
     vector-dimensions: 1536
   recommendation:
     max-products: 3
+  llm:
+    classification-model: gpt-4o-mini
+    classification-temperature: 0.0
+    classification-max-tokens: 120
+    answer-model: gpt-4o-mini
+    answer-temperature: 0.2
+    answer-max-tokens: 900
 
 server:
   port: 8080

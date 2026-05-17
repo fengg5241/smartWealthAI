@@ -26,6 +26,10 @@ public class FinancialProduct {
     private String productName;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "product_category", nullable = false, length = 32)
+    private ProductCategory productCategory;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "supported_risk_level", nullable = false, length = 32)
     private RiskLevel supportedRiskLevel;
 
@@ -38,6 +42,12 @@ public class FinancialProduct {
     @Enumerated(EnumType.STRING)
     @Column(name = "liquidity_level", nullable = false, length = 32)
     private LiquidityLevel liquidityLevel;
+
+    @Column(name = "currency", nullable = false, length = 10)
+    private String currency;
+
+    @Column(name = "minimum_investment_amount", nullable = false, precision = 18, scale = 2)
+    private BigDecimal minimumInvestmentAmount;
 
     @Column(name = "description", nullable = false, columnDefinition = "text")
     private String description;
@@ -72,6 +82,14 @@ public class FinancialProduct {
         this.productName = productName;
     }
 
+    public ProductCategory getProductCategory() {
+        return productCategory;
+    }
+
+    public void setProductCategory(ProductCategory productCategory) {
+        this.productCategory = productCategory;
+    }
+
     public RiskLevel getSupportedRiskLevel() {
         return supportedRiskLevel;
     }
@@ -102,6 +120,22 @@ public class FinancialProduct {
 
     public void setLiquidityLevel(LiquidityLevel liquidityLevel) {
         this.liquidityLevel = liquidityLevel;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public BigDecimal getMinimumInvestmentAmount() {
+        return minimumInvestmentAmount;
+    }
+
+    public void setMinimumInvestmentAmount(BigDecimal minimumInvestmentAmount) {
+        this.minimumInvestmentAmount = minimumInvestmentAmount;
     }
 
     public String getDescription() {

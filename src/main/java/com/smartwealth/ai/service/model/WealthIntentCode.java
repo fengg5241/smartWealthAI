@@ -1,0 +1,14 @@
+package com.smartwealth.ai.service.model;
+
+public enum WealthIntentCode {
+    OUT_OF_SCOPE,
+    WEALTH_OVERVIEW,
+    CASHFLOW_ANALYSIS,
+    GOAL_PROGRESS,
+    GOAL_FEASIBILITY,
+    PRODUCT_RECOMMENDATION,
+    RISK_REBALANCING,
+    FUND_SELECTION,
+    PRODUCT_COMPARISON,
+    PORTFOLIO_REBALANCING
+}

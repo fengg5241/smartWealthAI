@@ -4,6 +4,8 @@ import com.smartwealth.ai.api.response.ChatIntentType;
 
 public record ChatIntent(
         ChatIntentType type,
-        String reason
+        String reason,
+        WealthIntentCode intentCode,
+        String intentName
 ) {
 }

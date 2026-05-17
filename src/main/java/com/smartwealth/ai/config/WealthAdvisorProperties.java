@@ -7,6 +7,7 @@ public class WealthAdvisorProperties {
 
     private final Rag rag = new Rag();
     private final Recommendation recommendation = new Recommendation();
+    private final Llm llm = new Llm();
 
     public Rag getRag() {
         return rag;
@@ -14,6 +15,10 @@ public class WealthAdvisorProperties {
 
     public Recommendation getRecommendation() {
         return recommendation;
+    }
+
+    public Llm getLlm() {
+        return llm;
     }
 
     public static class Rag {
@@ -66,6 +71,64 @@ public class WealthAdvisorProperties {
 
         public void setMaxProducts(int maxProducts) {
             this.maxProducts = maxProducts;
+        }
+    }
+
+    public static class Llm {
+
+        private String classificationModel = "gpt-4o-mini";
+        private Double classificationTemperature = 0.0d;
+        private Integer classificationMaxTokens = 120;
+        private String answerModel = "gpt-4o-mini";
+        private Double answerTemperature = 0.2d;
+        private Integer answerMaxTokens = 900;
+
+        public String getClassificationModel() {
+            return classificationModel;
+        }
+
+        public void setClassificationModel(String classificationModel) {
+            this.classificationModel = classificationModel;
+        }
+
+        public Double getClassificationTemperature() {
+            return classificationTemperature;
+        }
+
+        public void setClassificationTemperature(Double classificationTemperature) {
+            this.classificationTemperature = classificationTemperature;
+        }
+
+        public Integer getClassificationMaxTokens() {
+            return classificationMaxTokens;
+        }
+
+        public void setClassificationMaxTokens(Integer classificationMaxTokens) {
+            this.classificationMaxTokens = classificationMaxTokens;
+        }
+
+        public String getAnswerModel() {
+            return answerModel;
+        }
+
+        public void setAnswerModel(String answerModel) {
+            this.answerModel = answerModel;
+        }
+
+        public Double getAnswerTemperature() {
+            return answerTemperature;
+        }
+
+        public void setAnswerTemperature(Double answerTemperature) {
+            this.answerTemperature = answerTemperature;
+        }
+
+        public Integer getAnswerMaxTokens() {
+            return answerMaxTokens;
+        }
+
+        public void setAnswerMaxTokens(Integer answerMaxTokens) {
+            this.answerMaxTokens = answerMaxTokens;
         }
     }
 }

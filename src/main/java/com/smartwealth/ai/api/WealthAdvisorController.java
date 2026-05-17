@@ -9,6 +9,9 @@ import com.smartwealth.ai.service.ChatSessionService;
 import com.smartwealth.ai.service.TransactionAnalysisService;
 import com.smartwealth.ai.service.UserProfileQueryService;
 import com.smartwealth.ai.service.WealthInsightService;
+import com.smartwealth.ai.service.model.SupportedLanguage;
+import com.smartwealth.ai.service.model.WealthIntentCode;
+import com.smartwealth.ai.service.model.WealthWorkflow;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -60,7 +63,22 @@ public class WealthAdvisorController {
 
     @GetMapping("/users/{userId}/overview")
     public WealthOverviewResponse overview(@PathVariable Long userId) {
-        var insight = wealthInsightService.buildInsight(userId, "生成用户财富概览", List.of());
+        var insight = wealthInsightService.buildInsight(
+                userId,
+                "生成用户财富概览",
+                List.<String>of(),
+                SupportedLanguage.ZH,
+                new WealthWorkflow(
+                        com.smartwealth.ai.api.response.ChatIntentType.WEALTH_ADVISORY,
+                        WealthIntentCode.WEALTH_OVERVIEW,
+                        "Wealth Overview",
+                        "Generated user wealth overview.",
+                        true,
+                        false,
+                        false,
+                        false
+                )
+        );
         return new WealthOverviewResponse(
                 userId,
                 insight.riskLevel(),

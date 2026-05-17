@@ -6,6 +6,8 @@ import java.util.Map;
 
 public record WealthInsight(
         Long userId,
+        SupportedLanguage language,
+        WealthWorkflow workflow,
         RiskLevel riskLevel,
         List<MonthlyAnalysis> monthlyAnalyses,
         GoalProjection goalProjection,
@@ -13,6 +15,7 @@ public record WealthInsight(
         boolean recommendProducts,
         List<ProductRecommendation> productRecommendations,
         List<InvestmentPlan> investmentPlans,
+        List<PortfolioHoldingSnapshot> portfolioHoldings,
         List<String> advisoryHighlights,
         List<String> ragContextSnippets,
         List<RagSnippet> ragSnippets,

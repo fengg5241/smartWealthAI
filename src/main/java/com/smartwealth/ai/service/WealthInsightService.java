@@ -10,9 +10,12 @@ import com.smartwealth.ai.repository.UserProfileRepository;
 import com.smartwealth.ai.service.model.GoalProjection;
 import com.smartwealth.ai.service.model.GoalScenarioAnalysis;
 import com.smartwealth.ai.service.model.InvestmentPlan;
+import com.smartwealth.ai.service.model.PortfolioHoldingSnapshot;
 import com.smartwealth.ai.service.model.ProductRecommendation;
 import com.smartwealth.ai.service.model.RagSnippet;
+import com.smartwealth.ai.service.model.SupportedLanguage;
 import com.smartwealth.ai.service.model.WealthInsight;
+import com.smartwealth.ai.service.model.WealthWorkflow;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,6 +33,7 @@ public class WealthInsightService {
     private final UserProfileRepository userProfileRepository;
     private final InvestmentPlanService investmentPlanService;
     private final ProductLinkFormatter productLinkFormatter;
+    private final PortfolioQueryService portfolioQueryService;
 
     public WealthInsightService(
             TransactionAnalysisService transactionAnalysisService,
@@ -40,7 +44,8 @@ public class WealthInsightService {
             GoalScenarioService goalScenarioService,
             UserProfileRepository userProfileRepository,
             InvestmentPlanService investmentPlanService,
-            ProductLinkFormatter productLinkFormatter
+            ProductLinkFormatter productLinkFormatter,
+            PortfolioQueryService portfolioQueryService
     ) {
         this.transactionAnalysisService = transactionAnalysisService;
         this.goalProjectionService = goalProjectionService;
@@ -51,9 +56,16 @@ public class WealthInsightService {
         this.userProfileRepository = userProfileRepository;
         this.investmentPlanService = investmentPlanService;
         this.productLinkFormatter = productLinkFormatter;
+        this.portfolioQueryService = portfolioQueryService;
     }
 
-    public WealthInsight buildInsight(Long userId, String userQuestion, List<String> historyMessages) {
+    public WealthInsight buildInsight(
+            Long userId,
+            String userQuestion,
+            List<String> historyMessages,
+            SupportedLanguage language,
+            WealthWorkflow workflow
+    ) {
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new com.smartwealth.ai.service.exception.ResourceNotFoundException("User not found: " + userId));
         String conversationContext = buildConversationContext(userQuestion, historyMessages);
@@ -61,22 +73,27 @@ public class WealthInsightService {
         var analyses = transactionAnalysisService.analyzeLastTwoMonths(userId);
         GoalProjection projection = goalProjectionService.project(userId, analyses);
         GoalScenarioAnalysis goalScenarioAnalysis = goalScenarioService.analyze(conversationContext, userProfile, projection);
-        boolean recommendProducts = intentWantsProducts(userQuestion, historyMessages);
+        boolean recommendProducts = workflow.shouldRecommendProducts();
         List<ProductRecommendation> recommendations = recommendProducts
                 ? productRecommendationService.recommend(riskLevel, projection)
                 : List.of();
-        if (recommendProducts && userQuestion != null && (userQuestion.contains("风险过高") || userQuestion.toLowerCase().contains("too risky"))) {
+        if (recommendProducts && workflow.lowerRiskAlternativeOnly()) {
             recommendations = productRecommendationService.recommendLowerRiskAlternatives(riskLevel, projection);
         }
         List<InvestmentPlan> investmentPlans = recommendations.stream()
                 .flatMap(item -> investmentPlanService.buildPlans(item, goalScenarioAnalysis, projection).stream())
                 .toList();
-        List<RagSnippet> ragSnippets = ragKnowledgeService.retrieveUserContext(userId, conversationContext);
-        List<String> highlights = advisoryNarrativeService.buildHighlights(analyses, projection, recommendations);
-        highlights.addAll(advisoryNarrativeService.buildSavingsAdvice(analyses));
+        List<PortfolioHoldingSnapshot> portfolioHoldings = portfolioQueryService.holdings(userId);
+        List<RagSnippet> ragSnippets = workflow.shouldRetrieveRag()
+                ? ragKnowledgeService.retrieveUserContext(userId, conversationContext)
+                : List.of();
+        List<String> highlights = advisoryNarrativeService.buildHighlights(language, analyses, projection, recommendations);
+        highlights.addAll(advisoryNarrativeService.buildSavingsAdvice(language, analyses));
 
         return new WealthInsight(
                 userId,
+                language,
+                workflow,
                 riskLevel,
                 analyses,
                 projection,
@@ -84,6 +101,7 @@ public class WealthInsightService {
                 recommendProducts,
                 recommendations,
                 investmentPlans,
+                portfolioHoldings,
                 highlights,
                 ragSnippets.stream().map(RagSnippet::text).toList(),
                 ragSnippets,
@@ -135,19 +153,6 @@ public class WealthInsightService {
         }
         return builder.toString().trim();
     }
-
-    private boolean intentWantsProducts(String currentMessage, List<String> historyMessages) {
-        String normalized = currentMessage == null ? "" : currentMessage.trim().toLowerCase();
-        if (normalized.contains("风险过高") || normalized.contains("too risky")) {
-            return true;
-        }
-        if (normalized.contains("如何实现") || normalized.contains("怎么实现") || normalized.contains("推荐")) {
-            return true;
-        }
-        String historyText = historyMessages == null ? "" : String.join(" ", historyMessages).toLowerCase();
-        return historyText.contains("如何实现") || historyText.contains("怎么实现");
-    }
-
     public GoalProjectionView toView(GoalProjection projection) {
         return new GoalProjectionView(
                 projection.goalName(),
