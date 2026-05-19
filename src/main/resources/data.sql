@@ -127,7 +127,7 @@ insert into financial_transaction (user_id, transaction_date, transaction_type, 
 values
     (1, (date_trunc('month', current_date - interval '5 month') + interval '2 day')::date, 'INCOME', 'Salary', 17500.00, 'Monthly salary'),
     (1, (date_trunc('month', current_date - interval '5 month') + interval '4 day')::date, 'INCOME', 'Interest', 420.00, 'Deposit interest'),
-    (1, (date_trunc('month', current_date - interval '5 month') + interval '5 day')::date, 'EXPENSE', 'Housing', 5200.00, 'Rent'),
+    (1, (date_trunc('month', current_date - interval '5 month') + interval '5 day')::date, 'EXPENSE', 'Education', 5200.00, 'Professional training'),
     (1, (date_trunc('month', current_date - interval '5 month') + interval '8 day')::date, 'EXPENSE', 'Food', 1650.00, 'Groceries'),
     (1, (date_trunc('month', current_date - interval '5 month') + interval '12 day')::date, 'EXPENSE', 'Medical', 680.00, 'Checkup'),
     (1, (date_trunc('month', current_date - interval '5 month') + interval '18 day')::date, 'EXPENSE', 'Family', 2100.00, 'Parents support'),
@@ -135,7 +135,7 @@ values
 
     (1, (date_trunc('month', current_date - interval '4 month') + interval '2 day')::date, 'INCOME', 'Salary', 17500.00, 'Monthly salary'),
     (1, (date_trunc('month', current_date - interval '4 month') + interval '4 day')::date, 'INCOME', 'Interest', 450.00, 'Deposit interest'),
-    (1, (date_trunc('month', current_date - interval '4 month') + interval '5 day')::date, 'EXPENSE', 'Housing', 5200.00, 'Rent'),
+    (1, (date_trunc('month', current_date - interval '4 month') + interval '5 day')::date, 'EXPENSE', 'Education', 5200.00, 'Professional training'),
     (1, (date_trunc('month', current_date - interval '4 month') + interval '9 day')::date, 'EXPENSE', 'Food', 1720.00, 'Groceries'),
     (1, (date_trunc('month', current_date - interval '4 month') + interval '13 day')::date, 'EXPENSE', 'Insurance', 900.00, 'Medical insurance'),
     (1, (date_trunc('month', current_date - interval '4 month') + interval '18 day')::date, 'EXPENSE', 'Family', 2200.00, 'Parents support'),
@@ -143,7 +143,7 @@ values
 
     (1, (date_trunc('month', current_date - interval '3 month') + interval '2 day')::date, 'INCOME', 'Salary', 17800.00, 'Monthly salary'),
     (1, (date_trunc('month', current_date - interval '3 month') + interval '4 day')::date, 'INCOME', 'Interest', 460.00, 'Deposit interest'),
-    (1, (date_trunc('month', current_date - interval '3 month') + interval '5 day')::date, 'EXPENSE', 'Housing', 5200.00, 'Rent'),
+    (1, (date_trunc('month', current_date - interval '3 month') + interval '5 day')::date, 'EXPENSE', 'Education', 5200.00, 'Professional training'),
     (1, (date_trunc('month', current_date - interval '3 month') + interval '9 day')::date, 'EXPENSE', 'Food', 1690.00, 'Groceries'),
     (1, (date_trunc('month', current_date - interval '3 month') + interval '12 day')::date, 'EXPENSE', 'Medical', 500.00, 'Medicine'),
     (1, (date_trunc('month', current_date - interval '3 month') + interval '18 day')::date, 'EXPENSE', 'Family', 2200.00, 'Parents support'),
@@ -151,7 +151,7 @@ values
 
     (1, (date_trunc('month', current_date - interval '2 month') + interval '2 day')::date, 'INCOME', 'Salary', 17800.00, 'Monthly salary'),
     (1, (date_trunc('month', current_date - interval '2 month') + interval '4 day')::date, 'INCOME', 'Interest', 470.00, 'Deposit interest'),
-    (1, (date_trunc('month', current_date - interval '2 month') + interval '5 day')::date, 'EXPENSE', 'Housing', 5200.00, 'Rent'),
+    (1, (date_trunc('month', current_date - interval '2 month') + interval '5 day')::date, 'EXPENSE', 'Education', 5200.00, 'Professional training'),
     (1, (date_trunc('month', current_date - interval '2 month') + interval '8 day')::date, 'EXPENSE', 'Food', 1760.00, 'Groceries'),
     (1, (date_trunc('month', current_date - interval '2 month') + interval '11 day')::date, 'EXPENSE', 'Insurance', 900.00, 'Insurance'),
     (1, (date_trunc('month', current_date - interval '2 month') + interval '17 day')::date, 'EXPENSE', 'Family', 2250.00, 'Parents support'),
@@ -159,7 +159,7 @@ values
 
     (1, (date_trunc('month', current_date - interval '1 month') + interval '2 day')::date, 'INCOME', 'Salary', 18000.00, 'Monthly salary'),
     (1, (date_trunc('month', current_date - interval '1 month') + interval '4 day')::date, 'INCOME', 'Interest', 480.00, 'Deposit interest'),
-    (1, (date_trunc('month', current_date - interval '1 month') + interval '5 day')::date, 'EXPENSE', 'Housing', 5200.00, 'Rent'),
+    (1, (date_trunc('month', current_date - interval '1 month') + interval '5 day')::date, 'EXPENSE', 'Education', 5200.00, 'Professional training'),
     (1, (date_trunc('month', current_date - interval '1 month') + interval '8 day')::date, 'EXPENSE', 'Food', 1810.00, 'Groceries'),
     (1, (date_trunc('month', current_date - interval '1 month') + interval '12 day')::date, 'EXPENSE', 'Medical', 760.00, 'Medical'),
     (1, (date_trunc('month', current_date - interval '1 month') + interval '18 day')::date, 'EXPENSE', 'Family', 2300.00, 'Parents support'),
@@ -167,7 +167,7 @@ values
 
     (1, (date_trunc('month', current_date) + interval '2 day')::date, 'INCOME', 'Salary', 18000.00, 'Monthly salary'),
     (1, (date_trunc('month', current_date) + interval '4 day')::date, 'INCOME', 'Interest', 500.00, 'Deposit interest'),
-    (1, (date_trunc('month', current_date) + interval '5 day')::date, 'EXPENSE', 'Housing', 5200.00, 'Rent'),
+    (1, (date_trunc('month', current_date) + interval '5 day')::date, 'EXPENSE', 'Education', 5200.00, 'Professional training'),
     (1, (date_trunc('month', current_date) + interval '8 day')::date, 'EXPENSE', 'Food', 1750.00, 'Groceries'),
     (1, (date_trunc('month', current_date) + interval '12 day')::date, 'EXPENSE', 'Insurance', 900.00, 'Insurance'),
     (1, (date_trunc('month', current_date) + interval '18 day')::date, 'EXPENSE', 'Family', 2300.00, 'Parents support'),

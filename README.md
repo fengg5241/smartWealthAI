@@ -2,14 +2,17 @@
 
 基于 `Spring Boot + Spring AI + pgvector` 的财富管理 RAG AI 顾问，提供后端接口和可直接验收的 demo 页面。
 
-当前版本已经从“统一问答链路”升级为“语言识别 + 轻量意图分类 + 专属业务处理/通用理财回答”双轨架构，尤其补强了英文财富管理问题的处理。
+当前版本已经从“统一问答链路”升级为“语言识别 + 轻量意图分类 + 回复策略分流 + 专属业务处理/通用理财回答”多层架构，尤其补强了英文财富管理问题的处理。
 
 ## 功能
 
 - 分析用户上个月和本月交易数据，输出收入、支出、净结余、储蓄率和消费结构。
 - 通过 Spring AI `VectorStore` 检索用户风险等级、储蓄目标和理财产品私有知识。
-- 先做语言识别和轻量 LLM 意图分类，再按固定意图编码路由到专属业务逻辑。
+- 先做语言识别和轻量 LLM 意图分类，再按固定意图编码和 `responsePolicy` 路由到不同回复通道。
 - 对通用财富管理问题，继续基于风险等级、目标期限和产品池生成候选理财产品，再交给 LLM 输出最终回答。
+- 对“不是专属场景，但仍然是理财问题”的问题，新增 `GENERIC_WEALTH_GUIDANCE` 通道，不再默认拒答，也不默认强推产品。
+- 对缺少关键数据的问题，新增 `ASK_CLARIFY` 通道，优先要求补充必要信息。
+- 对保险、税务、市场择时等当前能力不足或不宜直接回答的问题，新增 `SAFE_DECLINE` 通道。
 - 对三个专属场景，优先走“专属处理器先计算，再由 LLM 只做润色”的半结构化链路：
   - `FUND_SELECTION`：`What is the best funds for $50,000?`
   - `PRODUCT_COMPARISON`：`Fixed deposits or bonds is better for me?`
@@ -18,12 +21,34 @@
 
 ## 当前问答链路
 
-聊天主链路分为三段：
+聊天主链路分为四段：
 
 1. `语言识别`
 2. `轻量 LLM 意图分类`
-3. `按意图走专属业务逻辑`
+3. `按意图和 responsePolicy 选择回复通道`
 4. `对专属英文场景，将结构化结果交给 LLM 做受限润色`
+
+## 回复策略
+
+除 `intentCode` 外，当前还会输出一个内部回复策略 `responsePolicy`：
+
+- `SPECIALIZED_EXECUTE`
+  - 命中专属 handler，先计算结构化结果，再交给 LLM 做受限润色
+- `GENERIC_WEALTH_GUIDANCE`
+  - 仍然是理财问题，但不需要专属处理器
+  - 先给判断，再解释因素，再结合当前已知用户数据给出一般性建议
+- `ASK_CLARIFY`
+  - 问题仍在理财范围内，但缺少关键数据
+  - 先要求补充金额、期限、持仓或负债信息
+- `SAFE_DECLINE`
+  - 问题属于理财相关，但当前产品不具备安全回答所需的数据或规则支持
+
+典型示例：
+
+- `给我一些投资建议`
+  - `WEALTH_OVERVIEW + GENERIC_WEALTH_GUIDANCE`
+- `Can I afford a $800k condo`
+  - `GOAL_FEASIBILITY + GENERIC_WEALTH_GUIDANCE`
 
 当前已定义的主要意图包括：
 
@@ -37,6 +62,17 @@
 - `PRODUCT_COMPARISON`
 - `PORTFOLIO_REBALANCING`
 - `OUT_OF_SCOPE`
+
+几个典型映射：
+
+- `What is the best funds for $50,000?`
+  - `FUND_SELECTION + SPECIALIZED_EXECUTE`
+- `Should I diversify my portfolio?`
+  - `WEALTH_OVERVIEW + GENERIC_WEALTH_GUIDANCE`
+- `Save for retirement or pay off debt?`
+  - `WEALTH_OVERVIEW + ASK_CLARIFY`
+- `What are the tax-efficient investment options?`
+  - `WEALTH_OVERVIEW + SAFE_DECLINE`
 
 ## 技术栈
 
@@ -174,6 +210,8 @@ curl -X POST http://localhost:8080/api/v1/wealth-advisor/chat \
 - `finalRecommendedProducts`：专属处理器保留的最终候选
 - `advisoryHighlights`：会包含预算分配、比较结论或再平衡提示
 - `answer`：先由专属处理器生成结构化结论，再交给 LLM 做受限润色
+
+对于通用理财回答和专属场景，`investmentPlanSummaries` 会单独返回给前端，页面不再需要从 `answer` 文本里拆计划摘要。
 
 ## 关键代码
 

@@ -4,6 +4,7 @@ public record IntentClassificationResult(
         WealthIntentCode intentCode,
         String intentName,
         String reason,
-        boolean usedLlm
+        boolean usedLlm,
+        ResponsePolicy responsePolicy
 ) {
 }

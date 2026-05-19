@@ -52,44 +52,60 @@ public class SpecializedAdvisoryService {
     }
 
     private SpecializedAdvisoryResult adviseFundSelection(WealthInsight insight, String userMessage) {
-        BigDecimal budget = extractBudget(userMessage).orElse(new BigDecimal("50000"));
+        Optional<BigDecimal> budget = extractBudget(userMessage);
         String preferredCurrency = detectCurrency(userMessage);
         List<ProductRecommendation> candidates = financialProductRepository
                 .findBySupportedRiskLevelAndProductCategoryInOrderByAnnualReturnRateDesc(
                         insight.riskLevel(),
                         List.of(ProductCategory.FUND, ProductCategory.EQUITY_FUND, ProductCategory.MIXED_FUND)
                 ).stream()
-                .filter(product -> isBudgetEligible(product, budget))
+                .filter(product -> budget.map(value -> isBudgetEligible(product, value)).orElse(true))
                 .sorted(Comparator
                         .comparing((FinancialProduct product) -> currencyScore(product.getCurrency(), preferredCurrency)).reversed()
                         .thenComparing(FinancialProduct::getAnnualReturnRate, Comparator.reverseOrder()))
                 .limit(3)
                 .map(product -> new ProductRecommendation(
                         product,
-                        buildFundReason(product, budget, preferredCurrency, insight.language()),
-                        false
+                        buildFundReason(product, budget.orElse(null), preferredCurrency, insight.language()),
+                        false,
+                        preferredCurrency
                 ))
                 .toList();
-        Map<String, BigDecimal> allocationPlan = buildFundAllocationPlan(insight.riskLevel(), budget, candidates);
+        Map<String, BigDecimal> allocationPlan = budget.map(value -> buildFundAllocationPlan(insight.riskLevel(), value, candidates)).orElse(Map.of());
         List<LlmProductSelection> finals = candidates.stream()
-                .filter(item -> allocationPlan.containsKey(item.product().getProductCode()))
+                .filter(item -> allocationPlan.isEmpty() || allocationPlan.containsKey(item.product().getProductCode()))
+                .limit(allocationPlan.isEmpty() ? 2 : candidates.size())
                 .map(item -> new LlmProductSelection(item, item.reason()))
                 .toList();
         List<String> highlights = new ArrayList<>();
         if (insight.language() == SupportedLanguage.EN) {
-            highlights.add("Filtered funds by your risk level, minimum investment threshold, and the stated budget.");
-            highlights.add("Preferred funds in " + preferredCurrency + " where possible, and converted the budget into a concrete allocation plan.");
-            allocationPlan.forEach((productCode, amount) -> highlights.add("Suggested allocation: " + productCode + " -> " + amount.stripTrailingZeros().toPlainString() + " " + preferredCurrency));
+            highlights.add(budget.isPresent()
+                    ? "Filtered funds by your risk level, minimum investment threshold, and the stated budget."
+                    : "Filtered funds by your risk level and product suitability because no explicit budget was provided.");
+            highlights.add("Preferred funds in " + preferredCurrency + " where possible.");
+            if (allocationPlan.isEmpty()) {
+                highlights.add("No explicit budget was given, so the result uses a percentage-based allocation suggestion instead of fixed amounts.");
+            } else {
+                allocationPlan.forEach((productCode, amount) -> highlights.add("Suggested allocation: " + productCode + " -> " + amount.stripTrailingZeros().toPlainString() + " " + preferredCurrency));
+            }
         } else {
-            highlights.add("已按你的风险等级、起投门槛和预算金额筛选基金。");
-            highlights.add("优先保留与问题币种更匹配的基金，并生成了预算分配方案。");
-            allocationPlan.forEach((productCode, amount) -> highlights.add("建议分配： " + productCode + " -> " + amount.stripTrailingZeros().toPlainString() + " " + preferredCurrency));
+            highlights.add(budget.isPresent()
+                    ? "已按你的风险等级、起投门槛和预算金额筛选基金。"
+                    : "由于你没有明确给出预算金额，当前先按风险等级和适配性筛选基金。");
+            highlights.add("优先保留与问题币种更匹配的基金。");
+            if (allocationPlan.isEmpty()) {
+                highlights.add("当前返回的是比例型配置建议，而不是固定金额分配。");
+            } else {
+                allocationPlan.forEach((productCode, amount) -> highlights.add("建议分配： " + productCode + " -> " + amount.stripTrailingZeros().toPlainString() + " " + preferredCurrency));
+            }
         }
         String summary = insight.language() == SupportedLanguage.EN
+                ? (budget.isPresent()
                 ? "Selected the best-fit fund candidates and proposed a budget allocation plan."
+                : "Selected the best-fit fund candidates and proposed a percentage-based allocation.")
                 : "已筛选出与预算最匹配的基金候选。";
-        String answer = buildFundAnswer(insight.language(), budget, preferredCurrency, finals, allocationPlan);
-        return new SpecializedAdvisoryResult(candidates, finals, List.of(), highlights, summary, answer);
+        String answer = buildFundAnswer(insight.language(), budget.orElse(null), preferredCurrency, finals, allocationPlan);
+        return new SpecializedAdvisoryResult(candidates, finals, List.of(), buildFundPlanSummaries(insight.language(), budget.orElse(null), preferredCurrency, finals, allocationPlan), highlights, summary, answer);
     }
 
     private SpecializedAdvisoryResult adviseFixedDepositVsBond(WealthInsight insight) {
@@ -107,13 +123,13 @@ public class SpecializedAdvisoryService {
                 product,
                 insight.language() == SupportedLanguage.EN
                         ? "Fixed deposit option with higher liquidity discipline and predictable capital preservation."
-                        : "定存方案，强调本金稳定和确定性。", false
+                        : "定存方案，强调本金稳定和确定性。", false, product.getCurrency()
         )));
         bonds.stream().findFirst().ifPresent(product -> candidates.add(new ProductRecommendation(
                 product,
                 insight.language() == SupportedLanguage.EN
                         ? "Bond option with better yield potential but more interest-rate and credit sensitivity."
-                        : "债券方案，收益潜力更高，但利率和信用风险更高。", false
+                        : "债券方案，收益潜力更高，但利率和信用风险更高。", false, product.getCurrency()
         )));
 
         List<LlmProductSelection> finals = candidates.stream()
@@ -133,7 +149,7 @@ public class SpecializedAdvisoryService {
                 ? "Compared a fixed-deposit option and a bond option under your current risk profile."
                 : "已基于当前风险等级比较定存与债券方案。";
         String answer = buildFixedDepositVsBondAnswer(insight.language(), Optional.ofNullable(fixed), Optional.ofNullable(bond), preferredSide);
-        return new SpecializedAdvisoryResult(candidates, finals, List.of(), highlights, summary, answer);
+        return new SpecializedAdvisoryResult(candidates, finals, List.of(), List.of(), highlights, summary, answer);
     }
 
     private SpecializedAdvisoryResult advisePortfolioRebalancing(WealthInsight insight) {
@@ -163,7 +179,8 @@ public class SpecializedAdvisoryService {
                         insight.language() == SupportedLanguage.EN
                                 ? "Defensive sleeve candidate for lowering drawdown sensitivity in a volatile market."
                                 : "用于降低组合波动的防御型候选资产。",
-                        true
+                        true,
+                        product.getCurrency()
                 ))
                 .orElse(null);
 
@@ -192,7 +209,7 @@ public class SpecializedAdvisoryService {
                 targetDefensivePercent,
                 suggestedShiftAmount
         );
-        return new SpecializedAdvisoryResult(candidates, finals, List.of(), highlights, summary, answer);
+        return new SpecializedAdvisoryResult(candidates, finals, List.of(), List.of(), highlights, summary, answer);
     }
 
     private List<String> buildPortfolioHighlights(
@@ -245,11 +262,64 @@ public class SpecializedAdvisoryService {
                 .map(code -> code + " -> " + allocationPlan.get(code).stripTrailingZeros().toPlainString() + " " + currency)
                 .reduce((left, right) -> left + "; " + right)
                 .orElse("");
+        String percentageText = switch (finals.size()) {
+            case 0 -> "";
+            case 1 -> finals.get(0).product().product().getProductCode() + " -> 100%";
+            case 2 -> finals.get(0).product().product().getProductCode() + " -> 60%; " + finals.get(1).product().product().getProductCode() + " -> 40%";
+            default -> finals.get(0).product().product().getProductCode() + " -> 50%; "
+                    + finals.get(1).product().product().getProductCode() + " -> 30%; "
+                    + finals.get(2).product().product().getProductCode() + " -> 20%";
+        };
+        if (budget == null) {
+            return language == SupportedLanguage.EN
+                    ? "The top fund candidates for your profile are %s. Since you did not specify a budget, I am giving a percentage-based allocation instead of fixed amounts: %s. Prioritize the first fund as the core allocation and use the remaining fund(s) for diversification."
+                    .formatted(joined, percentageText)
+                    : "结合你的风险画像，当前更适合的基金候选为 %s。由于你没有明确给出预算金额，我先给出比例型配置建议而不是固定金额：%s。建议将首个基金作为核心仓位，其余基金用于分散配置。"
+                    .formatted(joined, percentageText);
+        }
         return language == SupportedLanguage.EN
                 ? "For a budget of %s %s, the strongest current fund candidates are %s. They pass the minimum investment threshold and are aligned with your current risk profile. A practical allocation plan is: %s. Prioritize the first candidate for the core allocation, and use the later candidates for diversification."
                 .formatted(budget.stripTrailingZeros().toPlainString(), currency, joined, allocationText)
                 : "针对 %s %s 的预算，当前更匹配的基金候选为 %s。这些产品满足起投门槛，并与你当前的风险等级匹配。一个更实用的分配方案是：%s。建议将首个候选作为核心仓位，后续候选用于分散配置。"
                 .formatted(budget.stripTrailingZeros().toPlainString(), currency, joined, allocationText);
+    }
+
+    private List<String> buildFundPlanSummaries(
+            SupportedLanguage language,
+            BigDecimal budget,
+            String currency,
+            List<LlmProductSelection> finals,
+            Map<String, BigDecimal> allocationPlan
+    ) {
+        if (budget == null) {
+            if (finals.isEmpty()) {
+                return List.of();
+            }
+            return switch (finals.size()) {
+                case 1 -> List.of(finals.get(0).product().product().getProductName()
+                        + (language == SupportedLanguage.EN ? ": 100% core allocation" : "：100% 核心仓位"));
+                case 2 -> List.of(
+                        finals.get(0).product().product().getProductName() + (language == SupportedLanguage.EN ? ": 60% core allocation" : "：60% 核心仓位"),
+                        finals.get(1).product().product().getProductName() + (language == SupportedLanguage.EN ? ": 40% diversification allocation" : "：40% 分散配置")
+                );
+                default -> List.of(
+                        finals.get(0).product().product().getProductName() + (language == SupportedLanguage.EN ? ": 50% core allocation" : "：50% 核心仓位"),
+                        finals.get(1).product().product().getProductName() + (language == SupportedLanguage.EN ? ": 30% secondary allocation" : "：30% 次级配置"),
+                        finals.get(2).product().product().getProductName() + (language == SupportedLanguage.EN ? ": 20% diversification allocation" : "：20% 分散配置")
+                );
+            };
+        }
+        return finals.stream()
+                .map(item -> {
+                    BigDecimal amount = allocationPlan.get(item.product().product().getProductCode());
+                    if (amount == null) {
+                        amount = budget.divide(BigDecimal.valueOf(Math.max(finals.size(), 1)), 2, RoundingMode.HALF_UP);
+                    }
+                    return language == SupportedLanguage.EN
+                            ? "%s: allocate about %s %s".formatted(item.product().product().getProductName(), amount.stripTrailingZeros().toPlainString(), currency)
+                            : "%s：建议分配约 %s %s".formatted(item.product().product().getProductName(), amount.stripTrailingZeros().toPlainString(), currency);
+                })
+                .toList();
     }
 
     private String buildFixedDepositVsBondAnswer(
@@ -367,6 +437,12 @@ public class SpecializedAdvisoryService {
     }
 
     private String buildFundReason(FinancialProduct product, BigDecimal budget, String currency, SupportedLanguage language) {
+        if (budget == null) {
+            if (language == SupportedLanguage.EN) {
+                return "Aligned with your risk profile, available in %s, and competitive on return within the current fund universe.".formatted(currency);
+            }
+            return "符合你的风险等级，币种为 %s，并且在当前基金池中具备较强收益竞争力。".formatted(currency);
+        }
         if (language == SupportedLanguage.EN) {
             return "Eligible under the stated budget of %s %s, aligned with your risk profile, and competitive on return within the current fund universe."
                     .formatted(budget.stripTrailingZeros().toPlainString(), currency);

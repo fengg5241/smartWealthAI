@@ -126,4 +126,45 @@ class IntentRoutingServiceTest {
 
         assertThat(result.intentCode().name()).isEqualTo("PORTFOLIO_REBALANCING");
     }
+
+    @Test
+    void shouldUseSafeDeclineForTaxPlanningQuestion() {
+        var result = intentRoutingService.classifyWithRules(
+                "What are the tax-efficient investment options?",
+                List.of()
+        );
+
+        assertThat(result.responsePolicy().name()).isEqualTo("SAFE_DECLINE");
+    }
+
+    @Test
+    void shouldUseAskClarifyForDebtVsRetirementQuestion() {
+        var result = intentRoutingService.classifyWithRules(
+                "Save for retirement or pay off debt?",
+                List.of()
+        );
+
+        assertThat(result.responsePolicy().name()).isEqualTo("ASK_CLARIFY");
+    }
+
+    @Test
+    void shouldUseGenericGuidanceForAffordabilityQuestion() {
+        var result = intentRoutingService.classifyWithRules(
+                "Can I afford a $800k condo",
+                List.of()
+        );
+
+        assertThat(result.intentCode().name()).isEqualTo("GOAL_FEASIBILITY");
+        assertThat(result.responsePolicy().name()).isEqualTo("GENERIC_WEALTH_GUIDANCE");
+    }
+
+    @Test
+    void shouldUseGenericGuidanceForDiversificationQuestion() {
+        var result = intentRoutingService.classifyWithRules(
+                "Should I diversify my portfolio?",
+                List.of()
+        );
+
+        assertThat(result.responsePolicy().name()).isEqualTo("GENERIC_WEALTH_GUIDANCE");
+    }
 }

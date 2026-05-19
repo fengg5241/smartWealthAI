@@ -5,6 +5,7 @@ import com.smartwealth.ai.config.WealthAdvisorProperties;
 import com.smartwealth.ai.service.model.LlmAdvisoryResult;
 import com.smartwealth.ai.service.model.LlmProductSelection;
 import com.smartwealth.ai.service.model.ProductRecommendation;
+import com.smartwealth.ai.service.model.ResponsePolicy;
 import com.smartwealth.ai.service.model.SpecializedAdvisoryResult;
 import com.smartwealth.ai.service.model.SupportedLanguage;
 import com.smartwealth.ai.service.model.WealthInsight;
@@ -125,6 +126,7 @@ public class LlmAdvisoryService {
                     baseResult.candidateProducts(),
                     baseResult.finalRecommendations(),
                     baseResult.investmentPlans(),
+                    baseResult.investmentPlanSummaries(),
                     baseResult.advisoryHighlights(),
                     polishedSummary.isBlank() ? baseResult.selectionSummary() : polishedSummary,
                     polishedAnswer.isBlank() ? baseResult.answer() : polishedAnswer
@@ -132,6 +134,26 @@ public class LlmAdvisoryService {
         } catch (Exception exception) {
             log.warn("Specialized answer polish failed for userId={}, using base result: {}", insight.userId(), exception.getMessage());
             return baseResult;
+        }
+    }
+
+    public String generateGenericWealthGuidance(WealthInsight insight, String userMessage) {
+        String fallback = buildGenericFallback(insight, userMessage);
+        try {
+            String raw = chatClient.prompt()
+                    .options(OpenAiChatOptions.builder()
+                            .model(properties.getLlm().getAnswerModel())
+                            .temperature(properties.getLlm().getAnswerTemperature())
+                            .maxTokens(properties.getLlm().getAnswerMaxTokens())
+                            .build())
+                    .system(buildGenericGuidanceSystemPrompt(insight.language()))
+                    .user(buildGenericGuidanceUserPrompt(insight, userMessage))
+                    .call()
+                    .content();
+            return raw == null || raw.isBlank() ? fallback : raw.trim();
+        } catch (Exception exception) {
+            log.warn("Generic wealth guidance generation failed for userId={}, using fallback: {}", insight.userId(), exception.getMessage());
+            return fallback;
         }
     }
 
@@ -202,6 +224,73 @@ public class LlmAdvisoryService {
                   "answer": "面向用户的最终自然语言回答"
                 }
                 """;
+    }
+
+    private String buildGenericGuidanceSystemPrompt(SupportedLanguage language) {
+        if (language == SupportedLanguage.EN) {
+            return """
+                    You are a wealth-management advisor answering a general in-scope wealth question.
+                    Do not force product recommendations unless the user explicitly asks for products.
+                    Answer with a direct core judgement first, then explain the main factors, then connect them to the user's known risk level, cashflow, savings goal, or portfolio when relevant.
+                    If user data is insufficient for a precise answer, say what extra information would improve the answer.
+                    If the intent is GOAL_FEASIBILITY, you must follow the provided scenario calculation exactly and clearly answer yes, no, or not yet.
+                    For GOAL_FEASIBILITY, do not use vague language such as "may be able to afford" when the provided gap is greater than zero.
+                    If scenario.affordableNow is false, you must state that the user cannot afford it yet under the provided assumption.
+                    If scenario.affordableNow is true, you must state that the user can afford it under the provided assumption.
+                    Keep the answer practical and concise.
+                    """;
+        }
+        return """
+                你是财富管理顾问，正在回答一个处于支持范围内、但不一定需要专属处理器的通用理财问题。
+                除非用户明确索要产品，否则不要强行推荐产品。
+                回答时先给出核心判断，再解释主要影响因素，再结合用户已知的风险等级、现金流、储蓄目标或持仓情况做个性化说明。
+                如果当前数据不足以给出更精确结论，要明确说明还需要什么信息。
+                如果意图是 GOAL_FEASIBILITY，你必须严格依据给定的场景测算结果回答“可以买 / 还不行 / 还买不起”。
+                对于 GOAL_FEASIBILITY，只要 scenario.affordableNow 为 false，就不能使用“可能可以买得起”这类模糊表达。
+                只要 scenario.affordableNow 为 true，才可以明确说当前买得起。
+                保持回答务实、简洁、可执行。
+                """;
+    }
+
+    private String buildGenericGuidanceUserPrompt(WealthInsight insight, String userMessage) {
+        return """
+                user_question:
+                %s
+
+                response_policy:
+                %s
+
+                intent:
+                %s
+
+                risk_level:
+                %s
+
+                monthly_cashflow:
+                %s
+
+                goal_projection:
+                %s
+
+                goal_scenario:
+                %s
+
+                portfolio_holdings:
+                %s
+
+                advisory_highlights:
+                %s
+                """.formatted(
+                userMessage,
+                insight.workflow().responsePolicy(),
+                insight.workflow().intentCode(),
+                insight.riskLevel(),
+                insight.monthlyAnalyses(),
+                insight.goalProjection(),
+                insight.goalScenarioAnalysis(),
+                insight.portfolioHoldings(),
+                insight.advisoryHighlights()
+        );
     }
 
     private String buildSpecializedPolishSystemPrompt(SupportedLanguage language) {
@@ -364,6 +453,21 @@ public class LlmAdvisoryService {
         return emptySelections
                 ? "当前没有可供推荐的候选产品。"
                 : "基于风险等级、目标期限和现金流能力，优先推荐 1 个最匹配候选产品。";
+    }
+
+    private String buildGenericFallback(WealthInsight insight, String userMessage) {
+        if (insight.language() == SupportedLanguage.EN) {
+            return """
+                    This is still a wealth-management question, and the right answer depends mainly on your goal horizon, risk tolerance, cashflow stability, and current allocation.
+                    Based on your current risk level of %s, the safer approach is to avoid forcing product changes unless the decision clearly fits your time horizon and cashflow capacity.
+                    If you want a more precise answer, the next useful detail would be your exact objective for this decision and any relevant amounts or existing holdings.
+                    """.formatted(insight.riskLevel()).trim();
+        }
+        return """
+                这是一个财富管理范围内的问题，核心判断通常取决于你的目标期限、风险承受能力、现金流稳定性以及当前配置情况。
+                结合你当前的风险等级 %s，更稳妥的做法是不要急于做产品层面的调整，而是先确认这次决策是否与你的目标期限和现金流承受能力匹配。
+                如果你想得到更精确的建议，下一步最有价值的信息是你的具体目标，以及相关金额或现有持仓情况。
+                """.formatted(insight.riskLevel()).trim();
     }
 
     private String buildCandidateBlock(List<ProductRecommendation> candidates) {

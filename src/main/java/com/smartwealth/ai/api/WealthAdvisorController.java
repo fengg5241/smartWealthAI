@@ -12,6 +12,7 @@ import com.smartwealth.ai.service.WealthInsightService;
 import com.smartwealth.ai.service.model.SupportedLanguage;
 import com.smartwealth.ai.service.model.WealthIntentCode;
 import com.smartwealth.ai.service.model.WealthWorkflow;
+import com.smartwealth.ai.service.model.ResponsePolicy;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -73,6 +74,7 @@ public class WealthAdvisorController {
                         WealthIntentCode.WEALTH_OVERVIEW,
                         "Wealth Overview",
                         "Generated user wealth overview.",
+                        ResponsePolicy.GENERIC_WEALTH_GUIDANCE,
                         true,
                         false,
                         false,

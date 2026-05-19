@@ -8,6 +8,7 @@ import com.smartwealth.ai.service.model.InvestmentPlan;
 import com.smartwealth.ai.service.model.SupportedLanguage;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -85,18 +86,27 @@ public class AdvisoryNarrativeService {
         var projection = insight.goalProjection();
         MonthlyAnalysis current = insight.monthlyAnalyses().getLast();
         boolean english = insight.language() == SupportedLanguage.EN;
+        boolean downPaymentScenario = isDownPaymentScenario(scenario);
+        String targetLabel = english
+                ? (downPaymentScenario ? "required down payment" : "target amount")
+                : (downPaymentScenario ? "目标首付" : "目标金额");
+        String gapLabel = english
+                ? (downPaymentScenario ? "funding gap" : "target gap")
+                : (downPaymentScenario ? "资金缺口" : "目标缺口");
 
         if (selections == null || selections.isEmpty()) {
             if (english) {
                 return """
-                        Current savings are %s %s, the required down payment is %s %s, and the funding gap is %s %s.
+                        Current savings are %s %s, the %s is %s %s, and the %s is %s %s.
                         Based on a monthly contribution of %s %s, the target is estimated to be reached in about %d months, around %s.
                         Reduce the largest expense categories first and keep monthly savings stable.
                         """.formatted(
                         scenario.currentSavingsBalance().toPlainString(),
                         scenario.currency(),
+                        targetLabel,
                         scenario.requiredDownPayment().toPlainString(),
                         scenario.currency(),
+                        gapLabel,
                         scenario.savingsGap().toPlainString(),
                         scenario.currency(),
                         projection.projectedMonthlyContribution().toPlainString(),
@@ -106,14 +116,16 @@ public class AdvisoryNarrativeService {
                 ).trim();
             }
             return """
-                    当前存款为 %s %s，目标首付为 %s %s，资金缺口为 %s %s。
+                    当前存款为 %s %s，%s为 %s %s，%s为 %s %s。
                     按当前每月可投入 %s %s 计算，预计约 %d 个月可以达到目标，预计日期为 %s。
                     建议优先从当前支出最高的项目开始压缩，并持续保留稳定月度储蓄。
                     """.formatted(
                     scenario.currentSavingsBalance().toPlainString(),
                     scenario.currency(),
+                    targetLabel,
                     scenario.requiredDownPayment().toPlainString(),
                     scenario.currency(),
+                    gapLabel,
                     scenario.savingsGap().toPlainString(),
                     scenario.currency(),
                     projection.projectedMonthlyContribution().toPlainString(),
@@ -166,16 +178,16 @@ public class AdvisoryNarrativeService {
                 .limit(2)
                 .map(entry -> english
                         ? entry.getKey() + " spending is about " + entry.getValue().toPlainString()
-                        : entry.getKey() + " 支出约 " + entry.getValue().toPlainString())
-                .reduce((left, right) -> left + "，" + right)
+                        : localizeCategory(entry.getKey()) + " 支出约 " + entry.getValue().toPlainString())
+                .reduce((left, right) -> english ? left + ", " + right : left + "，" + right)
                 .orElse(english ? "there is no obvious high-expense category yet" : "暂无明显高支出分类");
 
         if (english) {
             return """
-                    Current savings are %s %s, the required down payment is %s %s, and the funding gap is %s %s.
+                    Current savings are %s %s, the %s is %s %s, and the %s is %s %s.
                     Based on a monthly contribution ceiling of %s %s, pure saving would take about %d months, reaching the goal around %s.
 
-                    The recommended product is %s (%s), with an annualized return of about %s, a minimum holding period of %d days, and liquidity level %s.
+                    The recommended product is %s (%s), denominated in %s, with an annualized return of about %s, a minimum holding period of %d days, and liquidity level %s.
                     Recommendation reason: %s
                     Risk and compliance note: %s
 
@@ -186,8 +198,10 @@ public class AdvisoryNarrativeService {
                     """.formatted(
                     scenario.currentSavingsBalance().stripTrailingZeros().toPlainString(),
                     scenario.currency(),
+                    targetLabel,
                     scenario.requiredDownPayment().stripTrailingZeros().toPlainString(),
                     scenario.currency(),
+                    gapLabel,
                     scenario.savingsGap().stripTrailingZeros().toPlainString(),
                     scenario.currency(),
                     projection.projectedMonthlyContribution().stripTrailingZeros().toPlainString(),
@@ -196,20 +210,21 @@ public class AdvisoryNarrativeService {
                     scenario.estimatedReachDate(),
                     selectedRecommendation.product().getProductName(),
                     selectedRecommendation.product().getProductCode(),
+                    selectedRecommendation.product().getCurrency(),
                     selectedRecommendation.product().getAnnualReturnRate().movePointRight(2).stripTrailingZeros().toPlainString() + "%",
                     selectedRecommendation.product().getMinHoldingDays(),
-                    selectedRecommendation.product().getLiquidityLevel().name(),
+                    localizeLiquidity(selectedRecommendation.product().getLiquidityLevel().name()),
                     selected.reason(),
-                    selectedRecommendation.product().getComplianceNote(),
+                    localizeComplianceNote(selectedRecommendation.product().getComplianceNote(), insight.language()),
                     planComparison,
                     savingsAdvice
-            ).trim();
+        ).trim();
         }
         return """
-                当前存款为 %s %s，目标首付为 %s %s，资金缺口为 %s %s。
+                当前存款为 %s %s，%s为 %s %s，%s为 %s %s。
                 按当前每月可投入上限 %s %s 计算，单纯储蓄预计约 %d 个月达到目标，预计日期为 %s。
 
-                推荐产品为 %s（%s），年化收益率约 %s，最短持有期 %d 天，流动性 %s。
+                推荐产品为 %s（%s），产品币种为 %s，年化收益率约 %s，最短持有期 %d 天，流动性 %s。
                 推荐理由：%s
                 合规与风险提示：%s
 
@@ -220,8 +235,10 @@ public class AdvisoryNarrativeService {
                 """.formatted(
                 scenario.currentSavingsBalance().stripTrailingZeros().toPlainString(),
                 scenario.currency(),
+                targetLabel,
                 scenario.requiredDownPayment().stripTrailingZeros().toPlainString(),
                 scenario.currency(),
+                gapLabel,
                 scenario.savingsGap().stripTrailingZeros().toPlainString(),
                 scenario.currency(),
                 projection.projectedMonthlyContribution().stripTrailingZeros().toPlainString(),
@@ -230,14 +247,78 @@ public class AdvisoryNarrativeService {
                 scenario.estimatedReachDate(),
                 selectedRecommendation.product().getProductName(),
                 selectedRecommendation.product().getProductCode(),
+                selectedRecommendation.product().getCurrency(),
                 selectedRecommendation.product().getAnnualReturnRate().movePointRight(2).stripTrailingZeros().toPlainString() + "%",
                 selectedRecommendation.product().getMinHoldingDays(),
-                selectedRecommendation.product().getLiquidityLevel().name(),
+                localizeLiquidity(selectedRecommendation.product().getLiquidityLevel().name()),
                 selected.reason(),
-                selectedRecommendation.product().getComplianceNote(),
+                localizeComplianceNote(selectedRecommendation.product().getComplianceNote(), insight.language()),
                 planComparison,
                 savingsAdvice
         ).trim();
+    }
+
+    private boolean isDownPaymentScenario(com.smartwealth.ai.service.model.GoalScenarioAnalysis scenario) {
+        if (scenario == null || scenario.scenarioName() == null) {
+            return false;
+        }
+        String normalized = scenario.scenarioName().toLowerCase(Locale.ROOT);
+        return normalized.contains("down payment") || normalized.contains("首付");
+    }
+
+    public List<String> buildInvestmentPlanSummaries(
+            SupportedLanguage language,
+            List<InvestmentPlan> investmentPlans,
+            String currency
+    ) {
+        return investmentPlans.stream()
+                .map(plan -> language == SupportedLanguage.EN
+                        ? "%s: invest about %s %s monthly".formatted(
+                        plan.productName(),
+                        plan.monthlyInvestmentAmount().stripTrailingZeros().toPlainString(),
+                        currency
+                )
+                        : "%s：每月投入约 %s %s".formatted(
+                        plan.productName(),
+                        plan.monthlyInvestmentAmount().stripTrailingZeros().toPlainString(),
+                        currency
+                ))
+                .toList();
+    }
+
+    private String localizeCategory(String category) {
+        return switch (category) {
+            case "Housing" -> "住房";
+            case "Family" -> "家庭";
+            case "Food" -> "餐饮";
+            case "Transport" -> "交通";
+            case "Insurance" -> "保险";
+            case "Medical" -> "医疗";
+            case "Education" -> "教育";
+            case "Utilities" -> "水电杂费";
+            case "Shopping" -> "购物";
+            case "Travel" -> "旅行";
+            default -> category;
+        };
+    }
+
+    private String localizeLiquidity(String liquidity) {
+        return switch (liquidity) {
+            case "HIGH" -> "高";
+            case "MEDIUM" -> "中";
+            case "LOW" -> "低";
+            default -> liquidity;
+        };
+    }
+
+    private String localizeComplianceNote(String note, SupportedLanguage language) {
+        if (language == SupportedLanguage.EN || note == null || note.isBlank()) {
+            return note == null ? "" : note;
+        }
+        if (note.contains("Suitable only for conservative risk clients")) {
+            return "仅适合保守型风险客户。仍可能出现中等幅度波动，投资前需评估持有期限是否匹配。";
+        }
+        return note;
     }
 
     public String buildFallbackAnswer(

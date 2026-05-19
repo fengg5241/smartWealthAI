@@ -30,7 +30,13 @@ public class GoalScenarioService {
         }
 
         String normalized = userMessage.toLowerCase(Locale.ROOT);
-        if (!normalized.contains("公寓") && !normalized.contains("apartment") && !normalized.contains("首付")) {
+        if (!normalized.contains("公寓")
+                && !normalized.contains("apartment")
+                && !normalized.contains("condo")
+                && !normalized.contains("house")
+                && !normalized.contains("home")
+                && !normalized.contains("property")
+                && !normalized.contains("首付")) {
             return defaultGoalScenario(userProfile, goalProjection);
         }
 
@@ -76,7 +82,7 @@ public class GoalScenarioService {
     private GoalScenarioAnalysis defaultGoalScenario(UserProfile userProfile, GoalProjection goalProjection) {
         BigDecimal currentBalance = userProfile.getAvailableSavingsBalance().setScale(2, RoundingMode.HALF_UP);
         return new GoalScenarioAnalysis(
-                goalProjection.goalName(),
+                "Savings Goal",
                 goalProjection.targetAmount(),
                 goalProjection.targetAmount(),
                 currentBalance,
@@ -84,7 +90,7 @@ public class GoalScenarioService {
                 currentBalance.compareTo(goalProjection.targetAmount()) >= 0,
                 goalProjection.monthsToGoal(),
                 goalProjection.projectedCompletionDate(),
-                "CNY"
+                "SGD"
         );
     }
 

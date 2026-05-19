@@ -3,6 +3,7 @@ package com.smartwealth.ai.service;
 import com.smartwealth.ai.api.response.ChatIntentType;
 import com.smartwealth.ai.service.model.ChatIntent;
 import com.smartwealth.ai.service.model.IntentClassificationResult;
+import com.smartwealth.ai.service.model.ResponsePolicy;
 import com.smartwealth.ai.service.model.SupportedLanguage;
 import com.smartwealth.ai.service.model.WealthIntentCode;
 import java.util.List;
@@ -23,7 +24,10 @@ public class IntentRoutingService {
             "如何才能实现", "怎么实现", "能买吗", "首付", "风险过高", "太高", "降低风险", "更合理", "更稳健", "更低风险", "省钱"
     );
     private static final List<String> PRODUCT_REQUEST_KEYWORDS = List.of(
-            "推荐产品", "什么产品", "哪个产品", "买什么", "如何实现", "怎么实现", "实现目标", "风险过高", "太高", "更合理", "更稳健", "更低风险"
+            "推荐产品", "理财产品推荐", "什么产品", "哪个产品", "买什么", "如何实现", "怎么实现", "实现目标", "风险过高", "太高", "更合理", "更稳健", "更低风险"
+    );
+    private static final List<String> CN_GENERIC_GUIDANCE_PHRASES = List.of(
+            "投资建议", "理财建议", "理财推荐", "怎么理财", "如何理财", "投资入门", "怎么开始投资", "如何开始投资"
     );
     private static final List<String> EN_PRODUCT_RECOMMENDATION_PHRASES = List.of(
             "recommend a product", "recommend products", "product recommendation", "which product",
@@ -42,7 +46,8 @@ public class IntentRoutingService {
             "adjust my portfolio", "volatile market", "market is so volatile", "adjust my allocation"
     );
     private static final List<String> EN_GOAL_FEASIBILITY_PHRASES = List.of(
-            "can i afford", "afford", "down payment", "mortgage", "is it enough", "do i have enough"
+            "can i afford", "afford", "down payment", "mortgage", "is it enough", "do i have enough",
+            "condo", "house", "home", "property", "can i buy"
     );
     private static final List<String> EN_GOAL_PROGRESS_PHRASES = List.of(
             "goal progress", "reach my goal", "reach the goal", "when can i reach", "how long to reach",
@@ -54,7 +59,19 @@ public class IntentRoutingService {
     );
     private static final List<String> EN_WEALTH_OVERVIEW_PHRASES = List.of(
             "wealth overview", "financial overview", "my finances", "my financial situation",
-            "risk level", "asset allocation", "savings plan"
+            "risk level", "asset allocation", "savings plan", "diversify", "portfolio", "allocation",
+            "investment advice", "financial advice", "investing advice", "investment strategy",
+            "how to start investing", "start investing", "begin investing", "first time investing"
+    );
+    private static final List<String> EN_CLARIFY_PHRASES = List.of(
+            "retirement or pay off debt", "pay off debt", "retirement"
+    );
+    private static final List<String> EN_FOLLOW_UP_GUIDANCE_PHRASES = List.of(
+            "how can i make it real", "how do i make it real", "what should i do next", "how can i get there",
+            "how do i get there", "what can i do to make it happen"
+    );
+    private static final List<String> EN_SAFE_DECLINE_PHRASES = List.of(
+            "tax-efficient", "tax efficient", "insurance", "good time to buy stocks", "buy stocks now", "market timing"
     );
 
     public SupportedLanguage detectLanguage(String message) {
@@ -76,7 +93,8 @@ public class IntentRoutingService {
                 intentType,
                 classification.reason(),
                 classification.intentCode(),
-                classification.intentName()
+                classification.intentName(),
+                classification.responsePolicy()
         );
     }
 
@@ -89,13 +107,42 @@ public class IntentRoutingService {
                 || historyText.contains("公寓")
                 || historyText.contains("apartment")
                 || historyText.contains("首付");
+        boolean hasAffordabilityHistory = historyText.contains("afford")
+                || historyText.contains("down payment")
+                || historyText.contains("condo")
+                || historyText.contains("house")
+                || historyText.contains("property")
+                || historyText.contains("买房")
+                || historyText.contains("首付");
+
+        if (hasAffordabilityHistory && containsPhrase(normalized, EN_FOLLOW_UP_GUIDANCE_PHRASES)) {
+            return new IntentClassificationResult(
+                    WealthIntentCode.WEALTH_OVERVIEW,
+                    "Wealth Overview",
+                    "Rule-based classifier detected a follow-up wealth-guidance question after an affordability discussion.",
+                    false,
+                    ResponsePolicy.GENERIC_WEALTH_GUIDANCE
+            );
+        }
 
         if (containsPhrase(normalized, EN_PRODUCT_COMPARISON_PHRASES)) {
             return new IntentClassificationResult(
                     WealthIntentCode.PRODUCT_COMPARISON,
                     "Product Comparison",
                     "Rule-based classifier detected a product comparison request.",
-                    false
+                    false,
+                    ResponsePolicy.SPECIALIZED_EXECUTE
+            );
+        }
+
+        if (containsAny(normalized, "can i afford", "afford", "is it enough", "do i have enough", "can i buy")
+                || containsPhrase(normalized, EN_GOAL_FEASIBILITY_PHRASES)) {
+            return new IntentClassificationResult(
+                    WealthIntentCode.GOAL_FEASIBILITY,
+                    "Goal Feasibility",
+                    "Rule-based classifier detected an affordability or purchase-feasibility request.",
+                    false,
+                    ResponsePolicy.GENERIC_WEALTH_GUIDANCE
             );
         }
 
@@ -104,7 +151,8 @@ public class IntentRoutingService {
                     WealthIntentCode.FUND_SELECTION,
                     "Fund Selection",
                     "Rule-based classifier detected a fund selection request with a stated budget.",
-                    false
+                    false,
+                    ResponsePolicy.SPECIALIZED_EXECUTE
             );
         }
 
@@ -117,27 +165,41 @@ public class IntentRoutingService {
                             ? "Portfolio Rebalancing"
                             : "Risk Rebalancing",
                     "Rule-based classifier detected a request to lower risk or rebalance a volatile portfolio.",
-                    false
+                    false,
+                    normalized.contains("portfolio") || normalized.contains("volatile")
+                            ? ResponsePolicy.SPECIALIZED_EXECUTE
+                            : ResponsePolicy.GENERIC_WEALTH_GUIDANCE
             );
         }
 
-        if (containsAny(normalized, "推荐", "推荐产品", "什么产品", "哪个产品", "买什么")
+        if (containsPhrase(normalized, EN_SAFE_DECLINE_PHRASES)) {
+            return new IntentClassificationResult(
+                    WealthIntentCode.WEALTH_OVERVIEW,
+                    "Wealth Overview",
+                    "Rule-based classifier detected a wealth-related request that requires capabilities outside the current safe support boundary.",
+                    false,
+                    ResponsePolicy.SAFE_DECLINE
+            );
+        }
+
+        if (containsPhrase(normalized, EN_CLARIFY_PHRASES)) {
+            return new IntentClassificationResult(
+                    WealthIntentCode.WEALTH_OVERVIEW,
+                    "Wealth Overview",
+                    "Rule-based classifier detected a wealth-related request that needs more user-specific data before answering well.",
+                    false,
+                    ResponsePolicy.ASK_CLARIFY
+            );
+        }
+
+        if (PRODUCT_REQUEST_KEYWORDS.stream().anyMatch(normalized::contains)
                 || containsPhrase(normalized, EN_PRODUCT_RECOMMENDATION_PHRASES)) {
             return new IntentClassificationResult(
                     WealthIntentCode.PRODUCT_RECOMMENDATION,
                     "Product Recommendation",
                     "Rule-based classifier detected a product recommendation request.",
-                    false
-            );
-        }
-
-        if (containsAny(normalized, "够不够", "能不能", "能否支付", "支付得起", "首付")
-                || containsPhrase(normalized, EN_GOAL_FEASIBILITY_PHRASES)) {
-            return new IntentClassificationResult(
-                    WealthIntentCode.GOAL_FEASIBILITY,
-                    "Goal Feasibility",
-                    "Rule-based classifier detected a payment-feasibility or goal-affordability request.",
-                    false
+                    false,
+                    ResponsePolicy.SPECIALIZED_EXECUTE
             );
         }
 
@@ -147,7 +209,8 @@ public class IntentRoutingService {
                     WealthIntentCode.GOAL_PROGRESS,
                     "Goal Progress",
                     "Rule-based classifier detected a savings-goal progress request.",
-                    false
+                    false,
+                    ResponsePolicy.GENERIC_WEALTH_GUIDANCE
             );
         }
 
@@ -157,7 +220,18 @@ public class IntentRoutingService {
                     WealthIntentCode.CASHFLOW_ANALYSIS,
                     "Cashflow Analysis",
                     "Rule-based classifier detected a cashflow analysis request.",
-                    false
+                    false,
+                    ResponsePolicy.GENERIC_WEALTH_GUIDANCE
+            );
+        }
+
+        if (isGenericAdviceRequest(normalized)) {
+            return new IntentClassificationResult(
+                    WealthIntentCode.WEALTH_OVERVIEW,
+                    "Wealth Overview",
+                    "Rule-based classifier detected a general wealth-guidance request.",
+                    false,
+                    ResponsePolicy.GENERIC_WEALTH_GUIDANCE
             );
         }
 
@@ -166,7 +240,8 @@ public class IntentRoutingService {
                     WealthIntentCode.WEALTH_OVERVIEW,
                     "Wealth Overview",
                     "Rule-based classifier detected a general wealth-advisory request.",
-                    false
+                    false,
+                    ResponsePolicy.GENERIC_WEALTH_GUIDANCE
             );
         }
 
@@ -175,7 +250,8 @@ public class IntentRoutingService {
                     WealthIntentCode.OUT_OF_SCOPE,
                     "Out of Scope",
                     "Rule-based classifier detected a question outside wealth-advisory scope.",
-                    false
+                    false,
+                    ResponsePolicy.SAFE_DECLINE
             );
         }
 
@@ -183,7 +259,8 @@ public class IntentRoutingService {
                 WealthIntentCode.OUT_OF_SCOPE,
                 "Out of Scope",
                 "Rule-based classifier detected a general question outside wealth-advisory flow.",
-                false
+                false,
+                ResponsePolicy.SAFE_DECLINE
         );
     }
 
@@ -201,6 +278,17 @@ public class IntentRoutingService {
             return false;
         }
         return LATIN_PATTERN.matcher(message).find() && !HAN_PATTERN.matcher(message).find();
+    }
+
+    public boolean isGenericAdviceRequest(String message) {
+        String normalized = normalize(message);
+        return containsPhrase(normalized, CN_GENERIC_GUIDANCE_PHRASES)
+                || containsPhrase(normalized, EN_WEALTH_OVERVIEW_PHRASES);
+    }
+
+    public boolean isFollowUpGuidanceRequest(String message) {
+        String normalized = normalize(message);
+        return containsPhrase(normalized, EN_FOLLOW_UP_GUIDANCE_PHRASES);
     }
 
     private boolean isLikelyOutOfScope(String normalized) {

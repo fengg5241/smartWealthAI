@@ -32,19 +32,33 @@ public class ProductRecommendationService {
     }
 
     public List<ProductRecommendation> recommend(RiskLevel riskLevel, GoalProjection goalProjection) {
+        return recommend(riskLevel, goalProjection, null);
+    }
+
+    public List<ProductRecommendation> recommend(RiskLevel riskLevel, GoalProjection goalProjection, String preferredCurrency) {
         long targetDays = ChronoUnit.DAYS.between(LocalDate.now(clock), goalProjection.targetDate());
 
         return financialProductRepository.findBySupportedRiskLevelOrderByAnnualReturnRateDesc(riskLevel).stream()
                 .sorted(Comparator
-                        .comparing((FinancialProduct product) -> holdingFitScore(product, targetDays))
+                        .comparing((FinancialProduct product) -> currencyFitScore(product, preferredCurrency))
+                        .thenComparing(product -> holdingFitScore(product, targetDays))
                         .thenComparing(FinancialProduct::getAnnualReturnRate)
                         .reversed())
                 .limit(properties.getRecommendation().getMaxProducts())
-                .map(product -> new ProductRecommendation(product, buildReason(product, goalProjection, targetDays), false))
+                .map(product -> new ProductRecommendation(
+                        product,
+                        buildReason(product, goalProjection, targetDays, preferredCurrency),
+                        false,
+                        preferredCurrency != null && !preferredCurrency.isBlank() ? preferredCurrency : product.getCurrency()
+                ))
                 .toList();
     }
 
     public List<ProductRecommendation> recommendLowerRiskAlternatives(RiskLevel currentRiskLevel, GoalProjection goalProjection) {
+        return recommendLowerRiskAlternatives(currentRiskLevel, goalProjection, null);
+    }
+
+    public List<ProductRecommendation> recommendLowerRiskAlternatives(RiskLevel currentRiskLevel, GoalProjection goalProjection, String preferredCurrency) {
         RiskLevel fallbackRiskLevel = switch (currentRiskLevel) {
             case AGGRESSIVE -> RiskLevel.MODERATE;
             case GROWTH -> RiskLevel.MODERATE;
@@ -55,14 +69,16 @@ public class ProductRecommendationService {
         long targetDays = ChronoUnit.DAYS.between(LocalDate.now(clock), goalProjection.targetDate());
         return financialProductRepository.findBySupportedRiskLevelOrderByAnnualReturnRateDesc(fallbackRiskLevel).stream()
                 .sorted(Comparator
-                        .comparing((FinancialProduct product) -> holdingFitScore(product, targetDays))
+                        .comparing((FinancialProduct product) -> currencyFitScore(product, preferredCurrency))
+                        .thenComparing(product -> holdingFitScore(product, targetDays))
                         .thenComparing(FinancialProduct::getAnnualReturnRate)
                         .reversed())
                 .limit(2)
                 .map(product -> new ProductRecommendation(
                         product,
                         "Lower-risk alternative selected because the user expressed discomfort with current product risk level.",
-                        true
+                        true,
+                        preferredCurrency != null && !preferredCurrency.isBlank() ? preferredCurrency : product.getCurrency()
                 ))
                 .toList();
     }
@@ -72,17 +88,25 @@ public class ProductRecommendationService {
         return -difference;
     }
 
-    private String buildReason(FinancialProduct product, GoalProjection projection, long targetDays) {
+    private String buildReason(FinancialProduct product, GoalProjection projection, long targetDays, String preferredCurrency) {
         BigDecimal monthlyContribution = projection.projectedMonthlyContribution();
         return """
-                Product matches %s risk profile, offers annualized return %s%%, and suits a target horizon of about %d days.
+                Product matches %s risk profile, offers annualized return %s%%, suits a target horizon of about %d days, and uses currency %s.
                 Suggested because your projected monthly contribution is %s and the product minimum holding period is %d days.
                 """.formatted(
                 product.getSupportedRiskLevel().name(),
                 product.getAnnualReturnRate().movePointRight(2).stripTrailingZeros().toPlainString(),
                 Math.max(targetDays, 0),
+                preferredCurrency != null && !preferredCurrency.isBlank() ? preferredCurrency : product.getCurrency(),
                 monthlyContribution.toPlainString(),
                 product.getMinHoldingDays()
         ).replace("\n", " ").trim();
+    }
+
+    private int currencyFitScore(FinancialProduct product, String preferredCurrency) {
+        if (preferredCurrency == null || preferredCurrency.isBlank()) {
+            return 0;
+        }
+        return preferredCurrency.equalsIgnoreCase(product.getCurrency()) ? 1 : 0;
     }
 }

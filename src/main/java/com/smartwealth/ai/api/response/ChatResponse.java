@@ -15,6 +15,7 @@ public record ChatResponse(
         List<ProductRecommendationView> candidateProducts,
         List<FinalRecommendationView> finalRecommendedProducts,
         List<InvestmentPlanView> investmentPlans,
+        List<String> investmentPlanSummaries,
         String llmSelectionSummary,
         List<String> advisoryHighlights,
         List<String> ragContextSnippets,

@@ -6,6 +6,7 @@ public record ChatIntent(
         ChatIntentType type,
         String reason,
         WealthIntentCode intentCode,
-        String intentName
+        String intentName,
+        ResponsePolicy responsePolicy
 ) {
 }

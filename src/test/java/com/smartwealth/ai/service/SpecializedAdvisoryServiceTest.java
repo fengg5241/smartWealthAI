@@ -13,6 +13,7 @@ import com.smartwealth.ai.service.model.GoalScenarioAnalysis;
 import com.smartwealth.ai.service.model.MonthlyAnalysis;
 import com.smartwealth.ai.service.model.PortfolioAllocationSummary;
 import com.smartwealth.ai.service.model.PortfolioHoldingSnapshot;
+import com.smartwealth.ai.service.model.ResponsePolicy;
 import com.smartwealth.ai.service.model.SupportedLanguage;
 import com.smartwealth.ai.service.model.WealthInsight;
 import com.smartwealth.ai.service.model.WealthIntentCode;
@@ -53,6 +54,22 @@ class SpecializedAdvisoryServiceTest {
         assertThat(result.answer()).contains("SG9999013486");
         assertThat(result.answer()).contains("USD");
         assertThat(result.advisoryHighlights()).anyMatch(item -> item.contains("Suggested allocation"));
+    }
+
+    @Test
+    void shouldUsePercentageAllocationWhenBudgetIsNotProvided() {
+        WealthInsight insight = insight(
+                WealthIntentCode.FUND_SELECTION,
+                RiskLevel.MODERATE,
+                List.of(),
+                List.of()
+        );
+
+        var result = specializedAdvisoryService.advise(insight, "What is the best funds for me").orElseThrow();
+
+        assertThat(result.answer()).doesNotContain("50000");
+        assertThat(result.answer()).contains("percentage-based allocation");
+        assertThat(result.investmentPlanSummaries()).isNotEmpty();
     }
 
     @Test
@@ -135,7 +152,7 @@ class SpecializedAdvisoryServiceTest {
         return new WealthInsight(
                 1L,
                 SupportedLanguage.EN,
-                new WealthWorkflow(ChatIntentType.WEALTH_ADVISORY, intentCode, intentCode.name(), "test", false, false, false, true),
+                new WealthWorkflow(ChatIntentType.WEALTH_ADVISORY, intentCode, intentCode.name(), "test", ResponsePolicy.SPECIALIZED_EXECUTE, false, false, false, true),
                 riskLevel,
                 List.of(new MonthlyAnalysis(
                         YearMonth.of(2026, 5),

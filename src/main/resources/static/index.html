@@ -505,14 +505,20 @@
                 <h3>投资方案 · ${item.productName}</h3>
                 <p>编码：${item.productCode}</p>
                 <p>产品年化收益：${item.annualReturnRate}</p>
-                <p>月投入：${money(item.monthlyInvestmentAmount, "SGD")}</p>
+                <p>月投入：${money(item.monthlyInvestmentAmount, item.currency || "SGD")}</p>
                 <p>投入月数：${item.investmentMonths} 个月</p>
-                <p>预计收益：${money(item.estimatedInvestmentGain, "SGD")}</p>
+                <p>预计收益：${money(item.estimatedInvestmentGain, item.currency || "SGD")}</p>
                 <p>预计达成：${item.estimatedReachDate}</p>
                 <p>节约时间：${item.savedMonthsComparedToSavingOnly} 个月</p>
             </div>
         `);
-        recommendationGrid.innerHTML = [...candidateCards, ...finalCards, ...planCards].join("");
+        const planSummaryCards = (data.investmentPlanSummaries || []).map(item => `
+            <div class="mini-card">
+                <h3>计划摘要</h3>
+                <p>${item}</p>
+            </div>
+        `);
+        recommendationGrid.innerHTML = [...candidateCards, ...finalCards, ...planCards, ...planSummaryCards].join("");
     }
 
     function renderMessages(messages) {

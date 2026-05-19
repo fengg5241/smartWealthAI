@@ -7,6 +7,7 @@ public record WealthWorkflow(
         WealthIntentCode intentCode,
         String intentName,
         String intentReason,
+        ResponsePolicy responsePolicy,
         boolean shouldRetrieveRag,
         boolean shouldRecommendProducts,
         boolean lowerRiskAlternativeOnly,
