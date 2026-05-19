@@ -70,6 +70,11 @@ public class IntentRoutingService {
             "how can i make it real", "how do i make it real", "what should i do next", "how can i get there",
             "how do i get there", "what can i do to make it happen"
     );
+    private static final List<String> EN_AFFORDABILITY_PLAN_FOLLOW_UP_PHRASES = List.of(
+            "how can i make it real", "how do i make it real", "how can i make it happen",
+            "what can i do to make it happen", "suggest me a good investment plan", "good investment plan",
+            "give me an investment plan", "what investment plan should i use", "how can i reach it"
+    );
     private static final List<String> EN_SAFE_DECLINE_PHRASES = List.of(
             "tax-efficient", "tax efficient", "insurance", "good time to buy stocks", "buy stocks now", "market timing"
     );
@@ -114,6 +119,16 @@ public class IntentRoutingService {
                 || historyText.contains("property")
                 || historyText.contains("买房")
                 || historyText.contains("首付");
+
+        if (hasAffordabilityHistory && containsPhrase(normalized, EN_AFFORDABILITY_PLAN_FOLLOW_UP_PHRASES)) {
+            return new IntentClassificationResult(
+                    WealthIntentCode.PRODUCT_RECOMMENDATION,
+                    "Product Recommendation",
+                    "Rule-based classifier detected a follow-up product-planning request after an affordability discussion.",
+                    false,
+                    ResponsePolicy.SPECIALIZED_EXECUTE
+            );
+        }
 
         if (hasAffordabilityHistory && containsPhrase(normalized, EN_FOLLOW_UP_GUIDANCE_PHRASES)) {
             return new IntentClassificationResult(

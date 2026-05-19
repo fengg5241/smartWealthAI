@@ -213,7 +213,7 @@ public class AdvisoryNarrativeService {
                     selectedRecommendation.product().getCurrency(),
                     selectedRecommendation.product().getAnnualReturnRate().movePointRight(2).stripTrailingZeros().toPlainString() + "%",
                     selectedRecommendation.product().getMinHoldingDays(),
-                    localizeLiquidity(selectedRecommendation.product().getLiquidityLevel().name()),
+                    selectedRecommendation.product().getLiquidityLevel().name(),
                     selected.reason(),
                     localizeComplianceNote(selectedRecommendation.product().getComplianceNote(), insight.language()),
                     planComparison,

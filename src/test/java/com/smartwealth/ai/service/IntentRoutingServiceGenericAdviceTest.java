@@ -48,8 +48,8 @@ class IntentRoutingServiceGenericAdviceTest {
                 java.util.List.of("can I afford a $800k condo", "25% down payment")
         );
 
-        assertThat(result.intentCode().name()).isEqualTo("WEALTH_OVERVIEW");
-        assertThat(result.responsePolicy().name()).isEqualTo("GENERIC_WEALTH_GUIDANCE");
+        assertThat(result.intentCode().name()).isEqualTo("PRODUCT_RECOMMENDATION");
+        assertThat(result.responsePolicy().name()).isEqualTo("SPECIALIZED_EXECUTE");
     }
 
     @Test
@@ -61,5 +61,16 @@ class IntentRoutingServiceGenericAdviceTest {
 
         assertThat(result.intentCode().name()).isEqualTo("WEALTH_OVERVIEW");
         assertThat(result.responsePolicy().name()).isEqualTo("GENERIC_WEALTH_GUIDANCE");
+    }
+
+    @Test
+    void shouldTreatInvestmentPlanFollowUpAfterAffordabilityAsProductPlanning() {
+        var result = intentRoutingService.classifyWithRules(
+                "suggest me a good investment plan",
+                java.util.List.of("can I afford a $800k condo", "25% down payment")
+        );
+
+        assertThat(result.intentCode().name()).isEqualTo("PRODUCT_RECOMMENDATION");
+        assertThat(result.responsePolicy().name()).isEqualTo("SPECIALIZED_EXECUTE");
     }
 }
