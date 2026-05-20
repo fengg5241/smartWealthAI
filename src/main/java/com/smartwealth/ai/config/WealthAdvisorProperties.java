@@ -8,6 +8,7 @@ public class WealthAdvisorProperties {
     private final Rag rag = new Rag();
     private final Recommendation recommendation = new Recommendation();
     private final Llm llm = new Llm();
+    private final Chat chat = new Chat();
 
     public Rag getRag() {
         return rag;
@@ -19,6 +20,10 @@ public class WealthAdvisorProperties {
 
     public Llm getLlm() {
         return llm;
+    }
+
+    public Chat getChat() {
+        return chat;
     }
 
     public static class Rag {
@@ -76,10 +81,10 @@ public class WealthAdvisorProperties {
 
     public static class Llm {
 
-        private String classificationModel = "gpt-4o-mini";
+        private String classificationModel = "gpt-4.1-mini";
         private Double classificationTemperature = 0.0d;
         private Integer classificationMaxTokens = 120;
-        private String answerModel = "gpt-4o-mini";
+        private String answerModel = "gpt-4.1-mini";
         private Double answerTemperature = 0.2d;
         private Integer answerMaxTokens = 900;
 
@@ -129,6 +134,19 @@ public class WealthAdvisorProperties {
 
         public void setAnswerMaxTokens(Integer answerMaxTokens) {
             this.answerMaxTokens = answerMaxTokens;
+        }
+    }
+
+    public static class Chat {
+
+        private boolean openMode = true;
+
+        public boolean isOpenMode() {
+            return openMode;
+        }
+
+        public void setOpenMode(boolean openMode) {
+            this.openMode = openMode;
         }
     }
 }

@@ -3,6 +3,7 @@ package com.smartwealth.ai.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartwealth.ai.config.WealthAdvisorProperties;
 import com.smartwealth.ai.service.model.LlmAdvisoryResult;
+import com.smartwealth.ai.service.model.ConversationMessage;
 import com.smartwealth.ai.service.model.LlmProductSelection;
 import com.smartwealth.ai.service.model.ProductRecommendation;
 import com.smartwealth.ai.service.model.ResponsePolicy;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -157,6 +159,55 @@ public class LlmAdvisoryService {
         }
     }
 
+    public String generateGeneralOpenAnswer(String userMessage, List<String> historyMessages, SupportedLanguage language, LocalDate today) {
+        try {
+            String raw = chatClient.prompt()
+                    .options(OpenAiChatOptions.builder()
+                            .model(properties.getLlm().getAnswerModel())
+                            .temperature(properties.getLlm().getAnswerTemperature())
+                            .maxTokens(properties.getLlm().getAnswerMaxTokens())
+                            .build())
+                    .system(buildGeneralOpenSystemPrompt(language))
+                    .user(buildGeneralOpenUserPrompt(userMessage, historyMessages, today, language))
+                    .call()
+                    .content();
+            if (raw == null || raw.isBlank()) {
+                return language == SupportedLanguage.EN ? "Today is %s.".formatted(today) : "今天是 %s。".formatted(today);
+            }
+            return raw.trim();
+        } catch (Exception exception) {
+            log.warn("General open answer generation failed: {}", exception.getMessage());
+            return language == SupportedLanguage.EN ? "Today is %s.".formatted(today) : "今天是 %s。".formatted(today);
+        }
+    }
+
+    public String generateOpenModeAnswer(
+            WealthInsight insight,
+            String userMessage,
+            List<ConversationMessage> sessionMessages,
+            LocalDate today
+    ) {
+        try {
+            String raw = chatClient.prompt()
+                    .options(OpenAiChatOptions.builder()
+                            .model(properties.getLlm().getAnswerModel())
+                            .temperature(properties.getLlm().getAnswerTemperature())
+                            .maxTokens(properties.getLlm().getAnswerMaxTokens())
+                            .build())
+                    .system(buildOpenModeSystemPrompt(insight.language()))
+                    .user(buildOpenModeUserPrompt(insight, userMessage, sessionMessages, today))
+                    .call()
+                    .content();
+            if (raw == null || raw.isBlank()) {
+                return buildGenericFallback(insight, userMessage);
+            }
+            return raw.trim();
+        } catch (Exception exception) {
+            log.warn("Open mode answer generation failed for userId={}, using fallback: {}", insight.userId(), exception.getMessage());
+            return buildGenericFallback(insight, userMessage);
+        }
+    }
+
     private LlmAdvisoryResult buildFallback(WealthInsight insight, String userMessage) {
         List<LlmProductSelection> selections = insight.productRecommendations().stream()
                 .limit(1)
@@ -250,6 +301,125 @@ public class LlmAdvisoryService {
                 只要 scenario.affordableNow 为 true，才可以明确说当前买得起。
                 保持回答务实、简洁、可执行。
                 """;
+    }
+
+    private String buildOpenModeSystemPrompt(SupportedLanguage language) {
+        if (language == SupportedLanguage.EN) {
+            return """
+                    You are a helpful general-purpose assistant with access to wealth-management context.
+                    Use the provided data, history, and retrieved context to answer naturally and directly.
+                    If the question is simple and factual, answer it directly.
+                    If the question is wealth-related, give a useful answer without forcing product recommendations or rigid templates.
+                    Keep the response concise but useful.
+                    """;
+        }
+        return """
+                你是一个通用助手，同时也能处理财富管理问题。
+                请结合提供的数据、历史对话和检索到的上下文，自然、直接地回答用户。
+                如果是简单事实问题，请直接回答。
+                如果是理财问题，请给出有用、务实的建议，不要强行套模板。
+                保持回答简洁但有帮助。
+                """;
+    }
+
+    private String buildOpenModeUserPrompt(
+            WealthInsight insight,
+            String userMessage,
+            List<ConversationMessage> sessionMessages,
+            LocalDate today
+    ) {
+        return """
+                current_date:
+                %s
+
+                user_question:
+                %s
+
+                risk_level:
+                %s
+
+                monthly_cashflow:
+                %s
+
+                goal_projection:
+                %s
+
+                goal_scenario:
+                %s
+
+                portfolio_holdings:
+                %s
+
+                product_candidates:
+                %s
+
+                investment_plans:
+                %s
+
+                advisory_highlights:
+                %s
+
+                rag_context:
+                %s
+
+                conversation_history:
+                %s
+                """.formatted(
+                today,
+                userMessage,
+                insight.riskLevel(),
+                insight.monthlyAnalyses(),
+                insight.goalProjection(),
+                insight.goalScenarioAnalysis(),
+                insight.portfolioHoldings(),
+                insight.productRecommendations(),
+                insight.investmentPlans(),
+                insight.advisoryHighlights(),
+                insight.ragContextSnippets(),
+                sessionMessages == null || sessionMessages.isEmpty()
+                        ? ""
+                        : sessionMessages.stream()
+                        .map(item -> item.role() + ": " + item.content())
+                        .collect(Collectors.joining("\n"))
+        );
+    }
+
+    private String buildGeneralOpenSystemPrompt(SupportedLanguage language) {
+        if (language == SupportedLanguage.EN) {
+            return """
+                    You are a helpful general-purpose assistant.
+                    Answer the user's question directly and naturally using the provided context.
+                    If the question is simple and factual, answer it directly.
+                    If it is a wealth-management question, keep it practical and concise.
+                    """;
+        }
+        return """
+                你是一个通用助手。
+                请直接、自然地回答用户问题，并结合提供的上下文。
+                如果是简单事实问题，请直接回答。
+                如果是理财问题，请保持务实、简洁。
+                """;
+    }
+
+    private String buildGeneralOpenUserPrompt(String userMessage, List<String> historyMessages, LocalDate today, SupportedLanguage language) {
+        return """
+                user_question:
+                %s
+
+                today:
+                %s
+
+                language:
+                %s
+
+                history:
+                %s
+                """.formatted(
+                userMessage,
+                today,
+                language.name(),
+                historyMessages == null ? "" : String.join("\n", historyMessages)
+        );
     }
 
     private String buildGenericGuidanceUserPrompt(WealthInsight insight, String userMessage) {

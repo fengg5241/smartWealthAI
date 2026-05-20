@@ -20,7 +20,7 @@ spring:
       api-key: ${OPENAI_API_KEY:}
       chat:
         options:
-          model: gpt-4o-mini
+          model: gpt-4.1-mini
           temperature: 0.2
           max-tokens: 900
       embedding:
@@ -48,12 +48,14 @@ wealth-advisor:
   recommendation:
     max-products: 3
   llm:
-    classification-model: gpt-4o-mini
+    classification-model: gpt-4.1-mini
     classification-temperature: 0.0
     classification-max-tokens: 120
-    answer-model: gpt-4o-mini
+    answer-model: gpt-4.1-mini
     answer-temperature: 0.2
     answer-max-tokens: 900
+  chat:
+    open-mode: true
 
 server:
   port: 8080

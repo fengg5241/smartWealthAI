@@ -5,6 +5,7 @@ import com.smartwealth.ai.api.response.ChatIntentType;
 import com.smartwealth.ai.api.response.ChatMessageView;
 import com.smartwealth.ai.api.response.FinalRecommendationView;
 import com.smartwealth.ai.api.response.InvestmentPlanView;
+import com.smartwealth.ai.config.WealthAdvisorProperties;
 import com.smartwealth.ai.service.model.ChatRequestContext;
 import com.smartwealth.ai.service.model.ConversationMessage;
 import com.smartwealth.ai.service.model.IntentClassificationResult;
@@ -14,6 +15,9 @@ import com.smartwealth.ai.service.model.WealthInsight;
 import com.smartwealth.ai.service.model.WealthIntentCode;
 import com.smartwealth.ai.service.model.WealthWorkflow;
 import com.smartwealth.ai.service.model.SpecializedAdvisoryResult;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +31,8 @@ public class AiWealthChatService {
     private final LlmAdvisoryService llmAdvisoryService;
     private final SpecializedAdvisoryService specializedAdvisoryService;
     private final AdvisoryNarrativeService advisoryNarrativeService;
+    private final WealthAdvisorProperties wealthAdvisorProperties;
+    private final Clock clock;
     private final ChatSessionService chatSessionService;
     private final ProductLinkFormatter productLinkFormatter;
 
@@ -38,6 +44,8 @@ public class AiWealthChatService {
             LlmAdvisoryService llmAdvisoryService,
             SpecializedAdvisoryService specializedAdvisoryService,
             AdvisoryNarrativeService advisoryNarrativeService,
+            WealthAdvisorProperties wealthAdvisorProperties,
+            Clock clock,
             ChatSessionService chatSessionService,
             ProductLinkFormatter productLinkFormatter
     ) {
@@ -48,6 +56,8 @@ public class AiWealthChatService {
         this.llmAdvisoryService = llmAdvisoryService;
         this.specializedAdvisoryService = specializedAdvisoryService;
         this.advisoryNarrativeService = advisoryNarrativeService;
+        this.wealthAdvisorProperties = wealthAdvisorProperties;
+        this.clock = clock;
         this.chatSessionService = chatSessionService;
         this.productLinkFormatter = productLinkFormatter;
     }
@@ -61,31 +71,6 @@ public class AiWealthChatService {
                 .toList();
         chatSessionService.appendUserMessage(session.sessionId(), message);
         ChatRequestContext requestContext = buildRequestContext(message, historyMessages);
-        if (requestContext.classification().responsePolicy() == ResponsePolicy.SAFE_DECLINE
-                && requestContext.classification().intentCode() == WealthIntentCode.OUT_OF_SCOPE) {
-            String reply = buildOutOfScopeReply(requestContext.language());
-            chatSessionService.appendAssistantMessage(session.sessionId(), reply);
-            return new ChatResponse(
-                    userId,
-                    session.sessionId(),
-                    ChatIntentType.GENERAL_QA,
-                    requestContext.classification().reason(),
-                    null,
-                    List.of(),
-                    null,
-                    null,
-                    List.of(),
-                    List.of(),
-                    List.of(),
-                    List.of(),
-                    "",
-                    List.of(),
-                    List.of(),
-                    reply,
-                    toMessageViews(chatSessionService.snapshot(session.sessionId()).messages())
-            );
-        }
-
         WealthWorkflow workflow = toWorkflow(requestContext.classification());
         WealthInsight insight = wealthInsightService.buildInsight(
                 userId,
@@ -94,13 +79,13 @@ public class AiWealthChatService {
                 requestContext.language(),
                 workflow
         );
-        if (workflow.responsePolicy() == ResponsePolicy.ASK_CLARIFY) {
-            String answer = buildClarifyReply(requestContext.language(), requestContext.classification().intentCode());
-            chatSessionService.appendAssistantMessage(session.sessionId(), answer);
-            return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
-        }
-        if (workflow.responsePolicy() == ResponsePolicy.SAFE_DECLINE) {
-            String answer = buildSafeDeclineReply(requestContext.language(), requestContext.classification().intentCode());
+        if (wealthAdvisorProperties.getChat().isOpenMode()) {
+            String answer = llmAdvisoryService.generateOpenModeAnswer(
+                    insight,
+                    message,
+                    session.messages(),
+                    LocalDate.now(clock)
+            );
             chatSessionService.appendAssistantMessage(session.sessionId(), answer);
             return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
         }
@@ -229,6 +214,30 @@ public class AiWealthChatService {
         );
     }
 
+    private String generateOpenGeneralAnswer(String message, List<String> historyMessages, SupportedLanguage language) {
+        if (looksLikeDateQuestion(message)) {
+            LocalDate today = LocalDate.now(clock);
+            return language == SupportedLanguage.EN
+                    ? "Today is %s.".formatted(today.format(DateTimeFormatter.ofPattern("MMMM d, yyyy")))
+                    : "今天是 %s。".formatted(today.format(DateTimeFormatter.ofPattern("yyyy年M月d日")));
+        }
+        return llmAdvisoryService.generateGeneralOpenAnswer(message, historyMessages, language, LocalDate.now(clock));
+    }
+
+    private boolean looksLikeDateQuestion(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("what's the day today")
+                || normalized.contains("what is the day today")
+                || normalized.contains("what's today")
+                || normalized.contains("what is today")
+                || normalized.contains("today's date")
+                || normalized.contains("what day is it")
+                || normalized.contains("date today");
+    }
+
     private List<String> buildGenericInvestmentPlanSummaries(WealthInsight insight, List<InvestmentPlanView> plans) {
         if (plans.isEmpty()) {
             return List.of();
@@ -269,9 +278,9 @@ public class AiWealthChatService {
 
     private String buildOutOfScopeReply(SupportedLanguage language) {
         if (language == SupportedLanguage.EN) {
-            return "This product currently supports wealth-management questions only. Please ask about cashflow analysis, savings goals, risk level, financial advice, or product recommendations.";
+            return "I can answer general questions too. Please ask me anything, including wealth-management topics or other simple questions.";
         }
-        return "当前产品仅支持财富管理相关问答，请围绕收支分析、储蓄目标、风险等级、理财建议或产品推荐进行提问。";
+        return "我也可以回答一些通用问题。你可以继续问理财相关问题，或者其他简单问题。";
     }
 
     private List<ChatMessageView> toMessageViews(List<ConversationMessage> messages) {

@@ -37,7 +37,11 @@ public class IntentClassificationService {
 
     public IntentClassificationResult classify(String message, List<String> historyMessages, SupportedLanguage language) {
         IntentClassificationResult fallback = intentRoutingService.classifyWithRules(message, historyMessages);
-        if (shouldPreferRuleResult(message, fallback)) {
+        if (properties.getChat().isOpenMode()) {
+            if (fallback.responsePolicy() == ResponsePolicy.SPECIALIZED_EXECUTE) {
+                return fallback;
+            }
+        } else if (shouldPreferRuleResult(message, fallback)) {
             return fallback;
         }
         try {
@@ -68,7 +72,9 @@ public class IntentClassificationService {
                     true,
                     safeResponsePolicy(parsed.responsePolicy(), intentCode)
             );
-            return shouldOverrideLlmWithRule(message, fallback, llmResult) ? fallback : llmResult;
+            return (!properties.getChat().isOpenMode() && shouldOverrideLlmWithRule(message, fallback, llmResult))
+                    ? fallback
+                    : llmResult;
         } catch (Exception exception) {
             log.warn("Intent classification failed, falling back to rules: {}", exception.getMessage());
             return fallback;
@@ -105,6 +111,7 @@ public class IntentClassificationService {
                 - Use PRODUCT_COMPARISON when the user asks to compare fixed deposits and bonds or compare two product types.
                 - Use PORTFOLIO_REBALANCING when the user asks how to adjust an existing portfolio in a volatile market.
                 - Use PRODUCT_RECOMMENDATION only when the user explicitly asks for products, investment options, what to buy, or how to invest.
+                - In open mode, prefer the most appropriate general wealth intent for any in-scope wealth question and use the provided response policy primarily as a safety hint rather than a hard routing rule.
                 - Use WEALTH_OVERVIEW with GENERIC_WEALTH_GUIDANCE for high-level educational investment questions such as how to start investing, general investment advice, diversification, or risk-level tradeoffs, unless the user explicitly asks for specific products.
                 - Use RISK_REBALANCING only when the user explicitly asks to lower risk or says the current plan is too risky.
                 - Use GOAL_FEASIBILITY for affordability, down payment sufficiency, or whether current savings are enough.
@@ -155,7 +162,11 @@ public class IntentClassificationService {
     private ResponsePolicy safeResponsePolicy(String raw, WealthIntentCode intentCode) {
         if (raw != null && !raw.isBlank()) {
             try {
-                return ResponsePolicy.valueOf(raw.trim());
+                ResponsePolicy policy = ResponsePolicy.valueOf(raw.trim());
+                if (properties.getChat().isOpenMode() && policy == ResponsePolicy.SAFE_DECLINE) {
+                    return ResponsePolicy.GENERIC_WEALTH_GUIDANCE;
+                }
+                return policy;
             } catch (IllegalArgumentException ignored) {
             }
         }
@@ -163,6 +174,12 @@ public class IntentClassificationService {
     }
 
     private ResponsePolicy defaultPolicy(WealthIntentCode intentCode) {
+        if (properties.getChat().isOpenMode()) {
+            return switch (intentCode) {
+                case FUND_SELECTION, PRODUCT_COMPARISON, PORTFOLIO_REBALANCING -> ResponsePolicy.SPECIALIZED_EXECUTE;
+                default -> ResponsePolicy.GENERIC_WEALTH_GUIDANCE;
+            };
+        }
         return switch (intentCode) {
             case FUND_SELECTION, PRODUCT_COMPARISON, PORTFOLIO_REBALANCING -> ResponsePolicy.SPECIALIZED_EXECUTE;
             case OUT_OF_SCOPE -> ResponsePolicy.SAFE_DECLINE;
