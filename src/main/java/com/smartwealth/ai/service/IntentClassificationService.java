@@ -38,8 +38,7 @@ public class IntentClassificationService {
     public IntentClassificationResult classify(String message, List<String> historyMessages, SupportedLanguage language) {
         IntentClassificationResult fallback = intentRoutingService.classifyWithRules(message, historyMessages);
         if (properties.getChat().isOpenMode()) {
-            if (fallback.responsePolicy() == ResponsePolicy.SPECIALIZED_EXECUTE
-                    || fallback.responsePolicy() == ResponsePolicy.SAFE_DECLINE) {
+            if (fallback.responsePolicy() == ResponsePolicy.SPECIALIZED_EXECUTE) {
                 return fallback;
             }
         } else if (shouldPreferRuleResult(message, fallback)) {
