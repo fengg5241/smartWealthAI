@@ -298,6 +298,7 @@ public class LlmAdvisoryService {
                     For GOAL_FEASIBILITY, do not use vague language such as "may be able to afford" when the provided gap is greater than zero.
                     If scenario.affordableNow is false, you must state that the user cannot afford it yet under the provided assumption.
                     If scenario.affordableNow is true, you must state that the user can afford it under the provided assumption.
+                    You must respond in English.
                     Keep the answer practical and concise.
                     """;
         }
@@ -306,9 +307,10 @@ public class LlmAdvisoryService {
                 除非用户明确索要产品，否则不要强行推荐产品。
                 回答时先给出核心判断，再解释主要影响因素，再结合用户已知的风险等级、现金流、储蓄目标或持仓情况做个性化说明。
                 如果当前数据不足以给出更精确结论，要明确说明还需要什么信息。
-                如果意图是 GOAL_FEASIBILITY，你必须严格依据给定的场景测算结果回答“可以买 / 还不行 / 还买不起”。
-                对于 GOAL_FEASIBILITY，只要 scenario.affordableNow 为 false，就不能使用“可能可以买得起”这类模糊表达。
+                如果意图是 GOAL_FEASIBILITY，你必须严格依据给定的场景测算结果回答”可以买 / 还不行 / 还买不起”。
+                对于 GOAL_FEASIBILITY，只要 scenario.affordableNow 为 false，就不能使用”可能可以买得起”这类模糊表达。
                 只要 scenario.affordableNow 为 true，才可以明确说当前买得起。
+                你必须用中文回答。
                 保持回答务实、简洁、可执行。
                 """;
     }
@@ -320,6 +322,7 @@ public class LlmAdvisoryService {
                     Use the provided data, history, and retrieved context to answer naturally and directly.
                     If the question is simple and factual, answer it directly.
                     If the question is wealth-related, give a useful answer without forcing product recommendations or rigid templates.
+                    You must respond in English.
                     Keep the response concise but useful.
                     """;
         }
@@ -328,6 +331,7 @@ public class LlmAdvisoryService {
                 请结合提供的数据、历史对话和检索到的上下文，自然、直接地回答用户。
                 如果是简单事实问题，请直接回答。
                 如果是理财问题，请给出有用、务实的建议，不要强行套模板。
+                你必须用中文回答。
                 保持回答简洁但有帮助。
                 """;
     }
@@ -401,6 +405,7 @@ public class LlmAdvisoryService {
                     Answer the user's question directly and naturally using the provided context.
                     If the question is simple and factual, answer it directly.
                     If it is a wealth-management question, keep it practical and concise.
+                    You must respond in English.
                     """;
         }
         return """
@@ -408,6 +413,7 @@ public class LlmAdvisoryService {
                 请直接、自然地回答用户问题，并结合提供的上下文。
                 如果是简单事实问题，请直接回答。
                 如果是理财问题，请保持务实、简洁。
+                你必须用中文回答。
                 """;
     }
 
@@ -481,9 +487,10 @@ public class LlmAdvisoryService {
                     Do not change any numbers, product codes, product names, allocation amounts, percentages, currencies, or conclusions.
                     Do not add new products, new recommendations, or new claims.
                     Keep the answer grounded strictly in the provided base result.
+                    You must respond in English.
                     Output JSON only:
                     {
-                      "selectionSummary": "polished one-line summary",
+                      "selectionSummary": "polished one-line summary in English",
                       "answer": "polished final answer in English"
                     }
                     """;
@@ -494,10 +501,11 @@ public class LlmAdvisoryService {
                 严禁修改任何数字、产品编码、产品名称、分配金额、百分比、币种或结论。
                 严禁新增产品、推荐或事实。
                 你必须严格基于给定的基础结果润色。
+                你必须用中文润色。
                 只输出 JSON：
                 {
-                  "selectionSummary": "润色后的单句摘要",
-                  "answer": "润色后的最终回答"
+                  "selectionSummary": "润色后的中文单句摘要",
+                  "answer": "润色后的中文最终回答"
                 }
                 """;
     }
