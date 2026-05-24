@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartwealth.ai.config.WealthAdvisorProperties;
 import com.smartwealth.ai.service.model.LlmAdvisoryResult;
 import com.smartwealth.ai.service.model.ConversationMessage;
+import com.smartwealth.ai.service.model.GoalProjection;
+import com.smartwealth.ai.service.model.GoalScenarioAnalysis;
 import com.smartwealth.ai.service.model.LlmProductSelection;
 import com.smartwealth.ai.service.model.ProductRecommendation;
 import com.smartwealth.ai.service.model.ResponsePolicy;
@@ -243,6 +245,10 @@ public class LlmAdvisoryService {
                     Your answer must include risk and compliance reminders, numeric support, and an explanation tied to the savings goal.
                     If you recommend products, include product name, code, annualized return, minimum holding period, liquidity, and risk/compliance notes.
                     If you recommend products, compare at least two investment plans with monthly amount, time to goal, expected gain, expected reach date, and time saved versus pure saving.
+                    Important concept distinction:
+                      - currentSavingsBalance: the user's actual available cash for a lump-sum investment right now. Use this field when discussing "investment capacity" or "suitable amount".
+                      - projectedMonthlyContribution: the estimated amount the user can save per month toward their goal. Use this for monthly contribution calculations, not for current available funds.
+                      - Do not confuse the two. For example, if the user has 3,000 current balance but 7,935 projected monthly contribution, you must say "current balance of about 3,000 SGD" and NOT "investment capacity of about 7,935 SGD".
                     Output JSON only, with no markdown and no extra commentary.
                     JSON:
                     {
@@ -257,7 +263,7 @@ public class LlmAdvisoryService {
         return """
                 你是财富管理领域的 AI 财富顾问。
                 你必须基于给定的用户收支分析、储蓄目标、风险等级、RAG 检索上下文和候选理财产品做最终推荐。
-                如果当前问题只是判断“现在能否支付/是否足够”，且没有主动要求产品方案或实现路径，则不要主动推荐产品。
+                如果当前问题只是判断”现在能否支付/是否足够”，且没有主动要求产品方案或实现路径，则不要主动推荐产品。
                 只有工作流明确允许推荐产品时，才给出产品推荐。
                 一旦推荐产品，你只能从候选理财产品中选择最终推荐产品，严禁输出候选列表之外的产品编码。
                 你的回答必须体现合规性，明确说明风险提示，并结合储蓄目标解释推荐原因。
@@ -265,6 +271,10 @@ public class LlmAdvisoryService {
                 估算月份时，只能依据已提供的场景测算结果，不要自行缩短月份。
                 如果推荐产品，回答必须明确给出产品细节，至少包含：产品名称、产品编码、年化收益率、最短持有期、流动性、风险/合规提示。
                 如果推荐产品，回答还必须明确比较至少两档投资计划：不同每月购买金额、对应购买月数、预计收益、预计何时达到目标、比单纯储蓄节约多少时间。
+                重要概念区分：
+                  - currentSavingsBalance（当前可用余额）：用户当前实际可用来一次性投资的资金，讨论”投资能力”或”适合的金额”时必须基于此字段。
+                  - projectedMonthlyContribution（预计月度储蓄）：用户每月预计可新增的储蓄金额，用于计算达到目标所需月数，不代表用户当前有这么多现金。
+                  - 两者不可混淆。例如用户当前余额 3000 但预计月度储蓄 7935，则只能说”当前余额约 3000 SGD”，不能说”投资能力约 7935 SGD”。
                 你必须只输出 JSON，不要输出 markdown，不要输出额外说明。
                 JSON 结构如下：
                 {
@@ -369,8 +379,8 @@ public class LlmAdvisoryService {
                 userMessage,
                 insight.riskLevel(),
                 insight.monthlyAnalyses(),
-                insight.goalProjection(),
-                insight.goalScenarioAnalysis(),
+                formatGoalProjection(insight.goalProjection()),
+                formatGoalScenario(insight.goalScenarioAnalysis()),
                 insight.portfolioHoldings(),
                 insight.productRecommendations(),
                 insight.investmentPlans(),
@@ -456,8 +466,8 @@ public class LlmAdvisoryService {
                 insight.workflow().intentCode(),
                 insight.riskLevel(),
                 insight.monthlyAnalyses(),
-                insight.goalProjection(),
-                insight.goalScenarioAnalysis(),
+                formatGoalProjection(insight.goalProjection()),
+                formatGoalScenario(insight.goalScenarioAnalysis()),
                 insight.portfolioHoldings(),
                 insight.advisoryHighlights()
         );
@@ -562,8 +572,8 @@ public class LlmAdvisoryService {
                     insight.workflow().intentCode(),
                     insight.riskLevel(),
                     insight.monthlyAnalyses(),
-                    insight.goalProjection(),
-                    insight.goalScenarioAnalysis(),
+                    formatGoalProjection(insight.goalProjection()),
+                    formatGoalScenario(insight.goalScenarioAnalysis()),
                     insight.recommendProducts(),
                     insight.advisoryHighlights(),
                     insight.ragContextSnippets(),
@@ -605,8 +615,8 @@ public class LlmAdvisoryService {
                 insight.workflow().intentCode(),
                 insight.riskLevel(),
                 insight.monthlyAnalyses(),
-                insight.goalProjection(),
-                insight.goalScenarioAnalysis(),
+                formatGoalProjection(insight.goalProjection()),
+                formatGoalScenario(insight.goalScenarioAnalysis()),
                 insight.recommendProducts(),
                 insight.advisoryHighlights(),
                 insight.ragContextSnippets(),
@@ -662,6 +672,56 @@ public class LlmAdvisoryService {
                         item.product().getComplianceNote()
                 ))
                 .collect(Collectors.joining(",\n")) + "\n]";
+    }
+
+    private String formatGoalProjection(GoalProjection p) {
+        return """
+                {
+                  "goalName": "%s",
+                  "targetAmount": %s,
+                  "targetDate": "%s",
+                  "averageMonthlySavings": %s,
+                  "projectedMonthlyContribution": %s,
+                  "monthsToGoal": %d,
+                  "projectedCompletionDate": "%s",
+                  "onTrack": %s
+                }
+                """.formatted(
+                p.goalName(),
+                p.targetAmount(),
+                p.targetDate(),
+                p.averageMonthlySavings(),
+                p.projectedMonthlyContribution(),
+                p.monthsToGoal(),
+                p.projectedCompletionDate(),
+                p.onTrack()
+        );
+    }
+
+    private String formatGoalScenario(GoalScenarioAnalysis s) {
+        return """
+                {
+                  "scenarioName": "%s",
+                  "assetPrice": %s,
+                  "requiredDownPayment": %s,
+                  "currentSavingsBalance": %s,
+                  "savingsGap": %s,
+                  "affordableNow": %s,
+                  "estimatedMonthsToReachGoal": %d,
+                  "estimatedReachDate": "%s",
+                  "currency": "%s"
+                }
+                """.formatted(
+                s.scenarioName(),
+                s.assetPrice(),
+                s.requiredDownPayment(),
+                s.currentSavingsBalance(),
+                s.savingsGap(),
+                s.affordableNow(),
+                s.estimatedMonthsToReachGoal(),
+                s.estimatedReachDate(),
+                s.currency()
+        );
     }
 
     private String stripCodeFence(String raw) {
