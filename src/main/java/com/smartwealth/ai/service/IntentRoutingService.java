@@ -18,7 +18,8 @@ public class IntentRoutingService {
     private static final Pattern LATIN_PATTERN = Pattern.compile("[A-Za-z]");
     private static final List<String> WEALTH_KEYWORDS = List.of(
             "理财", "产品", "风险", "收益", "储蓄", "存钱", "目标", "收支", "消费", "投资", "基金", "资产",
-            "公寓", "apartment", "首付", "房子", "买房", "购房", "支付", "支付能力", "down payment", "mortgage"
+            "公寓", "apartment", "首付", "房子", "买房", "购房", "支付", "支付能力", "down payment", "mortgage",
+            "invest"
     );
     private static final List<String> WEALTH_FOLLOW_UP_KEYWORDS = List.of(
             "如何才能实现", "怎么实现", "能买吗", "首付", "风险过高", "太高", "降低风险", "更合理", "更稳健", "更低风险", "省钱"
@@ -61,7 +62,9 @@ public class IntentRoutingService {
             "wealth overview", "financial overview", "my finances", "my financial situation",
             "risk level", "asset allocation", "savings plan", "diversify", "portfolio", "allocation",
             "investment advice", "financial advice", "investing advice", "investment strategy",
-            "how to start investing", "start investing", "begin investing", "first time investing"
+            "how to start investing", "start investing", "begin investing", "first time investing",
+            "want to invest", "can i invest", "how much money can i invest", "how much can i invest",
+            "money to invest", "i want to invest"
     );
     private static final List<String> EN_CLARIFY_PHRASES = List.of(
             "retirement or pay off debt", "pay off debt", "retirement"
