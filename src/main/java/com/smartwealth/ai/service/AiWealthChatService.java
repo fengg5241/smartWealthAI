@@ -80,21 +80,22 @@ public class AiWealthChatService {
                 workflow
         );
         if (wealthAdvisorProperties.getChat().isOpenMode()) {
-            if (workflow.responsePolicy() == ResponsePolicy.SAFE_DECLINE) {
-                String answer = workflow.intentCode() == WealthIntentCode.OUT_OF_SCOPE
-                        ? buildOutOfScopeReply(requestContext.language())
-                        : buildSafeDeclineReply(requestContext.language(), workflow.intentCode());
+            if (workflow.responsePolicy() == ResponsePolicy.SAFE_DECLINE
+                    && workflow.intentCode() != WealthIntentCode.OUT_OF_SCOPE) {
+                String answer = buildSafeDeclineReply(requestContext.language(), workflow.intentCode());
                 chatSessionService.appendAssistantMessage(session.sessionId(), answer);
                 return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
             }
-            String answer = llmAdvisoryService.generateOpenModeAnswer(
-                    insight,
-                    message,
-                    session.messages(),
-                    LocalDate.now(clock)
-            );
-            chatSessionService.appendAssistantMessage(session.sessionId(), answer);
-            return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
+            if (workflow.responsePolicy() != ResponsePolicy.SAFE_DECLINE) {
+                String answer = llmAdvisoryService.generateOpenModeAnswer(
+                        insight,
+                        message,
+                        session.messages(),
+                        LocalDate.now(clock)
+                );
+                chatSessionService.appendAssistantMessage(session.sessionId(), answer);
+                return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
+            }
         }
         if (!wealthAdvisorProperties.getChat().isOpenMode() && workflow.responsePolicy() == ResponsePolicy.SAFE_DECLINE) {
             String answer = workflow.intentCode() == WealthIntentCode.OUT_OF_SCOPE
