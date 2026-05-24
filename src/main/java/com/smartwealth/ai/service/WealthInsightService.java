@@ -76,10 +76,10 @@ public class WealthInsightService {
         String preferredCurrency = goalScenarioAnalysis.currency();
         boolean recommendProducts = workflow.shouldRecommendProducts();
         List<ProductRecommendation> recommendations = recommendProducts
-                ? productRecommendationService.recommend(riskLevel, projection, preferredCurrency)
+                ? productRecommendationService.recommend(riskLevel, projection, preferredCurrency, userProfile.getAvailableSavingsBalance())
                 : List.of();
         if (recommendProducts && workflow.lowerRiskAlternativeOnly()) {
-            recommendations = productRecommendationService.recommendLowerRiskAlternatives(riskLevel, projection, preferredCurrency);
+            recommendations = productRecommendationService.recommendLowerRiskAlternatives(riskLevel, projection, preferredCurrency, userProfile.getAvailableSavingsBalance());
         }
         List<InvestmentPlan> investmentPlans = recommendations.stream()
                 .flatMap(item -> investmentPlanService.buildPlans(item, goalScenarioAnalysis, projection).stream())

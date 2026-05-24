@@ -80,6 +80,13 @@ public class AiWealthChatService {
                 workflow
         );
         if (wealthAdvisorProperties.getChat().isOpenMode()) {
+            if (workflow.responsePolicy() == ResponsePolicy.SAFE_DECLINE) {
+                String answer = workflow.intentCode() == WealthIntentCode.OUT_OF_SCOPE
+                        ? buildOutOfScopeReply(requestContext.language())
+                        : buildSafeDeclineReply(requestContext.language(), workflow.intentCode());
+                chatSessionService.appendAssistantMessage(session.sessionId(), answer);
+                return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
+            }
             String answer = llmAdvisoryService.generateOpenModeAnswer(
                     insight,
                     message,
@@ -89,6 +96,14 @@ public class AiWealthChatService {
             chatSessionService.appendAssistantMessage(session.sessionId(), answer);
             return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
         }
+        if (!wealthAdvisorProperties.getChat().isOpenMode() && workflow.responsePolicy() == ResponsePolicy.SAFE_DECLINE) {
+            String answer = workflow.intentCode() == WealthIntentCode.OUT_OF_SCOPE
+                    ? buildOutOfScopeReply(requestContext.language())
+                    : buildSafeDeclineReply(requestContext.language(), workflow.intentCode());
+            chatSessionService.appendAssistantMessage(session.sessionId(), answer);
+            return buildSimpleResponse(userId, session.sessionId(), workflow, insight, answer);
+        }
+
         SpecializedAdvisoryResult specialized = workflow.useSpecializedHandler()
                 ? specializedAdvisoryService.advise(insight, message).orElse(null)
                 : null;
@@ -278,9 +293,12 @@ public class AiWealthChatService {
 
     private String buildOutOfScopeReply(SupportedLanguage language) {
         if (language == SupportedLanguage.EN) {
-            return "I can answer general questions too. Please ask me anything, including wealth-management topics or other simple questions.";
+            return "I am a wealth-management AI advisor. I can answer questions about investing, savings goals, "
+                    + "cashflow analysis, product recommendations, risk assessment, and portfolio management. "
+                    + "If you have a question in one of these areas, please ask and I will be happy to help.";
         }
-        return "我也可以回答一些通用问题。你可以继续问理财相关问题，或者其他简单问题。";
+        return "我是财富管理领域的 AI 顾问，目前只回答与投资理财、储蓄目标、收支分析、产品推荐、风险评估和持仓管理相关的问题。"
+                + "如果你有这些方面的问题，我很乐意帮你解答。";
     }
 
     private List<ChatMessageView> toMessageViews(List<ConversationMessage> messages) {

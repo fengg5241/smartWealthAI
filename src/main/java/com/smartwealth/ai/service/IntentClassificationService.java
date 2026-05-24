@@ -38,7 +38,8 @@ public class IntentClassificationService {
     public IntentClassificationResult classify(String message, List<String> historyMessages, SupportedLanguage language) {
         IntentClassificationResult fallback = intentRoutingService.classifyWithRules(message, historyMessages);
         if (properties.getChat().isOpenMode()) {
-            if (fallback.responsePolicy() == ResponsePolicy.SPECIALIZED_EXECUTE) {
+            if (fallback.responsePolicy() == ResponsePolicy.SPECIALIZED_EXECUTE
+                    || fallback.responsePolicy() == ResponsePolicy.SAFE_DECLINE) {
                 return fallback;
             }
         } else if (shouldPreferRuleResult(message, fallback)) {
@@ -162,11 +163,7 @@ public class IntentClassificationService {
     private ResponsePolicy safeResponsePolicy(String raw, WealthIntentCode intentCode) {
         if (raw != null && !raw.isBlank()) {
             try {
-                ResponsePolicy policy = ResponsePolicy.valueOf(raw.trim());
-                if (properties.getChat().isOpenMode() && policy == ResponsePolicy.SAFE_DECLINE) {
-                    return ResponsePolicy.GENERIC_WEALTH_GUIDANCE;
-                }
-                return policy;
+                return ResponsePolicy.valueOf(raw.trim());
             } catch (IllegalArgumentException ignored) {
             }
         }
@@ -177,6 +174,7 @@ public class IntentClassificationService {
         if (properties.getChat().isOpenMode()) {
             return switch (intentCode) {
                 case FUND_SELECTION, PRODUCT_COMPARISON, PORTFOLIO_REBALANCING -> ResponsePolicy.SPECIALIZED_EXECUTE;
+                case OUT_OF_SCOPE -> ResponsePolicy.SAFE_DECLINE;
                 default -> ResponsePolicy.GENERIC_WEALTH_GUIDANCE;
             };
         }

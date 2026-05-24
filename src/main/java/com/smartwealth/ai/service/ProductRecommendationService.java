@@ -32,13 +32,19 @@ public class ProductRecommendationService {
     }
 
     public List<ProductRecommendation> recommend(RiskLevel riskLevel, GoalProjection goalProjection) {
-        return recommend(riskLevel, goalProjection, null);
+        return recommend(riskLevel, goalProjection, null, null);
     }
 
     public List<ProductRecommendation> recommend(RiskLevel riskLevel, GoalProjection goalProjection, String preferredCurrency) {
+        return recommend(riskLevel, goalProjection, preferredCurrency, null);
+    }
+
+    public List<ProductRecommendation> recommend(RiskLevel riskLevel, GoalProjection goalProjection, String preferredCurrency, BigDecimal availableSavingsBalance) {
         long targetDays = ChronoUnit.DAYS.between(LocalDate.now(clock), goalProjection.targetDate());
 
         return financialProductRepository.findBySupportedRiskLevelOrderByAnnualReturnRateDesc(riskLevel).stream()
+                .filter(product -> availableSavingsBalance == null
+                        || product.getMinimumInvestmentAmount().compareTo(availableSavingsBalance) <= 0)
                 .sorted(Comparator
                         .comparing((FinancialProduct product) -> currencyFitScore(product, preferredCurrency))
                         .thenComparing(product -> holdingFitScore(product, targetDays))
@@ -55,10 +61,14 @@ public class ProductRecommendationService {
     }
 
     public List<ProductRecommendation> recommendLowerRiskAlternatives(RiskLevel currentRiskLevel, GoalProjection goalProjection) {
-        return recommendLowerRiskAlternatives(currentRiskLevel, goalProjection, null);
+        return recommendLowerRiskAlternatives(currentRiskLevel, goalProjection, null, null);
     }
 
     public List<ProductRecommendation> recommendLowerRiskAlternatives(RiskLevel currentRiskLevel, GoalProjection goalProjection, String preferredCurrency) {
+        return recommendLowerRiskAlternatives(currentRiskLevel, goalProjection, preferredCurrency, null);
+    }
+
+    public List<ProductRecommendation> recommendLowerRiskAlternatives(RiskLevel currentRiskLevel, GoalProjection goalProjection, String preferredCurrency, BigDecimal availableSavingsBalance) {
         RiskLevel fallbackRiskLevel = switch (currentRiskLevel) {
             case AGGRESSIVE -> RiskLevel.MODERATE;
             case GROWTH -> RiskLevel.MODERATE;
@@ -68,6 +78,8 @@ public class ProductRecommendationService {
 
         long targetDays = ChronoUnit.DAYS.between(LocalDate.now(clock), goalProjection.targetDate());
         return financialProductRepository.findBySupportedRiskLevelOrderByAnnualReturnRateDesc(fallbackRiskLevel).stream()
+                .filter(product -> availableSavingsBalance == null
+                        || product.getMinimumInvestmentAmount().compareTo(availableSavingsBalance) <= 0)
                 .sorted(Comparator
                         .comparing((FinancialProduct product) -> currencyFitScore(product, preferredCurrency))
                         .thenComparing(product -> holdingFitScore(product, targetDays))
