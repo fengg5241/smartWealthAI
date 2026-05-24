@@ -16,6 +16,8 @@ import com.smartwealth.ai.service.model.RagSnippet;
 import com.smartwealth.ai.service.model.SupportedLanguage;
 import com.smartwealth.ai.service.model.WealthInsight;
 import com.smartwealth.ai.service.model.WealthWorkflow;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -116,6 +118,11 @@ public class WealthInsightService {
     }
 
     public GoalScenarioView toView(GoalScenarioAnalysis scenario) {
+        BigDecimal progressPercent = scenario.requiredDownPayment().signum() == 0
+                ? BigDecimal.ZERO
+                : scenario.currentSavingsBalance()
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(scenario.requiredDownPayment(), 1, RoundingMode.HALF_UP);
         return new GoalScenarioView(
                 scenario.scenarioName(),
                 scenario.assetPrice(),
@@ -125,11 +132,15 @@ public class WealthInsightService {
                 scenario.affordableNow(),
                 scenario.estimatedMonthsToReachGoal(),
                 scenario.estimatedReachDate(),
-                scenario.currency()
+                scenario.currency(),
+                progressPercent
         );
     }
 
     public InvestmentPlanView toView(InvestmentPlan investmentPlan) {
+        int timeSavedPercent = investmentPlan.savingsOnlyMonthsForSameContribution() > 0
+                ? investmentPlan.savedMonthsComparedToSavingOnly() * 100 / investmentPlan.savingsOnlyMonthsForSameContribution()
+                : 0;
         return new InvestmentPlanView(
                 investmentPlan.productCode(),
                 investmentPlan.productName(),
@@ -140,7 +151,8 @@ public class WealthInsightService {
                 investmentPlan.estimatedInvestmentGain(),
                 investmentPlan.estimatedTotalValueAtGoalDate(),
                 investmentPlan.estimatedReachDate(),
-                investmentPlan.savedMonthsComparedToSavingOnly()
+                investmentPlan.savedMonthsComparedToSavingOnly(),
+                timeSavedPercent
         );
     }
 

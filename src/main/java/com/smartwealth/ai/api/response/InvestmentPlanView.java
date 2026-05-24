@@ -13,6 +13,7 @@ public record InvestmentPlanView(
         BigDecimal estimatedInvestmentGain,
         BigDecimal estimatedTotalValueAtGoalDate,
         LocalDate estimatedReachDate,
-        int savedMonthsComparedToSavingOnly
+        int savedMonthsComparedToSavingOnly,
+        int timeSavedPercent
 ) {
 }

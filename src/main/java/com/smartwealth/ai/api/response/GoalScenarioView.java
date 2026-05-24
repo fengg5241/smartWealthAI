@@ -12,6 +12,7 @@ public record GoalScenarioView(
         boolean affordableNow,
         int estimatedMonthsToReachGoal,
         LocalDate estimatedReachDate,
-        String currency
+        String currency,
+        BigDecimal progressPercent
 ) {
 }
