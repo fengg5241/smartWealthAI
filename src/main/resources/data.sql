@@ -46,52 +46,52 @@ values
         'Suitable only for conservative risk clients. Investors should still review redemption rules and interest-rate sensitivity.'
     ),
     (
-        4, 'SG9999013486', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND USD-H', 'EQUITY_FUND', 'MODERATE', 0.5124, 90, 'HIGH', 'USD', 1000.00,
+        4, 'SG9999013486', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND USD-H', 'EQUITY_FUND', 'MODERATE', 0.05124, 90, 'HIGH', 'USD', 1000.00,
         '狮城全球新加坡股息权益基金（美元对冲版），聚焦新加坡股息型股票，每季度派息，股息率5.17%，适合追求稳定收益与亚洲市场增长的平衡型投资者。',
         '风险等级：平衡型（Balanced）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：新加坡。对冲版本可减少汇率风险，但不能完全消除。'
     ),
     (
-        5, 'SG9999013478', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND USD', 'EQUITY_FUND', 'MODERATE', 0.5085, 90, 'HIGH', 'USD', 1000.00,
+        5, 'SG9999013478', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND USD', 'EQUITY_FUND', 'MODERATE', 0.05085, 90, 'HIGH', 'USD', 1000.00,
         '狮城全球新加坡股息权益基金（美元版），聚焦新加坡股息型股票，每季度派息，股息率5.32%，3年回报107.74%，适合寻求亚洲市场收益与增值的平衡型投资者。',
         '风险等级：平衡型（Balanced）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：新加坡。股息水平可能随市场变化而波动。'
     ),
     (
-        6, 'SG9999013460', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND SGD', 'EQUITY_FUND', 'MODERATE', 0.4714, 90, 'HIGH', 'SGD', 1000.00,
+        6, 'SG9999013460', 'LIONGLOBAL SINGAPORE DIVIDEND EQUITY FUND SGD', 'EQUITY_FUND', 'MODERATE', 0.04714, 90, 'HIGH', 'SGD', 1000.00,
         '狮城全球新加坡股息权益基金（新加坡元版），聚焦亚洲发达市场股息型股票，每季度派息，股息率5.21%，5年回报68.07%，适合新币计价的平衡型投资者。',
         '风险等级：平衡型（Balanced）。ESG评级：A。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：新加坡。适合寻求定期收入与中长期增长的投资者。'
     ),
     (
-        7, 'SG9999011415', 'LIONGLOBAL JAPAN GROWTH FUND (USD HEDGED)', 'EQUITY_FUND', 'MODERATE', 0.4585, 90, 'MEDIUM', 'USD', 1000.00,
+        7, 'SG9999011415', 'LIONGLOBAL JAPAN GROWTH FUND (USD HEDGED)', 'EQUITY_FUND', 'MODERATE', 0.04585, 90, 'MEDIUM', 'USD', 1000.00,
         '狮城全球日本成长基金（美元对冲版），专注于日本股票市场，累积型权益基金，5年回报高达137.42%，适合看好日本市场长期增长的平衡型投资者。',
         '风险等级：平衡型（Balanced）。ESG评级：AA。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：新加坡。日元汇率风险通过对冲部分缓解，但市场风险仍存。'
     ),
     (
-        8, 'LU0548575426', 'FIDELITY EMERGING MARKETS FUND A USD', 'EQUITY_FUND', 'AGGRESSIVE', 0.6318, 90, 'MEDIUM', 'USD', 1000.00,
+        8, 'LU0548575426', 'FIDELITY EMERGING MARKETS FUND A USD', 'EQUITY_FUND', 'AGGRESSIVE', 0.06318, 90, 'MEDIUM', 'USD', 1000.00,
         '富达新兴市场基金（美元），专注于EMEA地区权益类资产，采用累积型策略，适合寻求长期资本增值的投资者。3年回报81.26%，5年回报17.23%。',
         '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：卢森堡。投资者需承担新兴市场波动风险及汇率风险。'
     ),
     (
-        9, 'LU0251143458', 'FIDELITY EMERGING MARKETS FUND A SGD', 'EQUITY_FUND', 'AGGRESSIVE', 0.5919, 90, 'MEDIUM', 'SGD', 1000.00,
+        9, 'LU0251143458', 'FIDELITY EMERGING MARKETS FUND A SGD', 'EQUITY_FUND', 'AGGRESSIVE', 0.05919, 90, 'MEDIUM', 'SGD', 1000.00,
         '富达新兴市场基金（新加坡元），专注于EMEA地区权益类资产，采用累积型策略，提供年化股息0.56%，适合新币计价的长期增值需求投资者。',
         '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：卢森堡。投资者需承担新兴市场波动风险。'
     ),
     (
-        10, 'SG9999000251', 'SCHRODER EMERGING MARKETS FUND SGD', 'EQUITY_FUND', 'AGGRESSIVE', 0.5656, 90, 'MEDIUM', 'SGD', 1000.00,
+        10, 'SG9999000251', 'SCHRODER EMERGING MARKETS FUND SGD', 'EQUITY_FUND', 'AGGRESSIVE', 0.05656, 90, 'MEDIUM', 'SGD', 1000.00,
         '施罗德新兴市场基金（新加坡元），国际化权益类配置，每年派息，适合希望定期获得收益同时参与全球新兴市场增长的投资者。3年回报75.51%，5年回报23.39%。',
         '风险等级：成长型（Growth）。无ESG评级。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：新加坡。新兴市场投资存在较高波动性风险。'
     ),
     (
-        11, 'SG9999003342', 'ABRDN GLOBAL EMERGING MARKETS FUND SGD', 'EQUITY_FUND', 'AGGRESSIVE', 0.4943, 90, 'MEDIUM', 'SGD', 1000.00,
+        11, 'SG9999003342', 'ABRDN GLOBAL EMERGING MARKETS FUND SGD', 'EQUITY_FUND', 'AGGRESSIVE', 0.04943, 90, 'MEDIUM', 'SGD', 1000.00,
         '安本全球新兴市场基金（新加坡元），全球新兴市场权益累积型基金，ESG评级A，适合关注可持续投资并寻求长期资本增值的积极型投资者。',
         '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：SGD 1,000，月定投：SGD 100。销售费用0.88%。注册地：新加坡。新兴市场投资波动较大，需具备较强风险承受能力。'
     ),
     (
-        12, 'LU0192582467', 'SCHRODER ISF ASIAN EQUITY YIELD A (DIS) USD', 'EQUITY_FUND', 'AGGRESSIVE', 0.4535, 90, 'MEDIUM', 'USD', 1000.00,
+        12, 'LU0192582467', 'SCHRODER ISF ASIAN EQUITY YIELD A (DIS) USD', 'EQUITY_FUND', 'AGGRESSIVE', 0.04535, 90, 'MEDIUM', 'USD', 1000.00,
         '施罗德亚洲股息基金（派息型，美元），专注亚太（除日本）地区月度派息权益基金，股息率4%，适合希望每月获得收益并参与亚洲市场增长的投资者。',
         '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：卢森堡。每月分红金额不保证固定，受市场表现影响。'
     ),
     (
-        13, 'LU0188438110', 'SCHRODER ISF ASIAN EQUITY YIELD A(ACC) USD', 'EQUITY_FUND', 'AGGRESSIVE', 0.4535, 90, 'MEDIUM', 'USD', 1000.00,
+        13, 'LU0188438110', 'SCHRODER ISF ASIAN EQUITY YIELD A(ACC) USD', 'EQUITY_FUND', 'AGGRESSIVE', 0.04535, 90, 'MEDIUM', 'USD', 1000.00,
         '施罗德亚洲股息基金（累积型，美元），专注亚太（除日本）地区权益累积基金，总资产规模USD 7.23亿，3年回报67.11%，适合追求长期资本增值的积极型投资者。',
         '风险等级：成长型（Growth）。ESG评级：A。最低一次性投资：USD 1,000，月定投：USD 100。销售费用0.88%。注册地：卢森堡。累积型基金不派发股息，收益自动再投资。'
     ),
