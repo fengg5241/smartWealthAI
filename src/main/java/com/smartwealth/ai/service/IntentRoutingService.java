@@ -34,7 +34,9 @@ public class IntentRoutingService {
             "recommend a product", "recommend products", "product recommendation", "which product",
             "what product", "what should i buy", "what should i invest in", "investment product",
             "portfolio recommendation", "show me products", "suitable product", "suitable products",
-            "best product", "best products", "recommend a suitable product"
+            "best product", "best products", "recommend a suitable product",
+            "investment plan", "good investment plan", "give me an investment plan",
+            "suggest me a good investment plan", "what investment plan should i use"
     );
     private static final List<String> EN_FUND_SELECTION_PHRASES = List.of(
             "best fund", "best funds", "which fund", "which funds", "fund for", "funds for", "50,000"

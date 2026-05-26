@@ -73,4 +73,15 @@ class IntentRoutingServiceGenericAdviceTest {
         assertThat(result.intentCode().name()).isEqualTo("PRODUCT_RECOMMENDATION");
         assertThat(result.responsePolicy().name()).isEqualTo("SPECIALIZED_EXECUTE");
     }
+
+    @Test
+    void shouldTreatStandaloneInvestmentPlanRequestAsProductPlanning() {
+        var result = intentRoutingService.classifyWithRules(
+                "suggest me a good investment plan",
+                java.util.List.of()
+        );
+
+        assertThat(result.intentCode().name()).isEqualTo("PRODUCT_RECOMMENDATION");
+        assertThat(result.responsePolicy().name()).isEqualTo("SPECIALIZED_EXECUTE");
+    }
 }

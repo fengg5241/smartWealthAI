@@ -6,9 +6,13 @@ import com.smartwealth.ai.api.response.ChatMessageView;
 import com.smartwealth.ai.api.response.FinalRecommendationView;
 import com.smartwealth.ai.api.response.InvestmentPlanView;
 import com.smartwealth.ai.config.WealthAdvisorProperties;
+import com.smartwealth.ai.domain.FinancialProduct;
+import com.smartwealth.ai.repository.FinancialProductRepository;
 import com.smartwealth.ai.service.model.ChatRequestContext;
 import com.smartwealth.ai.service.model.ConversationMessage;
 import com.smartwealth.ai.service.model.IntentClassificationResult;
+import com.smartwealth.ai.service.model.InvestmentPlan;
+import com.smartwealth.ai.service.model.ProductRecommendation;
 import com.smartwealth.ai.service.model.ResponsePolicy;
 import com.smartwealth.ai.service.model.SupportedLanguage;
 import com.smartwealth.ai.service.model.WealthInsight;
@@ -19,6 +23,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,6 +40,8 @@ public class AiWealthChatService {
     private final Clock clock;
     private final ChatSessionService chatSessionService;
     private final ProductLinkFormatter productLinkFormatter;
+    private final FinancialProductRepository financialProductRepository;
+    private final InvestmentPlanService investmentPlanService;
 
     public AiWealthChatService(
             IntentRoutingService intentRoutingService,
@@ -47,7 +54,9 @@ public class AiWealthChatService {
             WealthAdvisorProperties wealthAdvisorProperties,
             Clock clock,
             ChatSessionService chatSessionService,
-            ProductLinkFormatter productLinkFormatter
+            ProductLinkFormatter productLinkFormatter,
+            FinancialProductRepository financialProductRepository,
+            InvestmentPlanService investmentPlanService
     ) {
         this.intentRoutingService = intentRoutingService;
         this.intentClassificationService = intentClassificationService;
@@ -60,6 +69,8 @@ public class AiWealthChatService {
         this.clock = clock;
         this.chatSessionService = chatSessionService;
         this.productLinkFormatter = productLinkFormatter;
+        this.financialProductRepository = financialProductRepository;
+        this.investmentPlanService = investmentPlanService;
     }
 
     public ChatResponse chat(Long userId, String message, String sessionId) {
@@ -133,12 +144,9 @@ public class AiWealthChatService {
         List<String> highlights = specialized != null
                 ? specialized.advisoryHighlights()
                 : insight.advisoryHighlights();
-        List<InvestmentPlanView> investmentPlans = (specialized == null ? insight.investmentPlans() : specialized.investmentPlans()).stream()
-                .map(wealthInsightService::toView)
-                .toList();
-        List<String> investmentPlanSummaries = specialized != null
-                ? specialized.investmentPlanSummaries()
-                : buildGenericInvestmentPlanSummaries(insight, investmentPlans);
+        PlanPayload planPayload = resolvePlanPayload(answer, insight, specialized);
+        List<InvestmentPlanView> investmentPlans = planPayload.investmentPlans();
+        List<String> investmentPlanSummaries = planPayload.investmentPlanSummaries();
         List<FinalRecommendationView> finalRecommendedProducts = finalSelections.stream()
                 .map(item -> new FinalRecommendationView(
                         item.product().product().getProductCode(),
@@ -209,6 +217,7 @@ public class AiWealthChatService {
     }
 
     private ChatResponse buildSimpleResponse(Long userId, String sessionId, WealthWorkflow workflow, WealthInsight insight, String answer) {
+        PlanPayload planPayload = resolvePlanPayload(answer, insight, null);
         return new ChatResponse(
                 userId,
                 sessionId,
@@ -220,8 +229,8 @@ public class AiWealthChatService {
                 wealthInsightService.toView(insight.goalScenarioAnalysis()),
                 List.of(),
                 List.of(),
-                List.of(),
-                List.of(),
+                planPayload.investmentPlans(),
+                planPayload.investmentPlanSummaries(),
                 "",
                 insight.advisoryHighlights(),
                 insight.ragContextSnippets(),
@@ -266,6 +275,136 @@ public class AiWealthChatService {
         );
     }
 
+    private PlanPayload resolvePlanPayload(String answer, WealthInsight insight, SpecializedAdvisoryResult specialized) {
+        if (!answerMentionsPlanContent(answer)) {
+            return new PlanPayload(List.of(), List.of());
+        }
+        List<InvestmentPlan> sourcePlans = specialized == null ? insight.investmentPlans() : specialized.investmentPlans();
+        List<InvestmentPlan> matchedPlans = matchInvestmentPlansFromAnswer(answer, sourcePlans);
+        if (matchedPlans.isEmpty()) {
+            matchedPlans = buildFallbackInvestmentPlansFromAnswer(answer, insight);
+        }
+        List<InvestmentPlanView> investmentPlans = matchedPlans.stream()
+                .map(wealthInsightService::toView)
+                .toList();
+        List<String> investmentPlanSummaries = resolveInvestmentPlanSummaries(answer, insight, specialized, matchedPlans);
+        return new PlanPayload(investmentPlans, investmentPlanSummaries);
+    }
+
+    private List<String> resolveInvestmentPlanSummaries(
+            String answer,
+            WealthInsight insight,
+            SpecializedAdvisoryResult specialized,
+            List<InvestmentPlan> matchedPlans
+    ) {
+        if (!answerMentionsPlanContent(answer)) {
+            return List.of();
+        }
+        if (specialized != null && specialized.investmentPlanSummaries() != null && !specialized.investmentPlanSummaries().isEmpty()) {
+            return specialized.investmentPlanSummaries();
+        }
+        if (matchedPlans.isEmpty()) {
+            return List.of();
+        }
+        return advisoryNarrativeService.buildInvestmentPlanSummaries(
+                insight.language(),
+                matchedPlans,
+                insight.goalScenarioAnalysis().currency()
+        );
+    }
+
+    private List<InvestmentPlan> matchInvestmentPlansFromAnswer(String answer, List<InvestmentPlan> investmentPlans) {
+        if (answer == null || answer.isBlank() || investmentPlans.isEmpty()) {
+            return List.of();
+        }
+        String normalizedAnswer = normalizeForMatch(answer);
+        return investmentPlans.stream()
+                .filter(plan -> answerReferencesPlan(normalizedAnswer, plan))
+                .toList();
+    }
+
+    private List<InvestmentPlan> buildFallbackInvestmentPlansFromAnswer(String answer, WealthInsight insight) {
+        if (answer == null || answer.isBlank()) {
+            return List.of();
+        }
+        String normalizedAnswer = normalizeForMatch(answer);
+        List<FinancialProduct> matchedProducts = financialProductRepository
+                .findBySupportedRiskLevelOrderByAnnualReturnRateDesc(insight.riskLevel()).stream()
+                .filter(product -> answerReferencesProduct(normalizedAnswer, product))
+                .limit(2)
+                .toList();
+        return matchedProducts.stream()
+                .flatMap(product -> investmentPlanService.buildPlans(
+                        new ProductRecommendation(product, "", false, product.getCurrency()),
+                        insight.goalScenarioAnalysis(),
+                        insight.goalProjection()
+                ).stream())
+                .toList();
+    }
+
+    private boolean answerMentionsPlanContent(String answer) {
+        if (answer == null || answer.isBlank()) {
+            return false;
+        }
+        String loweredAnswer = answer.toLowerCase(Locale.ROOT);
+        return loweredAnswer.contains("investment plan")
+                || loweredAnswer.contains("investment plans")
+                || loweredAnswer.contains("plan suggestion")
+                || loweredAnswer.contains("allocation plan")
+                || loweredAnswer.contains("monthly investing")
+                || loweredAnswer.contains("monthly saving")
+                || loweredAnswer.contains("allocate")
+                || loweredAnswer.contains("allocation")
+                || loweredAnswer.contains("投资方案")
+                || loweredAnswer.contains("投资计划")
+                || loweredAnswer.contains("配置方案")
+                || loweredAnswer.contains("分配方案")
+                || loweredAnswer.contains("每月投入")
+                || loweredAnswer.contains("每月投资")
+                || loweredAnswer.contains("单纯储蓄");
+    }
+
+    private boolean answerReferencesPlan(String normalizedAnswer, InvestmentPlan plan) {
+        if (plan == null) {
+            return false;
+        }
+        if (containsMatch(normalizedAnswer, plan.productCode())) {
+            return true;
+        }
+        if (containsMatch(normalizedAnswer, plan.productName())) {
+            return true;
+        }
+        if (containsMatch(normalizedAnswer, plan.monthlyInvestmentAmount().stripTrailingZeros().toPlainString())) {
+            return true;
+        }
+        if (containsMatch(normalizedAnswer, plan.estimatedInvestmentGain().stripTrailingZeros().toPlainString())) {
+            return true;
+        }
+        if (containsMatch(normalizedAnswer, plan.annualReturnRate().movePointRight(2).stripTrailingZeros().toPlainString())) {
+            return true;
+        }
+        return plan.estimatedReachDate() != null && containsMatch(normalizedAnswer, plan.estimatedReachDate().toString());
+    }
+
+    private boolean answerReferencesProduct(String normalizedAnswer, FinancialProduct product) {
+        return containsMatch(normalizedAnswer, product.getProductCode())
+                || containsMatch(normalizedAnswer, product.getProductName());
+    }
+
+    private boolean containsMatch(String normalizedAnswer, String rawValue) {
+        String normalizedValue = normalizeForMatch(rawValue);
+        return !normalizedValue.isBlank() && normalizedAnswer.contains(normalizedValue);
+    }
+
+    private String normalizeForMatch(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toLowerCase(Locale.ROOT)
+                .replace('：', ':')
+                .replaceAll("[\\p{Punct}\\s]+", "");
+    }
+
     private String buildClarifyReply(SupportedLanguage language, WealthIntentCode intentCode) {
         if (language == SupportedLanguage.EN) {
             return switch (intentCode) {
@@ -306,5 +445,11 @@ public class AiWealthChatService {
         return messages.stream()
                 .map(message -> new ChatMessageView(message.role(), message.content()))
                 .toList();
+    }
+
+    private record PlanPayload(
+            List<InvestmentPlanView> investmentPlans,
+            List<String> investmentPlanSummaries
+    ) {
     }
 }
