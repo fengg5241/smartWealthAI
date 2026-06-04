@@ -1,667 +1,533 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Wealth AI Demo</title>
-    <style>
-        :root {
-            --bg: #f3efe7;
-            --panel: rgba(255, 252, 246, 0.9);
-            --line: rgba(76, 57, 37, 0.15);
-            --text: #2e2218;
-            --muted: #7d6a57;
-            --accent: #0f766e;
-            --accent-2: #d97706;
-            --shadow: 0 22px 60px rgba(67, 44, 22, 0.12);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartRAG - Multi-Tenant Knowledge Base</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232563eb'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>R</text></svg>">
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-light: #eff6ff;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #dc2626;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
-        * {
-            box-sizing: border-box;
-        }
+/* Header */
+.header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.logo { font-size: 20px; font-weight: 700; color: var(--primary); }
+.tenant-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tenant-badge .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-right label { font-size:13px; color:var(--text-muted); }
+.header-right select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  min-width: 160px;
+}
+.header-right select:focus { outline: none; border-color: var(--primary); }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
-            color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 30%),
-                radial-gradient(circle at bottom right, rgba(217, 119, 6, 0.18), transparent 32%),
-                linear-gradient(135deg, #f7f2e8 0%, #ece7de 48%, #f8f4ec 100%);
-        }
+/* Main */
+.main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
 
-        .page {
-            width: min(1400px, calc(100vw - 32px));
-            margin: 24px auto 48px;
-        }
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.sidebar h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-muted);
+}
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.upload-zone .icon { font-size: 32px; margin-bottom: 8px; }
+.upload-zone p { font-size: 13px; color: var(--text-muted); }
+.upload-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+#fileInput { display: none; }
 
-        .hero {
-            display: grid;
-            grid-template-columns: 1.3fr 0.9fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
+/* Upload progress */
+.upload-progress-wrap {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+}
+.upload-progress-wrap.active { display: flex; }
+.upload-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.upload-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width .3s;
+}
+.upload-progress-fill.error { background: var(--danger); }
+.upload-progress-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upload-progress-label.success { color: var(--success); }
+.upload-progress-label.error { color: var(--danger); }
 
-        .hero-card,
-        .panel {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 28px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(10px);
-        }
+.doc-list { font-size: 13px; margin-top: 4px; }
+.doc-list .doc-item {
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px;
+}
 
-        .hero-card {
-            padding: 28px;
-        }
+/* Chat */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.chat-empty {
+  margin: auto;
+  text-align: center;
+  color: var(--text-muted);
+  max-width: 360px;
+}
+.chat-empty .icon { font-size: 48px; margin-bottom: 12px; }
+.chat-empty h2 { font-size: 18px; margin-bottom: 4px; }
+.chat-empty p { font-size: 14px; line-height: 1.5; }
+.message {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.6;
+  animation: fadeIn .2s;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.message.user {
+  align-self: flex-end;
+  background: var(--primary);
+  color: white;
+}
+.message.assistant {
+  align-self: flex-start;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.message .sources {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.message.error {
+  align-self: flex-start;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--danger);
+}
 
-        .eyebrow {
-            display: inline-block;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: rgba(15, 118, 110, 0.1);
-            color: var(--accent);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
+.chat-input-area {
+  padding: 16px 24px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+}
+.chat-input-area input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.chat-input-area input:focus { outline: none; border-color: var(--primary); }
+.chat-input-area button {
+  padding: 10px 24px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+  white-space: nowrap;
+}
+.chat-input-area button:hover { background: #1d4ed8; }
+.chat-input-area button:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        h1 {
-            margin: 16px 0 12px;
-            font-size: clamp(32px, 5vw, 56px);
-            line-height: 0.95;
-            letter-spacing: -0.04em;
-        }
-
-        .hero p {
-            color: var(--muted);
-            line-height: 1.7;
-            margin: 0;
-        }
-
-        .hero-side {
-            padding: 28px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .stat {
-            padding: 16px 0;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .stat:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: var(--muted);
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 800;
-            margin-top: 8px;
-        }
-
-        .workspace {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 20px;
-        }
-
-        .panel {
-            padding: 22px;
-        }
-
-        .panel h2 {
-            margin: 0 0 16px;
-            font-size: 18px;
-        }
-
-        .field {
-            margin-bottom: 16px;
-        }
-
-        .field label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        select,
-        textarea,
-        button {
-            width: 100%;
-            border-radius: 18px;
-            border: 1px solid var(--line);
-            font: inherit;
-        }
-
-        select,
-        textarea {
-            padding: 14px 16px;
-            background: #fffdfa;
-            color: var(--text);
-        }
-
-        textarea {
-            resize: vertical;
-        }
-
-        .seed-input {
-            min-height: 120px;
-        }
-
-        .chat-input {
-            min-height: 84px;
-        }
-
-        button {
-            padding: 14px 18px;
-            border: none;
-            background: linear-gradient(135deg, var(--accent), #115e59);
-            color: white;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
-            box-shadow: 0 18px 30px rgba(15, 118, 110, 0.22);
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-        }
-
-        .muted-note {
-            margin-top: 12px;
-            font-size: 12px;
-            color: var(--muted);
-            line-height: 1.6;
-        }
-
-        .content-stack {
-            display: grid;
-            gap: 20px;
-        }
-
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
-        }
-
-        .mini-card {
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.72);
-            border: 1px solid var(--line);
-            border-radius: 22px;
-        }
-
-        .mini-card h3 {
-            margin: 0 0 8px;
-            font-size: 15px;
-        }
-
-        .mini-card p {
-            color: var(--muted);
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .chip {
-            padding: 8px 10px;
-            border-radius: 999px;
-            background: rgba(217, 119, 6, 0.1);
-            color: #92400e;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .chat-shell {
-            display: grid;
-            grid-template-rows: 1fr auto;
-            gap: 14px;
-            min-height: 560px;
-        }
-
-        .chat-messages {
-            padding: 14px;
-            border-radius: 24px;
-            border: 1px solid var(--line);
-            background:
-                linear-gradient(180deg, rgba(255,255,255,0.7), rgba(245,239,229,0.88)),
-                radial-gradient(circle at top, rgba(15,118,110,0.05), transparent 40%);
-            overflow-y: auto;
-            max-height: 620px;
-        }
-
-        .message-row {
-            display: flex;
-            margin: 12px 0;
-        }
-
-        .message-row.user {
-            justify-content: flex-end;
-        }
-
-        .message-row.assistant {
-            justify-content: flex-start;
-        }
-
-        .bubble {
-            max-width: 78%;
-            padding: 14px 16px;
-            border-radius: 22px;
-            line-height: 1.75;
-            white-space: pre-wrap;
-            box-shadow: 0 10px 24px rgba(63, 46, 31, 0.08);
-        }
-
-        .message-row.user .bubble {
-            background: linear-gradient(135deg, var(--accent), #115e59);
-            color: #fff;
-            border-bottom-right-radius: 8px;
-        }
-
-        .message-row.assistant .bubble {
-            background: rgba(255,255,255,0.92);
-            color: var(--text);
-            border: 1px solid var(--line);
-            border-bottom-left-radius: 8px;
-        }
-
-        .chat-input-row {
-            display: grid;
-            grid-template-columns: 1fr 140px;
-            gap: 12px;
-            align-items: end;
-        }
-
-        .chat-action-row {
-            display: grid;
-            grid-template-columns: 1fr 140px 140px;
-            gap: 12px;
-            align-items: end;
-        }
-
-        .session-note,
-        .loading {
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .loading {
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .secondary-btn {
-            background: linear-gradient(135deg, #b45309, #92400e);
-            box-shadow: 0 18px 30px rgba(146, 64, 14, 0.22);
-        }
-
-        @media (max-width: 1100px) {
-            .hero,
-            .workspace,
-            .card-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.assistant .spinner {
+  border-color: rgba(0,0,0,.1);
+  border-top-color: var(--primary);
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
 </head>
 <body>
-<div class="page">
-    <section class="hero">
-        <div class="hero-card">
-            <span class="eyebrow">RAG + Spring AI</span>
-            <h1>财富管理 AI 顾问 Demo</h1>
-            <p>左侧用于选择用户和初始化测试场景，右侧保留财富数据分析与推荐展示，同时升级为连续会话式聊天窗口，方便测试首付、储蓄达成、风险调整与省钱建议。</p>
-        </div>
-        <div class="hero-card hero-side">
-            <div class="stat">
-                <div class="stat-label">核心能力</div>
-                <div class="stat-value">Smart Wealth AI</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">增强方式</div>
-                <div class="stat-value">RAG + pgvector</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">输出</div>
-                <div class="stat-value">Session Chat</div>
-            </div>
-        </div>
-    </section>
 
-    <section class="workspace">
-        <aside class="panel">
-            <h2>会话控制台</h2>
-            <div class="field">
-                <label for="userSelect">选择用户</label>
-                <select id="userSelect"></select>
-            </div>
-            <div class="field">
-                <label for="messageInput">首条问题</label>
-                <textarea id="messageInput" class="seed-input">我想购买一个价值300k SGD的公寓，我能够支付25%的首付吗？</textarea>
-            </div>
-            <button id="runBtn" type="button">开始对话</button>
-            <div class="muted-note">
-                选择用户后会自动刷新上方概览。<br>
-                点击按钮时会创建一个会话并发送首条消息。<br>
-                后续追问将复用同一个 `sessionId`，由后端维护上下文。
-            </div>
-        </aside>
+<div class="header">
+  <div class="header-left">
+    <span class="logo">SmartRAG</span>
+    <span class="tenant-badge" id="tenantBadge" style="display:none">
+      <span class="dot"></span>
+      <span id="tenantName"></span>
+    </span>
+  </div>
+  <div class="header-right">
+    <label for="tenantSelect">Enterprise:</label>
+    <select id="tenantSelect">
+      <option value="">-- Select Enterprise --</option>
+      <option value="acme_corp">ACME Corp</option>
+      <option value="globex_inc">Globex Inc</option>
+    </select>
+  </div>
+</div>
 
-        <main class="content-stack">
-            <section class="panel">
-                <h2>用户概览</h2>
-                <div id="overviewStatus" class="loading">正在加载用户列表...</div>
-                <div id="overviewCards" class="card-grid" hidden></div>
-            </section>
+<div class="main">
+  <div class="sidebar">
+    <h3>Document Management</h3>
+    <div class="upload-zone" id="uploadZone">
+      <div class="icon">📄</div>
+      <p>Click or drag to upload</p>
+      <p class="hint">Supports PDF, DOCX</p>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,.docx">
 
-            <section class="panel">
-                <h2>候选产品与 LLM 最终推荐</h2>
-                <div id="recommendationGrid" class="card-grid" hidden></div>
-                <div id="recommendationStatus" class="muted-note">请选择用户并开始会话。</div>
-            </section>
+    <div class="upload-progress-wrap" id="uploadProgressWrap">
+      <div class="upload-progress-bar">
+        <div class="upload-progress-fill" id="uploadProgressFill"></div>
+      </div>
+      <div class="upload-progress-label" id="uploadProgressLabel">Uploading...</div>
+    </div>
 
-            <section class="panel">
-                <h2>AI 聊天窗口</h2>
-                <div class="chat-shell">
-                    <div id="chatMessages" class="chat-messages">
-                        <div class="message-row assistant">
-                            <div class="bubble">欢迎使用财富管理 AI 顾问。你可以测试：首付是否可支付、如何达成目标、产品风险过高时如何调整、如何通过收支优化更快达成目标。</div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="chat-action-row">
-                            <textarea id="chatInput" class="chat-input">如果首付不够，我该如何实现这个目标？</textarea>
-                            <button id="sendBtn" type="button">发送</button>
-                            <button id="resetBtn" type="button" class="secondary-btn">重置会话</button>
-                        </div>
-                        <div id="sessionNote" class="session-note">当前没有会话。</div>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </section>
+    <div class="doc-list" id="docList"></div>
+  </div>
+
+  <div class="chat-container">
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-empty" id="chatEmpty">
+        <div class="icon">💬</div>
+        <h2>Enterprise Knowledge Base Q&A</h2>
+        <p>Select an enterprise, upload a document, then ask questions based on its content.</p>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendMessage()">
+      <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
 </div>
 
 <script>
-    let sessionId = "";
+const TENANTS = {
+  acme_corp: 'ACME Corp',
+  globex_inc: 'Globex Inc'
+};
 
-    const userSelect = document.getElementById("userSelect");
-    const messageInput = document.getElementById("messageInput");
-    const runBtn = document.getElementById("runBtn");
-    const sendBtn = document.getElementById("sendBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const chatInput = document.getElementById("chatInput");
-    const overviewStatus = document.getElementById("overviewStatus");
-    const overviewCards = document.getElementById("overviewCards");
-    const recommendationGrid = document.getElementById("recommendationGrid");
-    const recommendationStatus = document.getElementById("recommendationStatus");
-    const chatMessages = document.getElementById("chatMessages");
-    const sessionNote = document.getElementById("sessionNote");
+let currentTenant = '';
+let uploadedDocs = [];
 
-    async function request(url, options) {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(text || `HTTP ${response.status}`);
-        }
-        return response.json();
-    }
+document.getElementById('tenantSelect').addEventListener('change', function(e) {
+  currentTenant = e.target.value;
+  if (currentTenant) {
+    document.getElementById('tenantName').textContent = TENANTS[currentTenant];
+    document.getElementById('tenantBadge').style.display = 'inline-flex';
+  } else {
+    document.getElementById('tenantBadge').style.display = 'none';
+  }
+  clearChat();
+});
 
-    function money(value, currency = "CNY") {
-        if (value === undefined || value === null) {
-            return "-";
-        }
-        return new Intl.NumberFormat("zh-CN", {
-            style: "currency",
-            currency,
-            maximumFractionDigits: 2
-        }).format(Number(value));
-    }
+// ---- File Upload ----
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const progressWrap = document.getElementById('uploadProgressWrap');
+const progressFill = document.getElementById('uploadProgressFill');
+const progressLabel = document.getElementById('uploadProgressLabel');
 
-    function renderOverview(data) {
-        overviewCards.hidden = false;
-        overviewStatus.hidden = true;
-        const monthly = data.monthlySummaries || [];
-        const current = monthly[monthly.length - 1];
-        overviewCards.innerHTML = `
-            <div class="mini-card">
-                <h3>用户画像</h3>
-                <p>风险等级：${data.riskLevel}</p>
-                <p>储蓄目标：${data.goalProjection.goalName}</p>
-                <p>目标金额：${money(data.goalProjection.targetAmount)}</p>
-            </div>
-            <div class="mini-card">
-                <h3>本月现金流</h3>
-                <p>收入：${money(current?.income)}</p>
-                <p>支出：${money(current?.expense)}</p>
-                <p>净结余：${money(current?.netCashflow)}</p>
-            </div>
-            <div class="mini-card">
-                <h3>目标预测</h3>
-                <p>预计完成：${data.goalProjection.projectedCompletionDate}</p>
-                <p>预计月投入：${money(data.goalProjection.projectedMonthlyContribution)}</p>
-                <p>是否按期：${data.goalProjection.onTrack ? "是" : "否"}</p>
-            </div>
-            <div class="mini-card">
-                <h3>场景测算</h3>
-                <p>当前存款：${money(data.goalScenario?.currentSavingsBalance, data.goalScenario?.currency || "CNY")}</p>
-                <p>资金缺口：${money(data.goalScenario?.savingsGap, data.goalScenario?.currency || "CNY")}</p>
-                <p>预计达成：${data.goalScenario?.estimatedReachDate || "-"}</p>
-            </div>
-            <div class="mini-card">
-                <h3>建议摘要</h3>
-                <div class="chips">
-                    ${(data.advisoryHighlights || []).map(item => `<span class="chip">${item}</span>`).join("")}
-                </div>
-            </div>
-        `;
-    }
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) {
+    fileInput.files = e.dataTransfer.files;
+    uploadFile(e.dataTransfer.files[0]);
+  }
+});
 
-    function renderRecommendations(data) {
-        recommendationGrid.hidden = false;
-        recommendationStatus.textContent = data.llmSelectionSummary || "已完成推荐。";
-        const candidateCards = (data.candidateProducts || []).map(item => `
-            <div class="mini-card">
-                <h3>候选产品 · ${item.productDisplayName || item.productName}</h3>
-                <p>编码：${item.productCode}</p>
-                <p>年化收益：${item.annualReturnRate}</p>
-                <p>最短持有：${item.minHoldingDays} 天</p>
-                <p>流动性：${item.liquidityLevel}</p>
-                <p>${item.reason}</p>
-            </div>
-        `);
-        const finalCards = (data.finalRecommendedProducts || []).map(item => `
-            <div class="mini-card">
-                <h3>LLM 最终推荐 · ${item.productDisplayName || item.productName}</h3>
-                <p>编码：${item.productCode}</p>
-                <p>年化收益：${item.annualReturnRate}</p>
-                <p>最短持有：${item.minHoldingDays} 天</p>
-                <p>流动性：${item.liquidityLevel}</p>
-                <p>${item.reason}</p>
-            </div>
-        `);
-        const planCards = (data.investmentPlans || []).map(item => `
-            <div class="mini-card">
-                <h3>投资方案 · ${item.productName}</h3>
-                <p>编码：${item.productCode}</p>
-                <p>产品年化收益：${item.annualReturnRate}</p>
-                <p>月投入：${money(item.monthlyInvestmentAmount, item.currency || "SGD")}</p>
-                <p>投入月数：${item.investmentMonths} 个月</p>
-                <p>预计收益：${money(item.estimatedInvestmentGain, item.currency || "SGD")}</p>
-                <p>预计达成：${item.estimatedReachDate}</p>
-                <p>节约时间：${item.savedMonthsComparedToSavingOnly} 个月</p>
-            </div>
-        `);
-        const planSummaryCards = (data.investmentPlanSummaries || []).map(item => `
-            <div class="mini-card">
-                <h3>计划摘要</h3>
-                <p>${item}</p>
-            </div>
-        `);
-        recommendationGrid.innerHTML = [...candidateCards, ...finalCards, ...planCards, ...planSummaryCards].join("");
-    }
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) uploadFile(fileInput.files[0]);
+});
 
-    function renderMessages(messages) {
-        chatMessages.innerHTML = (messages || []).map(item => `
-            <div class="message-row ${item.role === "user" ? "user" : "assistant"}">
-                <div class="bubble">${item.content}</div>
-            </div>
-        `).join("");
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+function setUploadProgress(pct, label, type) {
+  progressWrap.classList.add('active');
+  progressFill.style.width = pct + '%';
+  progressFill.className = 'upload-progress-fill' + (type === 'error' ? ' error' : '');
+  progressLabel.textContent = label;
+  progressLabel.className = 'upload-progress-label' + (type === 'success' ? ' success' : type === 'error' ? ' error' : '');
+  if (type === 'success' || type === 'error') {
+    setTimeout(() => { progressWrap.classList.remove('active'); }, type === 'success' ? 4000 : 8000);
+  }
+}
 
-    async function loadUsers() {
-        const users = await request("/api/v1/wealth-advisor/users");
-        userSelect.innerHTML = users.map(user => `
-            <option value="${user.userId}">${user.fullName} · ${user.riskLevel}</option>
-        `).join("");
-        if (users.length > 0) {
-            await loadOverview(users[0].userId);
-        }
-    }
+async function uploadFile(file) {
+  if (!currentTenant) {
+    setUploadProgress(100, 'Please select an enterprise first', 'error');
+    return;
+  }
 
-    async function loadOverview(userId) {
-        overviewStatus.hidden = false;
-        overviewStatus.textContent = "正在加载用户概览...";
-        const overview = await request(`/api/v1/wealth-advisor/users/${userId}/overview`);
-        renderOverview(overview);
-    }
+  const formData = new FormData();
+  formData.append('file', file);
 
-    async function startConversation() {
-        const userId = Number(userSelect.value);
-        const message = messageInput.value.trim();
-        if (!userId || !message) {
-            return;
-        }
+  setUploadProgress(0, 'Starting upload...', '');
 
-        runBtn.disabled = true;
-        recommendationStatus.textContent = "正在创建会话并调用顾问...";
-        sessionNote.textContent = "正在初始化会话...";
+  // Use XMLHttpRequest for progress tracking
+  const xhr = new XMLHttpRequest();
 
-        try {
-            sessionId = "";
-            const chat = await request("/api/v1/wealth-advisor/chat", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({userId, message, sessionId})
-            });
-
-            sessionId = chat.sessionId || "";
-            renderRecommendations(chat);
-            renderMessages(chat.messages || []);
-            sessionNote.textContent = `当前会话：${sessionId || "未创建"}`;
-            chatInput.value = "如果首付不够，我该如何实现这个目标？";
-        } catch (error) {
-            overviewStatus.hidden = false;
-            overviewStatus.textContent = "请求失败";
-            recommendationStatus.textContent = error.message;
-            sessionNote.textContent = error.message;
-        } finally {
-            runBtn.disabled = false;
-        }
-    }
-
-    async function sendChatMessage() {
-        const userId = Number(userSelect.value);
-        const message = chatInput.value.trim();
-        if (!userId || !message) {
-            return;
-        }
-
-        sendBtn.disabled = true;
-        recommendationStatus.textContent = "正在继续对话...";
-
-        try {
-            const chat = await request("/api/v1/wealth-advisor/chat", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({userId, message, sessionId})
-            });
-
-            sessionId = chat.sessionId || sessionId;
-            renderRecommendations(chat);
-            renderMessages(chat.messages || []);
-            sessionNote.textContent = `当前会话：${sessionId}`;
-            chatInput.value = "";
-        } catch (error) {
-            recommendationStatus.textContent = error.message;
-            sessionNote.textContent = error.message;
-        } finally {
-            sendBtn.disabled = false;
-        }
-    }
-
-    async function resetSession() {
-        if (sessionId) {
-            try {
-                await fetch(`/api/v1/wealth-advisor/sessions/${sessionId}`, { method: "DELETE" });
-            } catch (error) {
-                console.warn("Failed to delete session on server", error);
-            }
-        }
-        sessionId = "";
-        sessionNote.textContent = "当前没有会话。";
-        recommendationStatus.textContent = "会话已重置，请重新开始。";
-        recommendationGrid.hidden = true;
-        recommendationGrid.innerHTML = "";
-        chatMessages.innerHTML = `
-            <div class="message-row assistant">
-                <div class="bubble">会话已重置。你可以重新发起新的财富管理问题。</div>
-            </div>
-        `;
-    }
-
-    runBtn.addEventListener("click", startConversation);
-    sendBtn.addEventListener("click", sendChatMessage);
-    resetBtn.addEventListener("click", resetSession);
-    userSelect.addEventListener("change", async () => {
-        sessionId = "";
-        await loadOverview(Number(userSelect.value));
-        recommendationGrid.hidden = true;
-        recommendationGrid.innerHTML = "";
-        recommendationStatus.textContent = "用户已切换，请发送新的问题。";
-        sessionNote.textContent = "当前没有会话。";
-        chatMessages.innerHTML = `
-            <div class="message-row assistant">
-                <div class="bubble">已切换用户。你可以开始新的财富管理对话。</div>
-            </div>
-        `;
-    });
-    chatInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            sendChatMessage();
-        }
+  const promise = new Promise((resolve, reject) => {
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(pct, `Uploading... ${pct}%`, '');
+      }
     });
 
-    (async function init() {
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
         try {
-            await loadUsers();
-            overviewStatus.textContent = "用户已加载。";
-        } catch (error) {
-            overviewStatus.textContent = `用户加载失败：${error.message}`;
+          resolve(JSON.parse(xhr.responseText));
+        } catch { reject(new Error('Invalid server response')); }
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.error || `Upload failed (HTTP ${xhr.status})`));
+        } catch {
+          reject(new Error(`Upload failed (HTTP ${xhr.status})`));
         }
-    })();
+      }
+    });
+
+    xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+
+    xhr.open('POST', '/api/documents/upload');
+    xhr.setRequestHeader('X-Tenant-ID', currentTenant);
+    xhr.send(formData);
+  });
+
+  try {
+    const data = await promise;
+    setUploadProgress(100, `Uploaded: ${data.fileName} (${data.chunks} chunks)`, 'success');
+    uploadedDocs.push(data.fileName);
+    refreshDocList();
+  } catch (err) {
+    setUploadProgress(100, err.message, 'error');
+  }
+}
+
+function refreshDocList() {
+  const el = document.getElementById('docList');
+  if (uploadedDocs.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Uploaded documents:</div>';
+  uploadedDocs.forEach(name => {
+    el.insertAdjacentHTML('beforeend', `<div class="doc-item">📎 ${escapeHtml(name)}</div>`);
+  });
+}
+
+// ---- Chat ----
+function clearChat() {
+  document.getElementById('chatMessages').innerHTML = `
+    <div class="chat-empty" id="chatEmpty">
+      <div class="icon">💬</div>
+      <h2>Enterprise Knowledge Base Q&A</h2>
+      <p>Select an enterprise, upload a document, then ask questions based on its content.</p>
+    </div>`;
+}
+
+const FETCH_TIMEOUT = 45000;
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const question = input.value.trim();
+  if (!question) return;
+
+  if (!currentTenant) {
+    alert('Please select an enterprise first');
+    return;
+  }
+
+  const chatEmpty = document.getElementById('chatEmpty');
+  if (chatEmpty) chatEmpty.remove();
+
+  const messages = document.getElementById('chatMessages');
+
+  // Add user message
+  messages.insertAdjacentHTML('beforeend',
+    `<div class="message user">${escapeHtml(question)}</div>`);
+
+  // Add loading message
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'message assistant';
+  loadingDiv.innerHTML = '<span class="spinner"></span> Thinking...';
+  messages.appendChild(loadingDiv);
+  messages.scrollTop = messages.scrollHeight;
+
+  input.value = '';
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  try {
+    const resp = await fetch('/api/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-ID': currentTenant
+      },
+      body: JSON.stringify({ message: question }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const data = await resp.json();
+
+    loadingDiv.remove();
+    let html;
+
+    if (!resp.ok) {
+      html = `<div class="message error">Error: ${escapeHtml(data.error || `Request failed (HTTP ${resp.status})`)}</div>`;
+    } else {
+      html = `<div class="message assistant">${escapeHtml(data.answer || '')}`;
+      if (data.sources && data.sources.length > 0) {
+        html += `<div class="sources">📎 Sources: ${data.sources.map(s => escapeHtml(s)).join(', ')}</div>`;
+      }
+      html += '</div>';
+    }
+    messages.insertAdjacentHTML('beforeend', html);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    loadingDiv.remove();
+    let errorMsg;
+    if (err.name === 'AbortError') {
+      errorMsg = 'Request timed out. Please check your API key configuration and try again.';
+    } else {
+      errorMsg = 'Network error: ' + err.message;
+    }
+    messages.insertAdjacentHTML('beforeend',
+      `<div class="message error">${escapeHtml(errorMsg)}</div>`);
+  } finally {
+    sendBtn.disabled = false;
+    messages.scrollTop = messages.scrollHeight;
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML.replace(/\n/g, '<br>');
+}
 </script>
 </body>
 </html>

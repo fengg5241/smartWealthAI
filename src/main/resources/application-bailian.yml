@@ -1,0 +1,21 @@
+spring:
+  ai:
+    openai:
+      api-key: ${DASHSCOPE_API_KEY:}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-max
+          temperature: 0.2
+          max-tokens: 900
+      embedding:
+        options:
+          model: text-embedding-v3
+    vectorstore:
+      pgvector:
+        dimensions: 1024
+        table-name: vector_store_bailian
+
+demo:
+  chat:
+    model: qwen-max

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: smart-wealth-ai
+    name: smart-rag-platform
   datasource:
     url: jdbc:postgresql://localhost:5432/smart_wealth_ai
     username: postgres
@@ -16,46 +16,27 @@ spring:
     init:
       mode: always
   ai:
-    openai:
-      api-key: ${OPENAI_API_KEY:}
-      chat:
-        options:
-          model: gpt-4.1-mini
-          temperature: 0.2
-          max-tokens: 900
-      embedding:
-        options:
-          model: text-embedding-3-small
     vectorstore:
       pgvector:
         initialize-schema: true
-        dimensions: 1536
         distance-type: COSINE_DISTANCE
         index-type: HNSW
+
+demo:
+  rag:
+    top-k: 4
+    similarity-threshold: 0.35
+    chunk-size: 500
+    chunk-overlap: 50
+  chat:
+    temperature: 0.2
+    max-tokens: 900
+
+server:
+  port: 8080
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
-
-wealth-advisor:
-  rag:
-    bootstrap-enabled: true
-    top-k: 4
-    similarity-threshold: 0.35
-    vector-dimensions: 1536
-  recommendation:
-    max-products: 3
-  llm:
-    classification-model: gpt-4.1-mini
-    classification-temperature: 0.0
-    classification-max-tokens: 120
-    answer-model: gpt-4.1-mini
-    answer-temperature: 0.2
-    answer-max-tokens: 900
-  chat:
-    open-mode: true
-
-server:
-  port: 8080

@@ -1,7 +1,0 @@
-package com.smartwealth.ai.repository;
-
-import com.smartwealth.ai.domain.UserProfile;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface UserProfileRepository extends JpaRepository<UserProfile, Long> {
-}

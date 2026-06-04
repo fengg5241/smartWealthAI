@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class SpringAiConfig {
 
     @Bean
-    public ChatClient chatClient(ChatModel chatModel) {
+    ChatClient chatClient(ChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
     }
 }
