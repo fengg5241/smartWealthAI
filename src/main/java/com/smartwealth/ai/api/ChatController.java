@@ -43,30 +43,53 @@ public class ChatController {
             return ResponseEntity.badRequest().body(Map.of("error", "Message is required"));
         }
 
-        // Search relevant document chunks for this tenant
-        List<Document> chunks = ragDocumentService.searchSimilarChunks(tenantId, question);
+        // Determine language and rewrite query for better document retrieval
+        boolean useChinese = isChineseQuery(question);
+        String searchQuery = rewriteQuery(question, useChinese);
+        List<Document> chunks = ragDocumentService.searchSimilarChunks(tenantId, searchQuery);
 
         String prompt;
         List<String> sources;
 
         if (chunks.isEmpty()) {
-            prompt = "用户问题：" + question
-                    + "\n\n请根据你的知识回答用户问题。如果你的知识与财富管理、税务、保险或投资无关，请直接回答。";
+            if (useChinese) {
+                prompt = "用户问题：" + question
+                        + "\n\n请根据你的知识回答用户问题。使用中文回答。";
+            } else {
+                prompt = "Question: " + question
+                        + "\n\nAnswer the question based on your knowledge. Reply in English.";
+            }
             sources = List.of();
         } else {
             String context = chunks.stream()
-                    .map(doc -> "【来源：" + doc.getMetadata().get("fileName") + "】\n" + doc.getText())
+                    .map(doc -> "【Source: " + doc.getMetadata().get("fileName") + "】\n" + doc.getText())
                     .collect(Collectors.joining("\n\n"));
 
-            prompt = """
-                    基于以下参考资料回答用户问题。如果无法从参考资料中找到答案，请说"根据现有资料无法回答"。
+            if (useChinese) {
+                prompt = """
+                        基于以下参考资料回答用户问题。如果无法从参考资料中找到答案，请说"根据现有资料无法回答"。
+                        请使用中文回答。
 
-                    【参考资料】
-                    %s
+                        【参考资料】
+                        %s
 
-                    【用户问题】
-                    %s
-                    """.formatted(context, question);
+                        【用户问题】
+                        %s
+                        """.formatted(context, question);
+            } else {
+                prompt = """
+                        Answer the user's question based on the reference materials below. \
+                        If the answer cannot be found in the reference materials, say \
+                        "The answer cannot be found in the available documents." \
+                        Reply in English regardless of the language of the reference materials.
+
+                        [Reference Materials]
+                        %s
+
+                        [Question]
+                        %s
+                        """.formatted(context, question);
+            }
 
             sources = chunks.stream()
                     .map(doc -> (String) doc.getMetadata().get("fileName"))
@@ -92,5 +115,46 @@ public class ChatController {
                 "answer", answer,
                 "sources", sources
         ));
+    }
+
+    private boolean isChineseQuery(String text) {
+        if (text == null || text.isEmpty()) return true;
+        int chineseChars = 0;
+        for (char c : text.toCharArray()) {
+            if (Character.UnicodeScript.of(c) == Character.UnicodeScript.HAN) {
+                chineseChars++;
+            }
+        }
+        return chineseChars > text.length() / 4;
+    }
+
+    private String rewriteQuery(String originalQuestion, boolean useChinese) {
+        String rewritePrompt;
+        if (useChinese) {
+            rewritePrompt = """
+                    将以下用户问题改写为适合向量数据库搜索的关键词查询。\
+                    将简短或模糊的问题扩展为可能出现在企业文档（政策、手册、SOP）中的具体术语。\
+                    只输出改写后的查询，不要解释。
+
+                    问题：%s
+                    """.formatted(originalQuestion);
+        } else {
+            rewritePrompt = """
+                    Rewrite the following user question into a search-friendly keyword query \
+                    for a vector database. Expand short or vague questions with specific terms \
+                    likely to appear in enterprise documents (policies, manuals, SOPs). \
+                    Output only the rewritten query, no explanation.
+
+                    Question: %s
+                    """.formatted(originalQuestion);
+        }
+        String rewritten = chatClient.prompt()
+                .user(rewritePrompt)
+                .call()
+                .content();
+        if (rewritten == null || rewritten.isBlank()) {
+            return originalQuestion;
+        }
+        return rewritten;
     }
 }
