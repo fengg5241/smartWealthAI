@@ -16,6 +16,7 @@ public class DemoProperties {
         private double similarityThreshold = 0.35;
         private int chunkSize = 500;
         private int chunkOverlap = 50;
+        private int tableRowsPerChunk = 10;
 
         public int getTopK() { return topK; }
         public void setTopK(int topK) { this.topK = topK; }
@@ -28,6 +29,9 @@ public class DemoProperties {
 
         public int getChunkOverlap() { return chunkOverlap; }
         public void setChunkOverlap(int chunkOverlap) { this.chunkOverlap = chunkOverlap; }
+
+        public int getTableRowsPerChunk() { return tableRowsPerChunk; }
+        public void setTableRowsPerChunk(int tableRowsPerChunk) { this.tableRowsPerChunk = tableRowsPerChunk; }
     }
 
     public static class Chat {

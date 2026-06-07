@@ -67,7 +67,9 @@ public class ChatController {
 
             if (useChinese) {
                 prompt = """
-                        基于以下参考资料回答用户问题。如果无法从参考资料中找到答案，请说"根据现有资料无法回答"。
+                        基于以下参考资料回答用户问题。如果无法从参考资料中找到答案，请说"根据现有资料无法回答"。\
+                        重要：当参考资料包含表格、且问题涉及最高/最低/最大/最小/排名时，你必须先逐行列出\
+                        所有相关数据，再给出最终答案。不要中途停止扫描，务必检查完每一行。\
                         请使用中文回答。
 
                         【参考资料】
@@ -81,7 +83,11 @@ public class ChatController {
                         Answer the user's question based on the reference materials below. \
                         If the answer cannot be found in the reference materials, say \
                         "The answer cannot be found in the available documents." \
-                        Reply in English regardless of the language of the reference materials.
+                        IMPORTANT: When the reference contains a table and the question asks \
+                        for highest/lowest/max/min/top/bottom values, you MUST first list ALL \
+                        rows with their values before selecting the answer. Do NOT stop reading \
+                        halfway — check every row. \
+                        Reply in English.
 
                         [Reference Materials]
                         %s

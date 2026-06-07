@@ -28,6 +28,7 @@ demo:
     similarity-threshold: 0.35
     chunk-size: 500
     chunk-overlap: 50
+    table-rows-per-chunk: 10
   chat:
     temperature: 0.2
     max-tokens: 900

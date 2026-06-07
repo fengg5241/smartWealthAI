@@ -141,7 +141,7 @@ body {
 .upload-progress-label.success { color: var(--success); }
 .upload-progress-label.error { color: var(--danger); }
 
-.doc-list { font-size: 13px; margin-top: 4px; }
+.doc-list { font-size: 13px; margin-top: 4px; overflow-y: auto; max-height: 300px; }
 .doc-list .doc-item {
   padding: 6px 8px;
   border-radius: 4px;
@@ -149,6 +149,33 @@ body {
   display: flex; align-items: center; gap: 6px;
   font-size: 12px;
 }
+.doc-list .doc-item:hover { background: var(--primary-light); }
+.doc-list .doc-item .file-icon { flex-shrink: 0; }
+.doc-list .doc-item .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-list .doc-item .file-type-tag {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.doc-list .doc-item .del-btn {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  visibility: hidden;
+}
+.doc-list .doc-item:hover .del-btn { visibility: visible; }
+.doc-list .doc-item .del-btn:hover { background: #fecaca; color: var(--danger); }
+.doc-list .empty-hint { font-size: 12px; color: var(--text-muted); padding: 8px; text-align: center; }
 
 /* Chat */
 .chat-container {
@@ -283,9 +310,9 @@ body {
     <div class="upload-zone" id="uploadZone">
       <div class="icon">📄</div>
       <p>Click or drag to upload</p>
-      <p class="hint">Supports PDF, DOCX</p>
+      <p class="hint">Supports PDF, DOCX, XLSX, XLS</p>
     </div>
-    <input type="file" id="fileInput" accept=".pdf,.docx">
+    <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.xls">
 
     <div class="upload-progress-wrap" id="uploadProgressWrap">
       <div class="upload-progress-bar">
@@ -318,8 +345,9 @@ const TENANTS = {
   globex_inc: 'Globex Inc'
 };
 
+const FILE_ICONS = { PDF: '📕', DOCX: '📘', XLSX: '📗', XLS: '📗' };
+
 let currentTenant = '';
-let uploadedDocs = [];
 
 document.getElementById('tenantSelect').addEventListener('change', function(e) {
   currentTenant = e.target.value;
@@ -330,6 +358,7 @@ document.getElementById('tenantSelect').addEventListener('change', function(e) {
     document.getElementById('tenantBadge').style.display = 'none';
   }
   clearChat();
+  loadDocList();
 });
 
 // ---- File Upload ----
@@ -377,7 +406,6 @@ async function uploadFile(file) {
 
   setUploadProgress(0, 'Starting upload...', '');
 
-  // Use XMLHttpRequest for progress tracking
   const xhr = new XMLHttpRequest();
 
   const promise = new Promise((resolve, reject) => {
@@ -414,23 +442,65 @@ async function uploadFile(file) {
   try {
     const data = await promise;
     setUploadProgress(100, `Uploaded: ${data.fileName} (${data.chunks} chunks)`, 'success');
-    uploadedDocs.push(data.fileName);
-    refreshDocList();
+    loadDocList();
   } catch (err) {
     setUploadProgress(100, err.message, 'error');
   }
 }
 
-function refreshDocList() {
+// ---- Document List ----
+async function loadDocList() {
   const el = document.getElementById('docList');
-  if (uploadedDocs.length === 0) {
-    el.innerHTML = '';
+  if (!currentTenant) {
+    el.innerHTML = '<div class="empty-hint">Select an enterprise to view documents</div>';
     return;
   }
-  el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Uploaded documents:</div>';
-  uploadedDocs.forEach(name => {
-    el.insertAdjacentHTML('beforeend', `<div class="doc-item">📎 ${escapeHtml(name)}</div>`);
-  });
+
+  try {
+    const resp = await fetch('/api/documents', {
+      headers: { 'X-Tenant-ID': currentTenant }
+    });
+    if (!resp.ok) throw new Error('Failed to load documents');
+
+    const docs = await resp.json();
+    if (docs.length === 0) {
+      el.innerHTML = '<div class="empty-hint">No documents yet</div>';
+      return;
+    }
+
+    let html = '';
+    docs.forEach(doc => {
+      const icon = FILE_ICONS[doc.fileType] || '📎';
+      html += `<div class="doc-item">
+        <span class="file-icon">${icon}</span>
+        <span class="file-name" title="${escapeHtml(doc.fileName)}">${escapeHtml(doc.fileName)}</span>
+        <span class="file-type-tag">${escapeHtml(doc.fileType)}</span>
+        <button class="del-btn" title="Delete" onclick="deleteDocument('${escapeHtml(doc.fileName)}')">&times;</button>
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch (err) {
+    el.innerHTML = '<div class="empty-hint" style="color:var(--danger)">Failed to load</div>';
+  }
+}
+
+async function deleteDocument(fileName) {
+  if (!confirm(`Delete "${fileName}"? This will remove all its chunks from the knowledge base.`)) return;
+
+  try {
+    const resp = await fetch('/api/documents/' + encodeURIComponent(fileName), {
+      method: 'DELETE',
+      headers: { 'X-Tenant-ID': currentTenant }
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert('Delete failed: ' + (err.error || resp.status));
+      return;
+    }
+    loadDocList();
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
 }
 
 // ---- Chat ----
@@ -460,11 +530,9 @@ async function sendMessage() {
 
   const messages = document.getElementById('chatMessages');
 
-  // Add user message
   messages.insertAdjacentHTML('beforeend',
     `<div class="message user">${escapeHtml(question)}</div>`);
 
-  // Add loading message
   const loadingDiv = document.createElement('div');
   loadingDiv.className = 'message assistant';
   loadingDiv.innerHTML = '<span class="spinner"></span> Thinking...';
@@ -475,7 +543,6 @@ async function sendMessage() {
   const sendBtn = document.getElementById('sendBtn');
   sendBtn.disabled = true;
 
-  // Create abort controller for timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 

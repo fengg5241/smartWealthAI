@@ -36,7 +36,12 @@ public class RagDocumentService {
 
     @Transactional
     public int indexDocument(String tenantId, String fileName, String fileType, String content) {
-        List<TextSegment> segments = chunkingStrategy.chunk(content, fileName);
+        List<TextSegment> segments;
+        if ("XLSX".equals(fileType) || "XLS".equals(fileType)) {
+            segments = chunkingStrategy.chunkStructured(content, fileName);
+        } else {
+            segments = chunkingStrategy.chunk(content, fileName);
+        }
         if (segments.isEmpty()) {
             log.warn("No text segments produced for file: {}", fileName);
             return 0;
