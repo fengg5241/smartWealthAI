@@ -67,6 +67,14 @@ body {
   min-width: 160px;
 }
 .header-right select:focus { outline: none; border-color: var(--primary); }
+.mode-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.mode-tag.admin { background: #fef3c7; color: #92400e; }
+.mode-tag.customer { background: #dcfce7; color: #166534; }
 
 /* Main */
 .main {
@@ -176,6 +184,72 @@ body {
 .doc-list .doc-item:hover .del-btn { visibility: visible; }
 .doc-list .doc-item .del-btn:hover { background: #fecaca; color: var(--danger); }
 .doc-list .empty-hint { font-size: 12px; color: var(--text-muted); padding: 8px; text-align: center; }
+
+/* Tenant Management */
+.tenant-mgmt { margin-top: 8px; }
+.tenant-mgmt h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.tenant-create {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tenant-create input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.tenant-create input:focus { outline: none; border-color: var(--primary); }
+.tenant-create button {
+  padding: 8px 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tenant-create button:hover { background: #1d4ed8; }
+.tenant-create-msg {
+  font-size: 12px;
+  margin-top: 6px;
+  min-height: 18px;
+}
+.tenant-create-msg.success { color: var(--success); }
+.tenant-create-msg.error { color: var(--danger); }
+.tenant-list { margin-top: 12px; }
+.tenant-list .t-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.tenant-list .t-item:hover { background: var(--primary-light); }
+.tenant-list .t-item .t-name { color: var(--text); font-weight: 500; }
+.tenant-list .t-item .t-id { color: var(--text-muted); font-size: 11px; }
+.tenant-list .t-item .t-del {
+  width: 20px; height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  visibility: hidden;
+}
+.tenant-list .t-item:hover .t-del { visibility: visible; }
+.tenant-list .t-item .t-del:hover { background: #fecaca; color: var(--danger); }
 
 /* Chat */
 .chat-container {
@@ -293,24 +367,23 @@ body {
       <span class="dot"></span>
       <span id="tenantName"></span>
     </span>
+    <span class="mode-tag" id="modeTag"></span>
   </div>
-  <div class="header-right">
+  <div class="header-right" id="headerRight">
     <label for="tenantSelect">Enterprise:</label>
     <select id="tenantSelect">
-      <option value="">-- Select Enterprise --</option>
-      <option value="acme_corp">ACME Corp</option>
-      <option value="globex_inc">Globex Inc</option>
+      <option value="">-- Loading... --</option>
     </select>
   </div>
 </div>
 
 <div class="main">
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
     <h3>Document Management</h3>
     <div class="upload-zone" id="uploadZone">
       <div class="icon">📄</div>
       <p>Click or drag to upload</p>
-      <p class="hint">Supports PDF, DOCX, XLSX, XLS</p>
+      <p class="hint">Supports PDF, DOCX, XLSX, XLS — Max 10MB</p>
     </div>
     <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.xls">
 
@@ -322,6 +395,17 @@ body {
     </div>
 
     <div class="doc-list" id="docList"></div>
+
+    <div class="tenant-mgmt" id="tenantMgmt" style="display:none">
+      <h3>Tenant Management</h3>
+      <div class="tenant-create">
+        <input type="text" id="newTenantId" placeholder="tenant_id (e.g. acme_corp)" maxlength="50">
+        <input type="text" id="newTenantName" placeholder="Display name (e.g. ACME Corp)" maxlength="100">
+        <button onclick="createTenant()">+ Create Tenant</button>
+      </div>
+      <div class="tenant-create-msg" id="tenantCreateMsg"></div>
+      <div class="tenant-list" id="tenantList"></div>
+    </div>
   </div>
 
   <div class="chat-container">
@@ -329,7 +413,7 @@ body {
       <div class="chat-empty" id="chatEmpty">
         <div class="icon">💬</div>
         <h2>Enterprise Knowledge Base Q&A</h2>
-        <p>Select an enterprise, upload a document, then ask questions based on its content.</p>
+        <p id="chatEmptyHint">Select an enterprise, upload a document, then ask questions based on its content.</p>
       </div>
     </div>
     <div class="chat-input-area">
@@ -340,19 +424,150 @@ body {
 </div>
 
 <script>
-const TENANTS = {
-  acme_corp: 'ACME Corp',
-  globex_inc: 'Globex Inc'
-};
-
 const FILE_ICONS = { PDF: '📕', DOCX: '📘', XLSX: '📗', XLS: '📗' };
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 let currentTenant = '';
+let isAdmin = false;
+let adminKey = '';
+let tenantMap = {}; // tenantId -> name, loaded from API
+
+// ---- Init: parse URL params ----
+(async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const tenantParam = params.get('tenant');
+  const adminParam = params.get('admin');
+
+  if (adminParam === 'true') {
+    isAdmin = true;
+    adminKey = params.get('key') || '';
+    document.getElementById('modeTag').textContent = 'ADMIN';
+    document.getElementById('modeTag').className = 'mode-tag admin';
+    document.getElementById('chatEmptyHint').textContent = 'Select an enterprise, upload documents, then demo Q&A.';
+    // Show tenant management for admin
+    document.getElementById('tenantMgmt').style.display = 'block';
+  } else if (tenantParam) {
+    isAdmin = false;
+    currentTenant = tenantParam;
+    document.getElementById('modeTag').textContent = 'Customer';
+    document.getElementById('modeTag').className = 'mode-tag customer';
+
+    // Lock tenant — hide dropdown, show name
+    document.getElementById('headerRight').style.display = 'none';
+    document.getElementById('tenantBadge').style.display = 'inline-flex';
+
+    loadDocList();
+  }
+
+  await loadTenants();
+  updateTenantBadge();
+})();
+
+// ---- Tenant Management ----
+async function loadTenants() {
+  if (!isAdmin) return;
+  try {
+    const resp = await fetch('/api/admin/tenants', { headers: adminHeaders() });
+    if (!resp.ok) return;
+    const tenants = await resp.json();
+    tenantMap = {};
+    const sel = document.getElementById('tenantSelect');
+    sel.innerHTML = '<option value="">-- Select Enterprise --</option>';
+    tenants.forEach(t => {
+      tenantMap[t.tenantId] = t.name;
+      const opt = document.createElement('option');
+      opt.value = t.tenantId;
+      opt.textContent = t.name + ' (' + t.tenantId + ')';
+      sel.appendChild(opt);
+    });
+    renderTenantList(tenants);
+  } catch (err) {
+    console.error('Failed to load tenants', err);
+  }
+}
+
+function renderTenantList(tenants) {
+  const el = document.getElementById('tenantList');
+  if (tenants.length === 0) {
+    el.innerHTML = '<div class="empty-hint">No tenants yet</div>';
+    return;
+  }
+  let html = '';
+  tenants.forEach(t => {
+    html += `<div class="t-item">
+      <div><span class="t-name">${escapeHtml(t.name)}</span>&nbsp;<span class="t-id">${escapeHtml(t.tenantId)}</span></div>
+      <button class="t-del" title="Delete" onclick="deleteTenant('${escapeHtml(t.tenantId)}')">&times;</button>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+async function createTenant() {
+  const tid = document.getElementById('newTenantId').value.trim();
+  const tname = document.getElementById('newTenantName').value.trim();
+  const msg = document.getElementById('tenantCreateMsg');
+  if (!tid || !tname) {
+    msg.textContent = 'Both fields are required';
+    msg.className = 'tenant-create-msg error';
+    return;
+  }
+  try {
+    const resp = await fetch('/api/admin/tenants', {
+      method: 'POST',
+      headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId: tid, name: tname })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      msg.textContent = data.error || 'Failed';
+      msg.className = 'tenant-create-msg error';
+      return;
+    }
+    msg.textContent = 'Created ' + tid;
+    msg.className = 'tenant-create-msg success';
+    document.getElementById('newTenantId').value = '';
+    document.getElementById('newTenantName').value = '';
+    await loadTenants();
+  } catch (err) {
+    msg.textContent = 'Network error';
+    msg.className = 'tenant-create-msg error';
+  }
+}
+
+async function deleteTenant(tenantId) {
+  if (!confirm('Delete tenant "' + tenantId + '"? This cannot be undone.')) return;
+  try {
+    const resp = await fetch('/api/admin/tenants/' + encodeURIComponent(tenantId), {
+      method: 'DELETE',
+      headers: adminHeaders()
+    });
+    if (!resp.ok) {
+      const data = await resp.json();
+      alert('Delete failed: ' + (data.error || resp.status));
+      return;
+    }
+    await loadTenants();
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+}
+
+function updateTenantBadge() {
+  if (currentTenant) {
+    document.getElementById('tenantName').textContent = tenantMap[currentTenant] || currentTenant;
+  }
+}
+
+function adminHeaders() {
+  const h = {};
+  if (isAdmin && adminKey) h['X-Admin-Key'] = adminKey;
+  return h;
+}
 
 document.getElementById('tenantSelect').addEventListener('change', function(e) {
   currentTenant = e.target.value;
   if (currentTenant) {
-    document.getElementById('tenantName').textContent = TENANTS[currentTenant];
+    document.getElementById('tenantName').textContent = tenantMap[currentTenant] || currentTenant;
     document.getElementById('tenantBadge').style.display = 'inline-flex';
   } else {
     document.getElementById('tenantBadge').style.display = 'none';
@@ -368,17 +583,19 @@ const progressWrap = document.getElementById('uploadProgressWrap');
 const progressFill = document.getElementById('uploadProgressFill');
 const progressLabel = document.getElementById('uploadProgressLabel');
 
-uploadZone.addEventListener('click', () => fileInput.click());
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadZone.classList.remove('dragover');
-  if (e.dataTransfer.files.length) {
-    fileInput.files = e.dataTransfer.files;
-    uploadFile(e.dataTransfer.files[0]);
-  }
-});
+if (uploadZone) {
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      uploadFile(e.dataTransfer.files[0]);
+    }
+  });
+}
 
 fileInput.addEventListener('change', () => {
   if (fileInput.files.length) uploadFile(fileInput.files[0]);
@@ -398,6 +615,11 @@ function setUploadProgress(pct, label, type) {
 async function uploadFile(file) {
   if (!currentTenant) {
     setUploadProgress(100, 'Please select an enterprise first', 'error');
+    return;
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    setUploadProgress(100, 'File too large. Maximum upload size is 10MB.', 'error');
     return;
   }
 
@@ -436,6 +658,9 @@ async function uploadFile(file) {
 
     xhr.open('POST', '/api/documents/upload');
     xhr.setRequestHeader('X-Tenant-ID', currentTenant);
+    if (isAdmin && adminKey) {
+      xhr.setRequestHeader('X-Admin-Key', adminKey);
+    }
     xhr.send(formData);
   });
 
@@ -457,9 +682,10 @@ async function loadDocList() {
   }
 
   try {
-    const resp = await fetch('/api/documents', {
-      headers: { 'X-Tenant-ID': currentTenant }
-    });
+    const headers = { 'X-Tenant-ID': currentTenant };
+    if (isAdmin && adminKey) headers['X-Admin-Key'] = adminKey;
+
+    const resp = await fetch('/api/documents', { headers });
     if (!resp.ok) throw new Error('Failed to load documents');
 
     const docs = await resp.json();
@@ -474,9 +700,9 @@ async function loadDocList() {
       html += `<div class="doc-item">
         <span class="file-icon">${icon}</span>
         <span class="file-name" title="${escapeHtml(doc.fileName)}">${escapeHtml(doc.fileName)}</span>
-        <span class="file-type-tag">${escapeHtml(doc.fileType)}</span>
-        <button class="del-btn" title="Delete" onclick="deleteDocument('${escapeHtml(doc.fileName)}')">&times;</button>
-      </div>`;
+        <span class="file-type-tag">${escapeHtml(doc.fileType)}</span>`;
+        html += `<button class="del-btn" title="Delete" onclick="deleteDocument('${escapeHtml(doc.fileName)}')">&times;</button>`;
+      html += `</div>`;
     });
     el.innerHTML = html;
   } catch (err) {
@@ -488,9 +714,12 @@ async function deleteDocument(fileName) {
   if (!confirm(`Delete "${fileName}"? This will remove all its chunks from the knowledge base.`)) return;
 
   try {
+    const headers = { 'X-Tenant-ID': currentTenant };
+    if (isAdmin && adminKey) headers['X-Admin-Key'] = adminKey;
+
     const resp = await fetch('/api/documents/' + encodeURIComponent(fileName), {
       method: 'DELETE',
-      headers: { 'X-Tenant-ID': currentTenant }
+      headers
     });
     if (!resp.ok) {
       const err = await resp.json();
@@ -509,7 +738,7 @@ function clearChat() {
     <div class="chat-empty" id="chatEmpty">
       <div class="icon">💬</div>
       <h2>Enterprise Knowledge Base Q&A</h2>
-      <p>Select an enterprise, upload a document, then ask questions based on its content.</p>
+      <p>Ask questions based on uploaded documents.</p>
     </div>`;
 }
 
@@ -547,12 +776,15 @@ async function sendMessage() {
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Tenant-ID': currentTenant
+    };
+    if (isAdmin && adminKey) headers['X-Admin-Key'] = adminKey;
+
     const resp = await fetch('/api/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Tenant-ID': currentTenant
-      },
+      headers,
       body: JSON.stringify({ message: question }),
       signal: controller.signal
     });

@@ -1,0 +1,9 @@
+.env
+.git
+.idea
+*.iml
+.m2
+target/
+Dockerfile
+docker-compose.yml
+.env.example

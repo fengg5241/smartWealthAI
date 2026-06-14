@@ -5,6 +5,7 @@ import com.smartwealth.ai.repository.EnterpriseDocumentRepository;
 import com.smartwealth.ai.service.DocumentParserService;
 import com.smartwealth.ai.service.RagDocumentService;
 import com.smartwealth.ai.tenant.TenantContext;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +17,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/documents")
 public class DocumentController {
+
+    private static final long MAX_TEXT_LENGTH = 500_000;
 
     private final DocumentParserService parserService;
     private final RagDocumentService ragDocumentService;
@@ -43,6 +46,10 @@ public class DocumentController {
                         "error", "Unsupported file type. Supported: PDF, DOCX, XLSX, XLS"));
             }
             String content = parserService.parse(file);
+            if (content.length() > MAX_TEXT_LENGTH) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Document text content exceeds " + MAX_TEXT_LENGTH + " characters. Please upload a smaller file or split it into multiple documents."));
+            }
             int chunkCount = ragDocumentService.indexDocument(tenantId, fileName, fileType, content);
 
             return ResponseEntity.ok(Map.of(

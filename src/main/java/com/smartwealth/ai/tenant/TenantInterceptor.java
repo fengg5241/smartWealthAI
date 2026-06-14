@@ -2,11 +2,18 @@ package com.smartwealth.ai.tenant;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class TenantInterceptor implements HandlerInterceptor {
+
+    private final String adminKey;
+
+    public TenantInterceptor(@Value("${demo.admin-key:}") String adminKey) {
+        this.adminKey = adminKey;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -14,6 +21,11 @@ public class TenantInterceptor implements HandlerInterceptor {
         if (tenantId != null && !tenantId.isBlank()) {
             TenantContext.setCurrentTenantId(tenantId.trim());
         }
+
+        String key = request.getHeader("X-Admin-Key");
+        boolean isAdmin = adminKey != null && !adminKey.isBlank() && adminKey.equals(key);
+        TenantContext.setAdmin(isAdmin);
+
         return true;
     }
 
