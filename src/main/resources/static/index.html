@@ -433,7 +433,7 @@ let adminKey = '';
 let tenantMap = {}; // tenantId -> name, loaded from API
 
 // ---- Init: parse URL params ----
-(async function init() {
+async function init() {
   const params = new URLSearchParams(window.location.search);
   const tenantParam = params.get('tenant');
   const adminParam = params.get('admin');
@@ -444,24 +444,65 @@ let tenantMap = {}; // tenantId -> name, loaded from API
     document.getElementById('modeTag').textContent = 'ADMIN';
     document.getElementById('modeTag').className = 'mode-tag admin';
     document.getElementById('chatEmptyHint').textContent = 'Select an enterprise, upload documents, then demo Q&A.';
-    // Show tenant management for admin
     document.getElementById('tenantMgmt').style.display = 'block';
   } else if (tenantParam) {
     isAdmin = false;
     currentTenant = tenantParam;
     document.getElementById('modeTag').textContent = 'Customer';
     document.getElementById('modeTag').className = 'mode-tag customer';
-
-    // Lock tenant — hide dropdown, show name
     document.getElementById('headerRight').style.display = 'none';
     document.getElementById('tenantBadge').style.display = 'inline-flex';
-
-    loadDocList();
+    document.getElementById('tenantName').textContent = tenantParam;
   }
 
   await loadTenants();
+
+  if (!isAdmin && currentTenant) {
+    if (!(await validateTenant(currentTenant))) {
+      return;
+    }
+  }
+
+  if (currentTenant) {
+    loadDocList();
+  }
   updateTenantBadge();
-})();
+}
+
+async function validateTenant(tenantId) {
+  try {
+    const resp = await fetch('/api/documents', { headers: { 'X-Tenant-ID': tenantId } });
+    if (resp.status === 404) {
+      const data = await resp.json();
+      if (data.error && data.error.startsWith('Tenant')) {
+        showTenantPageError(data.error);
+        return false;
+      }
+    }
+    return true;
+  } catch (err) {
+    return true; // network error — let the user try
+  }
+}
+
+function showTenantPageError(msg) {
+  document.getElementById('headerRight').style.display = 'none';
+  document.getElementById('tenantBadge').style.display = 'none';
+  document.getElementById('modeTag').style.display = 'none';
+  document.getElementById('docList').innerHTML = '';
+  document.getElementById('tenantMgmt').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('chatMessages').innerHTML = `
+    <div class="chat-empty">
+      <div class="icon">⚠️</div>
+      <h2>${escapeHtml(msg)}</h2>
+      <p style="margin-top:8px">Please check the link or contact the administrator for a valid tenant URL.</p>
+    </div>`;
+  document.getElementById('chatInput').disabled = true;
+  document.getElementById('sendBtn').disabled = true;
+}
+
+init();
 
 // ---- Tenant Management ----
 async function loadTenants() {
