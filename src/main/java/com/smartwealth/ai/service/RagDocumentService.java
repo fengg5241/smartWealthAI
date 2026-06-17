@@ -77,10 +77,15 @@ public class RagDocumentService {
     }
 
     public List<Document> searchSimilarChunks(String tenantId, String query) {
+        return searchSimilarChunks(tenantId, query, properties.getRag().getTopK(),
+                properties.getRag().getSimilarityThreshold());
+    }
+
+    public List<Document> searchSimilarChunks(String tenantId, String query, int topK, double similarityThreshold) {
         List<Document> results = vectorStore.similaritySearch(SearchRequest.builder()
                 .query(query)
-                .topK(properties.getRag().getTopK())
-                .similarityThreshold(properties.getRag().getSimilarityThreshold())
+                .topK(topK)
+                .similarityThreshold(similarityThreshold)
                 .build());
 
         return results.stream()

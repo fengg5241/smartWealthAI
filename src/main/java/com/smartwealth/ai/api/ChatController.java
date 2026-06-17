@@ -45,8 +45,22 @@ public class ChatController {
 
         // Determine language and rewrite query for better document retrieval
         boolean useChinese = isChineseQuery(question);
-        String searchQuery = rewriteQuery(question, useChinese);
-        List<Document> chunks = ragDocumentService.searchSimilarChunks(tenantId, searchQuery);
+        boolean isComparison = isComparisonQuery(question);
+        String searchQuery;
+        int topK = properties.getRag().getTopK();
+        double similarityThreshold = properties.getRag().getSimilarityThreshold();
+
+        if (isComparison) {
+            // For ranking/comparison queries, skip expansion-biased rewrite
+            // to preserve semantic similarity with structured table data.
+            // Also lower threshold and fetch more chunks to avoid missing data.
+            searchQuery = question;
+            topK = Math.max(topK, 20);
+            similarityThreshold = 0.0;
+        } else {
+            searchQuery = rewriteQuery(question, useChinese);
+        }
+        List<Document> chunks = ragDocumentService.searchSimilarChunks(tenantId, searchQuery, topK, similarityThreshold);
 
         String prompt;
         List<String> sources;
@@ -134,6 +148,21 @@ public class ChatController {
         return chineseChars > text.length() / 4;
     }
 
+    private boolean isComparisonQuery(String text) {
+        if (text == null || text.isEmpty()) return false;
+        String lower = text.toLowerCase();
+        for (String kw : COMPARISON_KEYWORDS) {
+            if (lower.contains(kw)) return true;
+        }
+        return false;
+    }
+
+    private static final String[] COMPARISON_KEYWORDS = {
+            "最高", "最低", "最大", "最小", "最多", "最少", "排名", "前十", "top",
+            "highest", "lowest", "maximum", "minimum", "largest", "smallest",
+            "most", "least", "top", "bottom", "ranking", "rank", "best", "worst"
+    };
+
     private String rewriteQuery(String originalQuestion, boolean useChinese) {
         String rewritePrompt;
         if (useChinese) {
@@ -148,7 +177,7 @@ public class ChatController {
             rewritePrompt = """
                     Rewrite the following user question into a search-friendly keyword query \
                     for a vector database. Expand short or vague questions with specific terms \
-                    likely to appear in enterprise documents (policies, manuals, SOPs). \
+                    likely to appear in the indexed documents (tables, reports, policies, manuals). \
                     Output only the rewritten query, no explanation.
 
                     Question: %s
