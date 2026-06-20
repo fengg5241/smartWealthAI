@@ -7,9 +7,11 @@ public class DemoProperties {
 
     private final Rag rag = new Rag();
     private final Chat chat = new Chat();
+    private final ImageSearch imageSearch = new ImageSearch();
 
     public Rag getRag() { return rag; }
     public Chat getChat() { return chat; }
+    public ImageSearch getImageSearch() { return imageSearch; }
 
     public static class Rag {
         private int topK = 4;
@@ -47,5 +49,28 @@ public class DemoProperties {
 
         public int getMaxTokens() { return maxTokens; }
         public void setMaxTokens(int maxTokens) { this.maxTokens = maxTokens; }
+    }
+
+    public static class ImageSearch {
+        private String model = "multimodal-embedding-v1";
+        private int dimensions = 1024;
+        private String uploadDir = "uploads/products";
+        private int topK = 5;
+        private double similarityThreshold = 0.0;
+
+        public String getModel() { return model; }
+        public void setModel(String model) { this.model = model; }
+
+        public int getDimensions() { return dimensions; }
+        public void setDimensions(int dimensions) { this.dimensions = dimensions; }
+
+        public String getUploadDir() { return uploadDir; }
+        public void setUploadDir(String uploadDir) { this.uploadDir = uploadDir; }
+
+        public int getTopK() { return topK; }
+        public void setTopK(int topK) { this.topK = topK; }
+
+        public double getSimilarityThreshold() { return similarityThreshold; }
+        public void setSimilarityThreshold(double similarityThreshold) { this.similarityThreshold = similarityThreshold; }
     }
 }

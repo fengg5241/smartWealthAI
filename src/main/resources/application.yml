@@ -34,6 +34,12 @@ demo:
     chunk-size: 500
     chunk-overlap: 50
     table-rows-per-chunk: 10
+  image-search:
+    model: multimodal-embedding-v1
+    dimensions: 1024
+    upload-dir: ${IMAGE_UPLOAD_DIR:uploads/products}
+    top-k: 5
+    similarity-threshold: 0.0
   chat:
     temperature: 0.2
     max-tokens: 900

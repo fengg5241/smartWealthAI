@@ -7,355 +7,165 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232563eb'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>R</text></svg>">
 <style>
 :root {
-  --primary: #2563eb;
-  --primary-light: #eff6ff;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --danger: #dc2626;
-  --bg: #f8fafc;
-  --card: #ffffff;
-  --border: #e2e8f0;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,.1);
+  --primary: #2563eb; --primary-light: #eff6ff; --success: #16a34a; --warning: #f59e0b;
+  --danger: #dc2626; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+  --text: #1e293b; --text-muted: #64748b; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.1);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
 
 /* Header */
-.header {
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-.header-left { display: flex; align-items: center; gap: 12px; }
+.header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.header-left { display: flex; align-items: center; gap: 24px; }
 .logo { font-size: 20px; font-weight: 700; color: var(--primary); }
-.tenant-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--primary-light);
-  color: var(--primary);
-  border: 1px solid var(--primary);
-  border-radius: 20px;
-  padding: 4px 14px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.tenant-badge .dot {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--success);
-}
+.nav { display: flex; align-items: center; gap: 0; }
+.nav-item { padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: none; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all .15s; }
+.nav-item:hover { color: var(--text); }
+.nav-item.active { color: var(--primary); border-bottom-color: var(--primary); }
 .header-right { display: flex; align-items: center; gap: 12px; }
 .header-right label { font-size:13px; color:var(--text-muted); }
-.header-right select {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-  min-width: 160px;
-}
+.header-right select { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; background: white; cursor: pointer; min-width: 160px; }
 .header-right select:focus { outline: none; border-color: var(--primary); }
-.mode-tag {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 600;
-}
+.tenant-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary); border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600; }
+.tenant-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.mode-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 .mode-tag.admin { background: #fef3c7; color: #92400e; }
 .mode-tag.customer { background: #dcfce7; color: #166534; }
 
 /* Main */
-.main {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
+.main { flex: 1; display: flex; overflow: hidden; }
 
-/* Sidebar */
-.sidebar {
-  width: 260px;
-  background: var(--card);
-  border-right: 1px solid var(--border);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex-shrink: 0;
-}
-.sidebar h3 {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  color: var(--text-muted);
-}
-.upload-zone {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 24px 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-}
-.upload-zone:hover, .upload-zone.dragover {
-  border-color: var(--primary);
-  background: var(--primary-light);
-}
-.upload-zone .icon { font-size: 32px; margin-bottom: 8px; }
-.upload-zone p { font-size: 13px; color: var(--text-muted); }
-.upload-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-#fileInput { display: none; }
+/* Pages */
+.page { display: none; flex: 1; overflow: hidden; }
+.page.active { display: flex; }
 
-/* Upload progress */
-.upload-progress-wrap {
-  display: none;
-  flex-direction: column;
-  gap: 6px;
-}
+/* ===== PAGE 1: Q&A ===== */
+.qa-layout { display: flex; flex: 1; overflow: hidden; }
+.sidebar { width: 260px; background: var(--card); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; overflow-y: auto; }
+.sidebar h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+.upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px 12px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: var(--primary-light); }
+.upload-zone .icon { font-size: 28px; margin-bottom: 4px; }
+.upload-zone p { font-size: 12px; color: var(--text-muted); }
+.upload-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.doc-list { font-size: 13px; overflow-y: auto; }
+.doc-item { padding: 6px 8px; border-radius: 4px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.doc-item:hover { background: var(--primary-light); }
+.doc-item .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-item .del-btn { width: 20px; height: 20px; border: none; background: transparent; color: var(--text-muted); border-radius: 4px; cursor: pointer; font-size: 16px; visibility: hidden; line-height: 20px; text-align: center; flex-shrink: 0; }
+.doc-item:hover .del-btn { visibility: visible; }
+.doc-item .del-btn:hover { background: #fecaca; color: var(--danger); }
+.doc-list .empty-hint { font-size: 12px; color: var(--text-muted); padding: 8px; text-align: center; }
+
+/* Progress */
+.upload-progress-wrap { display: none; flex-direction: column; gap: 6px; }
 .upload-progress-wrap.active { display: flex; }
-.upload-progress-bar {
-  width: 100%;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.upload-progress-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--primary);
-  border-radius: 3px;
-  transition: width .3s;
-}
+.upload-progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.upload-progress-fill { height: 100%; width: 0%; background: var(--primary); border-radius: 3px; transition: width .3s; }
 .upload-progress-fill.error { background: var(--danger); }
-.upload-progress-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.upload-progress-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .upload-progress-label.success { color: var(--success); }
 .upload-progress-label.error { color: var(--danger); }
 
-.doc-list { font-size: 13px; margin-top: 4px; overflow-y: auto; max-height: 300px; }
-.doc-list .doc-item {
-  padding: 6px 8px;
-  border-radius: 4px;
-  color: var(--text-muted);
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px;
-}
-.doc-list .doc-item:hover { background: var(--primary-light); }
-.doc-list .doc-item .file-icon { flex-shrink: 0; }
-.doc-list .doc-item .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.doc-list .doc-item .file-type-tag {
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--border);
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-.doc-list .doc-item .del-btn {
-  flex-shrink: 0;
-  width: 20px; height: 20px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 20px;
-  text-align: center;
-  visibility: hidden;
-}
-.doc-list .doc-item:hover .del-btn { visibility: visible; }
-.doc-list .doc-item .del-btn:hover { background: #fecaca; color: var(--danger); }
-.doc-list .empty-hint { font-size: 12px; color: var(--text-muted); padding: 8px; text-align: center; }
-
-/* Tenant Management */
-.tenant-mgmt { margin-top: 8px; }
-.tenant-mgmt h3 {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-.tenant-create {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.tenant-create input {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 13px;
-}
+/* Tenant mgmt */
+.tenant-mgmt h3 { margin-bottom: 10px; }
+.tenant-create { display: flex; flex-direction: column; gap: 6px; }
+.tenant-create input { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; }
 .tenant-create input:focus { outline: none; border-color: var(--primary); }
-.tenant-create button {
-  padding: 8px 12px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
+.tenant-create button { padding: 8px 12px; background: var(--primary); color: white; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; }
 .tenant-create button:hover { background: #1d4ed8; }
-.tenant-create-msg {
-  font-size: 12px;
-  margin-top: 6px;
-  min-height: 18px;
-}
+.tenant-create-msg { font-size: 12px; margin-top: 6px; min-height: 18px; }
 .tenant-create-msg.success { color: var(--success); }
 .tenant-create-msg.error { color: var(--danger); }
-.tenant-list { margin-top: 12px; }
-.tenant-list .t-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
+.tenant-list .t-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
 .tenant-list .t-item:hover { background: var(--primary-light); }
 .tenant-list .t-item .t-name { color: var(--text); font-weight: 500; }
 .tenant-list .t-item .t-id { color: var(--text-muted); font-size: 11px; }
-.tenant-list .t-item .t-del {
-  width: 20px; height: 20px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 20px;
-  text-align: center;
-  visibility: hidden;
-}
+.tenant-list .t-item .t-del { width: 20px; height: 20px; border: none; background: transparent; color: var(--text-muted); border-radius: 4px; cursor: pointer; font-size: 14px; line-height: 20px; text-align: center; visibility: hidden; }
 .tenant-list .t-item:hover .t-del { visibility: visible; }
 .tenant-list .t-item .t-del:hover { background: #fecaca; color: var(--danger); }
 
 /* Chat */
-.chat-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-}
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.chat-empty {
-  margin: auto;
-  text-align: center;
-  color: var(--text-muted);
-  max-width: 360px;
-}
+.chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+.chat-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.chat-empty { margin: auto; text-align: center; color: var(--text-muted); max-width: 380px; }
 .chat-empty .icon { font-size: 48px; margin-bottom: 12px; }
 .chat-empty h2 { font-size: 18px; margin-bottom: 4px; }
 .chat-empty p { font-size: 14px; line-height: 1.5; }
-.message {
-  max-width: 80%;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  font-size: 14px;
-  line-height: 1.6;
-  animation: fadeIn .2s;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
+.message { max-width: 80%; padding: 12px 16px; border-radius: var(--radius); font-size: 14px; line-height: 1.6; animation: fadeIn .2s; white-space: pre-wrap; word-wrap: break-word; }
 @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
-.message.user {
-  align-self: flex-end;
-  background: var(--primary);
-  color: white;
-}
-.message.assistant {
-  align-self: flex-start;
-  background: var(--card);
-  border: 1px solid var(--border);
-}
-.message .sources {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.message.error {
-  align-self: flex-start;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: var(--danger);
-}
+.message.user { align-self: flex-end; background: var(--primary); color: white; }
+.message.assistant { align-self: flex-start; background: var(--card); border: 1px solid var(--border); }
+.message.error { align-self: flex-start; background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); }
+.message .sources { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+.message img.msg-img { max-width: 200px; border-radius: 8px; margin-bottom: 4px; }
+.img-search-result { margin-top: 8px; }
+.img-search-result .result-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 6px; font-size: 13px; margin-bottom: 4px; }
+.img-search-result .result-item .match { font-size: 11px; color: var(--success); font-weight: 600; margin-left: auto; flex-shrink: 0; }
+.img-search-result .result-item .r-thumb { width: 48px; height: 36px; border-radius: 4px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; object-fit: cover; }
 
-.chat-input-area {
-  padding: 16px 24px;
-  background: var(--card);
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 12px;
-}
-.chat-input-area input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 14px;
-}
+.chat-input-area { padding: 16px 24px; background: var(--card); border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+.chat-input-area input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
 .chat-input-area input:focus { outline: none; border-color: var(--primary); }
-.chat-input-area button {
-  padding: 10px 24px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .2s;
-  white-space: nowrap;
-}
+.chat-input-area button { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .chat-input-area button:hover { background: #1d4ed8; }
 .chat-input-area button:disabled { background: #94a3b8; cursor: not-allowed; }
+.btn-img { width: 40px; height: 40px; padding: 0 !important; font-size: 20px !important; background: var(--card) !important; color: var(--text-muted) !important; border: 1px solid var(--border) !important; border-radius: var(--radius) !important; display: flex; align-items: center; justify-content: center; }
+.btn-img:hover { border-color: var(--primary) !important; background: var(--primary-light) !important; }
 
-/* Spinner */
-.spinner {
-  display: inline-block;
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin .6s linear infinite;
-  vertical-align: middle;
-  margin-right: 6px;
-}
-.assistant .spinner {
-  border-color: rgba(0,0,0,.1);
-  border-top-color: var(--primary);
-}
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+.assistant .spinner { border-color: rgba(0,0,0,.1); border-top-color: var(--primary); }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* ===== PAGE 2: Product Library ===== */
+.product-page { display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 24px 32px; }
+.product-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-shrink: 0; }
+.product-toolbar h2 { font-size: 22px; font-weight: 700; }
+.toolbar-actions { display: flex; gap: 10px; align-items: center; }
+.btn { padding: 8px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text); transition: all .15s; }
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn.btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+.btn.btn-primary:hover { background: #1d4ed8; }
+.btn.btn-sm { padding: 4px 12px; font-size: 12px; }
+.search-box { padding: 8px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; width: 220px; }
+.search-box:focus { outline: none; border-color: var(--primary); }
+
+.product-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; align-content: start; }
+.product-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: all .15s; position: relative; }
+.product-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-2px); }
+.product-card .thumb { width: 100%; height: 160px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 56px; object-fit: cover; }
+.product-card .info { padding: 12px; }
+.product-card .name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.product-card .meta { font-size: 12px; color: var(--text-muted); }
+.product-card .meta span { margin-right: 12px; }
+.product-card .actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+.product-card:hover .actions { opacity: 1; }
+.product-card .act-btn { width: 28px; height: 28px; border: none; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.45); color: white; }
+.product-card .act-btn.edit:hover { background: var(--primary); }
+.product-card .act-btn.del:hover { background: var(--danger); }
+
+/* Upload Modal */
+.modal-mask { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+.modal-mask.active { display: flex; }
+.modal { background: var(--card); border-radius: 12px; width: 600px; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 16px; font-weight: 700; }
+.modal-header .close { border: none; background: none; font-size: 22px; cursor: pointer; color: var(--text-muted); padding: 4px 8px; border-radius: 4px; }
+.modal-header .close:hover { background: var(--bg); }
+.modal-body { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+.modal-upload-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+.modal-upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+.modal-upload-zone p { font-size: 14px; color: var(--text-muted); }
+.modal-upload-zone .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 13px; font-weight: 600; color: var(--text); }
+.form-group input, .form-group textarea { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+.form-group textarea { resize: vertical; min-height: 60px; }
+
+/* Edit Modal */
+.edit-modal .modal { width: 480px; }
 </style>
 </head>
 <body>
@@ -363,81 +173,167 @@ body {
 <div class="header">
   <div class="header-left">
     <span class="logo">SmartRAG</span>
+    <nav class="nav" id="mainNav">
+      <button class="nav-item active" onclick="switchPage('qa')">💬 智能问答</button>
+      <button class="nav-item" onclick="switchPage('products')">🏷️ 产品库</button>
+    </nav>
     <span class="tenant-badge" id="tenantBadge" style="display:none">
-      <span class="dot"></span>
-      <span id="tenantName"></span>
+      <span class="dot"></span><span id="tenantName"></span>
     </span>
     <span class="mode-tag" id="modeTag"></span>
   </div>
   <div class="header-right" id="headerRight">
     <label for="tenantSelect">Enterprise:</label>
-    <select id="tenantSelect">
-      <option value="">-- Loading... --</option>
-    </select>
+    <select id="tenantSelect"><option value="">-- Loading... --</option></select>
   </div>
 </div>
 
 <div class="main">
-  <div class="sidebar" id="sidebar">
-    <h3>Document Management</h3>
-    <div class="upload-zone" id="uploadZone">
-      <div class="icon">📄</div>
-      <p>Click or drag to upload</p>
-      <p class="hint">Supports PDF, DOCX, XLSX, XLS — Max 10MB</p>
-    </div>
-    <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.xls">
-
-    <div class="upload-progress-wrap" id="uploadProgressWrap">
-      <div class="upload-progress-bar">
-        <div class="upload-progress-fill" id="uploadProgressFill"></div>
+  <!-- ===== PAGE: Q&A ===== -->
+  <div class="page active" id="page-qa">
+    <div class="qa-layout">
+      <div class="sidebar" id="sidebar">
+        <h3>📄 Document Management</h3>
+        <div class="upload-zone" id="uploadZone">
+          <div class="icon">📄</div><p>Click or drag to upload</p>
+          <p class="hint">Supports PDF, DOCX, XLSX, XLS — Max 10MB</p>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.xls" style="display:none">
+        <div class="upload-progress-wrap" id="uploadProgressWrap">
+          <div class="upload-progress-bar"><div class="upload-progress-fill" id="uploadProgressFill"></div></div>
+          <div class="upload-progress-label" id="uploadProgressLabel"></div>
+        </div>
+        <div class="doc-list" id="docList"></div>
+        <div class="tenant-mgmt" id="tenantMgmt" style="display:none">
+          <h3>Tenant Management</h3>
+          <div class="tenant-create">
+            <input type="text" id="newTenantId" placeholder="tenant_id (e.g. acme_corp)" maxlength="50">
+            <input type="text" id="newTenantName" placeholder="Display name (e.g. ACME Corp)" maxlength="100">
+            <button onclick="createTenant()">+ Create Tenant</button>
+          </div>
+          <div class="tenant-create-msg" id="tenantCreateMsg"></div>
+          <div class="tenant-list" id="tenantList"></div>
+        </div>
       </div>
-      <div class="upload-progress-label" id="uploadProgressLabel">Uploading...</div>
-    </div>
-
-    <div class="doc-list" id="docList"></div>
-
-    <div class="tenant-mgmt" id="tenantMgmt" style="display:none">
-      <h3>Tenant Management</h3>
-      <div class="tenant-create">
-        <input type="text" id="newTenantId" placeholder="tenant_id (e.g. acme_corp)" maxlength="50">
-        <input type="text" id="newTenantName" placeholder="Display name (e.g. ACME Corp)" maxlength="100">
-        <button onclick="createTenant()">+ Create Tenant</button>
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-empty" id="chatEmpty">
+            <div class="icon">💬</div><h2>Enterprise Knowledge Base Q&A</h2>
+            <p id="chatEmptyHint">Select an enterprise, upload a document, then ask questions based on its content.</p>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <button class="btn-img" id="imgSearchBtn" title="拍照搜产品" onclick="triggerImageSearch()">📷</button>
+          <input type="text" id="chatInput" placeholder="输入问题，或点击 📷 拍照搜索产品..." onkeydown="if(event.key==='Enter')sendMessage()">
+          <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+        <input type="file" id="imageSearchInput" accept="image/*" capture="environment" style="display:none" onchange="handleImageSearch(this.files[0])">
       </div>
-      <div class="tenant-create-msg" id="tenantCreateMsg"></div>
-      <div class="tenant-list" id="tenantList"></div>
     </div>
   </div>
 
-  <div class="chat-container">
-    <div class="chat-messages" id="chatMessages">
-      <div class="chat-empty" id="chatEmpty">
-        <div class="icon">💬</div>
-        <h2>Enterprise Knowledge Base Q&A</h2>
-        <p id="chatEmptyHint">Select an enterprise, upload a document, then ask questions based on its content.</p>
+  <!-- ===== PAGE: Product Library ===== -->
+  <div class="page" id="page-products">
+    <div class="product-page">
+      <div class="product-toolbar">
+        <div>
+          <h2>🏷️ Product Photo Library</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-top:4px;" id="productCount"></p>
+        </div>
+        <div class="toolbar-actions">
+          <input class="search-box" id="productSearchBox" placeholder="🔍 Filter by name..." oninput="filterProducts()">
+          <select id="categorySelect" onchange="filterProducts()">
+            <option value="">All Categories</option>
+          </select>
+          <button class="btn btn-primary" onclick="openUploadModal()">📷 + Upload Photo</button>
+        </div>
       </div>
+      <div class="product-grid" id="productGrid"></div>
     </div>
-    <div class="chat-input-area">
-      <input type="text" id="chatInput" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendMessage()">
-      <button id="sendBtn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal-mask" id="uploadModal" onclick="if(event.target===this)closeUploadModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📷 Upload Product Photo</h3>
+      <button class="close" onclick="closeUploadModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-upload-zone" id="modalUploadZone" onclick="document.getElementById('modalFileInput').click()">
+        <div class="icon">📷</div>
+        <p id="modalUploadText">Click to select photo</p>
+        <p class="hint">JPG/PNG — Max 5MB</p>
+      </div>
+      <input type="file" id="modalFileInput" accept="image/*" style="display:none" onchange="handleModalFile(this.files[0])">
+      <div id="modalPreview" style="display:none;text-align:center;">
+        <img id="modalPreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;">
+        <p style="font-size:12px;color:var(--success);margin-top:4px;" id="modalAutoDescHint"></p>
+      </div>
+      <div class="form-group">
+        <label for="productNameInput">Product Name *</label>
+        <input type="text" id="productNameInput" placeholder="e.g. 北欧吊灯 P302">
+      </div>
+      <div class="form-group">
+        <label for="productCategoryInput">Category</label>
+        <input type="text" id="productCategoryInput" placeholder="e.g. 吊灯" list="categoryDatalist">
+        <datalist id="categoryDatalist"></datalist>
+      </div>
+      <div class="form-group">
+        <label for="productDescInput">Description (AI auto-generated, editable)</label>
+        <textarea id="productDescInput" placeholder="Auto-generated description will appear here..."></textarea>
+      </div>
+      <div class="upload-progress-wrap" id="modalProgressWrap">
+        <div class="upload-progress-bar"><div class="upload-progress-fill" id="modalProgressFill"></div></div>
+        <div class="upload-progress-label" id="modalProgressLabel"></div>
+      </div>
+      <button class="btn btn-primary" id="modalUploadBtn" onclick="doUpload()" style="width:100%;padding:12px;">Upload Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-mask edit-modal" id="editModal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✏️ Edit Product</h3>
+      <button class="close" onclick="closeEditModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Product Name</label>
+        <input type="text" id="editNameInput">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <input type="text" id="editCategoryInput">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="editDescInput"></textarea>
+      </div>
+      <button class="btn btn-primary" id="editSaveBtn" onclick="doEditSave()" style="width:100%;padding:12px;">Save Changes</button>
     </div>
   </div>
 </div>
 
 <script>
+// ——— State ———
 const FILE_ICONS = { PDF: '📕', DOCX: '📘', XLSX: '📗', XLS: '📗' };
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const FETCH_TIMEOUT = 45000;
+let currentTenant = '', isAdmin = false, adminKey = '', tenantMap = {};
+let allProducts = [], allCategories = [];
+let modalFile = null, modalImageBytes = null;
+let editingProductId = null;
 
-let currentTenant = '';
-let isAdmin = false;
-let adminKey = '';
-let tenantMap = {}; // tenantId -> name, loaded from API
-
-// ---- Init: parse URL params ----
+// ——— Init ———
 async function init() {
   const params = new URLSearchParams(window.location.search);
   const tenantParam = params.get('tenant');
   const adminParam = params.get('admin');
-
   if (adminParam === 'true') {
     isAdmin = true;
     adminKey = params.get('key') || '';
@@ -454,20 +350,14 @@ async function init() {
     document.getElementById('tenantBadge').style.display = 'inline-flex';
     document.getElementById('tenantName').textContent = tenantParam;
   }
-
   await loadTenants();
-
   if (!isAdmin && currentTenant) {
-    if (!(await validateTenant(currentTenant))) {
-      return;
-    }
+    if (!(await validateTenant(currentTenant))) return;
   }
-
-  if (currentTenant) {
-    loadDocList();
-  }
+  if (currentTenant) { loadDocList(); refreshProducts(); }
   updateTenantBadge();
 }
+init();
 
 async function validateTenant(tenantId) {
   try {
@@ -475,14 +365,11 @@ async function validateTenant(tenantId) {
     if (resp.status === 404) {
       const data = await resp.json();
       if (data.error && data.error.startsWith('Tenant')) {
-        showTenantPageError(data.error);
-        return false;
+        showTenantPageError(data.error); return false;
       }
     }
     return true;
-  } catch (err) {
-    return true; // network error — let the user try
-  }
+  } catch (err) { return true; }
 }
 
 function showTenantPageError(msg) {
@@ -492,19 +379,27 @@ function showTenantPageError(msg) {
   document.getElementById('docList').innerHTML = '';
   document.getElementById('tenantMgmt').style.display = 'none';
   document.getElementById('uploadZone').style.display = 'none';
-  document.getElementById('chatMessages').innerHTML = `
-    <div class="chat-empty">
-      <div class="icon">⚠️</div>
-      <h2>${escapeHtml(msg)}</h2>
-      <p style="margin-top:8px">Please check the link or contact the administrator for a valid tenant URL.</p>
-    </div>`;
+  document.getElementById('chatMessages').innerHTML = `<div class="chat-empty"><div class="icon">⚠️</div><h2>${escapeHtml(msg)}</h2><p>Please check the link or contact the administrator.</p></div>`;
   document.getElementById('chatInput').disabled = true;
   document.getElementById('sendBtn').disabled = true;
 }
 
-init();
+function apiHeaders(extra) {
+  const h = { 'X-Tenant-ID': currentTenant, ...(extra || {}) };
+  if (isAdmin && adminKey) h['X-Admin-Key'] = adminKey;
+  return h;
+}
 
-// ---- Tenant Management ----
+// ——— Navigation ———
+function switchPage(name) {
+  document.querySelectorAll('#mainNav .nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector(`#mainNav [onclick="switchPage('${name}')"]`)?.classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'products') refreshProducts();
+}
+
+// ——— Tenant ———
 async function loadTenants() {
   if (!isAdmin) return;
   try {
@@ -516,89 +411,47 @@ async function loadTenants() {
     sel.innerHTML = '<option value="">-- Select Enterprise --</option>';
     tenants.forEach(t => {
       tenantMap[t.tenantId] = t.name;
-      const opt = document.createElement('option');
-      opt.value = t.tenantId;
-      opt.textContent = t.name + ' (' + t.tenantId + ')';
-      sel.appendChild(opt);
+      const opt = document.createElement('option'); opt.value = t.tenantId;
+      opt.textContent = t.name + ' (' + t.tenantId + ')'; sel.appendChild(opt);
     });
     renderTenantList(tenants);
-  } catch (err) {
-    console.error('Failed to load tenants', err);
-  }
+  } catch (err) { console.error('loadTenants', err); }
 }
 
 function renderTenantList(tenants) {
   const el = document.getElementById('tenantList');
-  if (tenants.length === 0) {
-    el.innerHTML = '<div class="empty-hint">No tenants yet</div>';
-    return;
-  }
-  let html = '';
-  tenants.forEach(t => {
-    html += `<div class="t-item">
-      <div><span class="t-name">${escapeHtml(t.name)}</span>&nbsp;<span class="t-id">${escapeHtml(t.tenantId)}</span></div>
-      <button class="t-del" title="Delete" onclick="deleteTenant('${escapeHtml(t.tenantId)}')">&times;</button>
-    </div>`;
-  });
-  el.innerHTML = html;
+  if (tenants.length === 0) { el.innerHTML = '<div class="empty-hint">No tenants yet</div>'; return; }
+  el.innerHTML = tenants.map(t =>
+    `<div class="t-item"><div><span class="t-name">${escapeHtml(t.name)}</span>&nbsp;<span class="t-id">${escapeHtml(t.tenantId)}</span></div><button class="t-del" title="Delete" onclick="deleteTenant('${escapeHtml(t.tenantId)}')">&times;</button></div>`).join('');
 }
 
 async function createTenant() {
   const tid = document.getElementById('newTenantId').value.trim();
   const tname = document.getElementById('newTenantName').value.trim();
   const msg = document.getElementById('tenantCreateMsg');
-  if (!tid || !tname) {
-    msg.textContent = 'Both fields are required';
-    msg.className = 'tenant-create-msg error';
-    return;
-  }
+  if (!tid || !tname) { msg.textContent = 'Both fields required'; msg.className = 'tenant-create-msg error'; return; }
   try {
-    const resp = await fetch('/api/admin/tenants', {
-      method: 'POST',
-      headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId: tid, name: tname })
-    });
+    const resp = await fetch('/api/admin/tenants', { method: 'POST', headers: { ...adminHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId: tid, name: tname }) });
     const data = await resp.json();
-    if (!resp.ok) {
-      msg.textContent = data.error || 'Failed';
-      msg.className = 'tenant-create-msg error';
-      return;
-    }
-    msg.textContent = 'Created ' + tid;
-    msg.className = 'tenant-create-msg success';
-    document.getElementById('newTenantId').value = '';
-    document.getElementById('newTenantName').value = '';
+    if (!resp.ok) { msg.textContent = data.error || 'Failed'; msg.className = 'tenant-create-msg error'; return; }
+    msg.textContent = 'Created ' + tid; msg.className = 'tenant-create-msg success';
+    document.getElementById('newTenantId').value = ''; document.getElementById('newTenantName').value = '';
     await loadTenants();
-  } catch (err) {
-    msg.textContent = 'Network error';
-    msg.className = 'tenant-create-msg error';
-  }
+  } catch (err) { msg.textContent = 'Network error'; msg.className = 'tenant-create-msg error'; }
 }
 
 async function deleteTenant(tenantId) {
-  if (!confirm('Delete tenant "' + tenantId + '"? This cannot be undone.')) return;
+  if (!confirm('Delete "' + tenantId + '"? This cannot be undone.')) return;
   try {
-    const resp = await fetch('/api/admin/tenants/' + encodeURIComponent(tenantId), {
-      method: 'DELETE',
-      headers: adminHeaders()
-    });
-    if (!resp.ok) {
-      const data = await resp.json();
-      alert('Delete failed: ' + (data.error || resp.status));
-      return;
-    }
+    const resp = await fetch('/api/admin/tenants/' + encodeURIComponent(tenantId), { method: 'DELETE', headers: adminHeaders() });
+    if (!resp.ok) { const d = await resp.json(); alert('Failed: ' + (d.error || resp.status)); return; }
     await loadTenants();
-  } catch (err) {
-    alert('Network error: ' + err.message);
-  }
+  } catch (err) { alert('Network error'); }
 }
 
 function updateTenantBadge() {
-  if (currentTenant) {
-    document.getElementById('tenantName').textContent = tenantMap[currentTenant] || currentTenant;
-  }
+  if (currentTenant) document.getElementById('tenantName').textContent = tenantMap[currentTenant] || currentTenant;
 }
-
 function adminHeaders() {
   const h = {};
   if (isAdmin && adminKey) h['X-Admin-Key'] = adminKey;
@@ -610,263 +463,340 @@ document.getElementById('tenantSelect').addEventListener('change', function(e) {
   if (currentTenant) {
     document.getElementById('tenantName').textContent = tenantMap[currentTenant] || currentTenant;
     document.getElementById('tenantBadge').style.display = 'inline-flex';
-  } else {
-    document.getElementById('tenantBadge').style.display = 'none';
-  }
-  clearChat();
-  loadDocList();
+  } else { document.getElementById('tenantBadge').style.display = 'none'; }
+  clearChat(); loadDocList(); refreshProducts();
 });
 
-// ---- File Upload ----
+// ——— Document Upload ———
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
-const progressWrap = document.getElementById('uploadProgressWrap');
-const progressFill = document.getElementById('uploadProgressFill');
-const progressLabel = document.getElementById('uploadProgressLabel');
-
 if (uploadZone) {
   uploadZone.addEventListener('click', () => fileInput.click());
   uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-  uploadZone.addEventListener('drop', e => {
-    e.preventDefault();
-    uploadZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) {
-      fileInput.files = e.dataTransfer.files;
-      uploadFile(e.dataTransfer.files[0]);
-    }
-  });
+  uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; uploadFile(e.dataTransfer.files[0]); } });
 }
-
-fileInput.addEventListener('change', () => {
-  if (fileInput.files.length) uploadFile(fileInput.files[0]);
-});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) uploadFile(fileInput.files[0]); });
 
 function setUploadProgress(pct, label, type) {
-  progressWrap.classList.add('active');
-  progressFill.style.width = pct + '%';
-  progressFill.className = 'upload-progress-fill' + (type === 'error' ? ' error' : '');
-  progressLabel.textContent = label;
-  progressLabel.className = 'upload-progress-label' + (type === 'success' ? ' success' : type === 'error' ? ' error' : '');
-  if (type === 'success' || type === 'error') {
-    setTimeout(() => { progressWrap.classList.remove('active'); }, type === 'success' ? 4000 : 8000);
-  }
+  const w = document.getElementById('uploadProgressWrap');
+  const f = document.getElementById('uploadProgressFill');
+  const l = document.getElementById('uploadProgressLabel');
+  w.classList.add('active'); f.style.width = pct + '%';
+  f.className = 'upload-progress-fill' + (type === 'error' ? ' error' : '');
+  l.textContent = label;
+  l.className = 'upload-progress-label' + (type === 'success' ? ' success' : type === 'error' ? ' error' : '');
+  if (type === 'success' || type === 'error') setTimeout(() => w.classList.remove('active'), type === 'success' ? 4000 : 8000);
 }
 
 async function uploadFile(file) {
-  if (!currentTenant) {
-    setUploadProgress(100, 'Please select an enterprise first', 'error');
-    return;
-  }
-
-  if (file.size > MAX_FILE_SIZE) {
-    setUploadProgress(100, 'File too large. Maximum upload size is 10MB.', 'error');
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  setUploadProgress(0, 'Starting upload...', '');
-
+  if (!currentTenant) { setUploadProgress(100, 'Select an enterprise first', 'error'); return; }
+  if (file.size > MAX_FILE_SIZE) { setUploadProgress(100, 'File too large (max 10MB)', 'error'); return; }
+  const fd = new FormData(); fd.append('file', file);
+  setUploadProgress(0, 'Starting...', '');
   const xhr = new XMLHttpRequest();
-
-  const promise = new Promise((resolve, reject) => {
-    xhr.upload.addEventListener('progress', e => {
-      if (e.lengthComputable) {
-        const pct = Math.round((e.loaded / e.total) * 100);
-        setUploadProgress(pct, `Uploading... ${pct}%`, '');
-      }
-    });
-
+  const done = new Promise((res, rej) => {
+    xhr.upload.addEventListener('progress', e => { if (e.lengthComputable) setUploadProgress(Math.round(e.loaded/e.total*100), `Uploading... ${Math.round(e.loaded/e.total*100)}%`, ''); });
     xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText));
-        } catch { reject(new Error('Invalid server response')); }
-      } else {
-        try {
-          const err = JSON.parse(xhr.responseText);
-          reject(new Error(err.error || `Upload failed (HTTP ${xhr.status})`));
-        } catch {
-          reject(new Error(`Upload failed (HTTP ${xhr.status})`));
-        }
-      }
+      if (xhr.status >= 200 && xhr.status < 300) { try { res(JSON.parse(xhr.responseText)); } catch { rej(new Error('Invalid response')); } }
+      else { try { rej(new Error(JSON.parse(xhr.responseText).error || `HTTP ${xhr.status}`)); } catch { rej(new Error(`HTTP ${xhr.status}`)); } }
     });
-
-    xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
-
+    xhr.addEventListener('error', () => rej(new Error('Network error')));
+    xhr.addEventListener('abort', () => rej(new Error('Cancelled')));
     xhr.open('POST', '/api/documents/upload');
     xhr.setRequestHeader('X-Tenant-ID', currentTenant);
-    if (isAdmin && adminKey) {
-      xhr.setRequestHeader('X-Admin-Key', adminKey);
-    }
-    xhr.send(formData);
+    if (isAdmin && adminKey) xhr.setRequestHeader('X-Admin-Key', adminKey);
+    xhr.send(fd);
   });
-
   try {
-    const data = await promise;
+    const data = await done;
     setUploadProgress(100, `Uploaded: ${data.fileName} (${data.chunks} chunks)`, 'success');
     loadDocList();
-  } catch (err) {
-    setUploadProgress(100, err.message, 'error');
-  }
+  } catch (err) { setUploadProgress(100, err.message, 'error'); }
 }
 
-// ---- Document List ----
+// ——— Document List ———
 async function loadDocList() {
   const el = document.getElementById('docList');
-  if (!currentTenant) {
-    el.innerHTML = '<div class="empty-hint">Select an enterprise to view documents</div>';
-    return;
-  }
-
+  if (!currentTenant) { el.innerHTML = '<div class="empty-hint">Select an enterprise</div>'; return; }
   try {
-    const headers = { 'X-Tenant-ID': currentTenant };
-    if (isAdmin && adminKey) headers['X-Admin-Key'] = adminKey;
-
-    const resp = await fetch('/api/documents', { headers });
-    if (!resp.ok) throw new Error('Failed to load documents');
-
+    const resp = await fetch('/api/documents', { headers: apiHeaders() });
+    if (!resp.ok) throw new Error('Failed');
     const docs = await resp.json();
-    if (docs.length === 0) {
-      el.innerHTML = '<div class="empty-hint">No documents yet</div>';
-      return;
-    }
-
-    let html = '';
-    docs.forEach(doc => {
-      const icon = FILE_ICONS[doc.fileType] || '📎';
-      html += `<div class="doc-item">
-        <span class="file-icon">${icon}</span>
-        <span class="file-name" title="${escapeHtml(doc.fileName)}">${escapeHtml(doc.fileName)}</span>
-        <span class="file-type-tag">${escapeHtml(doc.fileType)}</span>`;
-        html += `<button class="del-btn" title="Delete" onclick="deleteDocument('${escapeHtml(doc.fileName)}')">&times;</button>`;
-      html += `</div>`;
-    });
-    el.innerHTML = html;
-  } catch (err) {
-    el.innerHTML = '<div class="empty-hint" style="color:var(--danger)">Failed to load</div>';
-  }
+    if (docs.length === 0) { el.innerHTML = '<div class="empty-hint">No documents yet</div>'; return; }
+    el.innerHTML = docs.map(d => `<div class="doc-item"><span class="file-name" title="${escapeHtml(d.fileName)}">${FILE_ICONS[d.fileType]||'📎'} ${escapeHtml(d.fileName)}</span><span class="file-type-tag" style="font-size:10px;padding:1px 5px;background:var(--border);border-radius:3px;flex-shrink:0;">${d.fileType}</span><button class="del-btn" onclick="deleteDocument('${escapeHtml(d.fileName)}')">&times;</button></div>`).join('');
+  } catch (err) { el.innerHTML = '<div class="empty-hint" style="color:var(--danger)">Failed to load</div>'; }
 }
 
 async function deleteDocument(fileName) {
-  if (!confirm(`Delete "${fileName}"? This will remove all its chunks from the knowledge base.`)) return;
-
+  if (!confirm(`Delete "${fileName}"?`)) return;
   try {
-    const headers = { 'X-Tenant-ID': currentTenant };
-    if (isAdmin && adminKey) headers['X-Admin-Key'] = adminKey;
-
-    const resp = await fetch('/api/documents/' + encodeURIComponent(fileName), {
-      method: 'DELETE',
-      headers
-    });
-    if (!resp.ok) {
-      const err = await resp.json();
-      alert('Delete failed: ' + (err.error || resp.status));
-      return;
-    }
+    const resp = await fetch('/api/documents/' + encodeURIComponent(fileName), { method: 'DELETE', headers: apiHeaders() });
+    if (!resp.ok) { const e = await resp.json(); alert('Failed: ' + (e.error||resp.status)); return; }
     loadDocList();
-  } catch (err) {
-    alert('Network error: ' + err.message);
-  }
+  } catch (err) { alert('Network error'); }
 }
 
-// ---- Chat ----
+// ——— Chat ———
 function clearChat() {
-  document.getElementById('chatMessages').innerHTML = `
-    <div class="chat-empty" id="chatEmpty">
-      <div class="icon">💬</div>
-      <h2>Enterprise Knowledge Base Q&A</h2>
-      <p>Ask questions based on uploaded documents.</p>
-    </div>`;
+  document.getElementById('chatMessages').innerHTML = `<div class="chat-empty" id="chatEmpty"><div class="icon">💬</div><h2>Enterprise Knowledge Base Q&A</h2><p>Ask questions based on uploaded documents.</p></div>`;
 }
 
-const FETCH_TIMEOUT = 45000;
+function appendMessage(role, html) {
+  const msgs = document.getElementById('chatMessages');
+  const chatEmpty = document.getElementById('chatEmpty');
+  if (chatEmpty) chatEmpty.remove();
+  const div = document.createElement('div');
+  div.className = 'message ' + role;
+  div.innerHTML = html;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
 
 async function sendMessage() {
   const input = document.getElementById('chatInput');
   const question = input.value.trim();
   if (!question) return;
-
-  if (!currentTenant) {
-    alert('Please select an enterprise first');
-    return;
-  }
-
-  const chatEmpty = document.getElementById('chatEmpty');
-  if (chatEmpty) chatEmpty.remove();
-
-  const messages = document.getElementById('chatMessages');
-
-  messages.insertAdjacentHTML('beforeend',
-    `<div class="message user">${escapeHtml(question)}</div>`);
-
-  const loadingDiv = document.createElement('div');
-  loadingDiv.className = 'message assistant';
-  loadingDiv.innerHTML = '<span class="spinner"></span> Thinking...';
-  messages.appendChild(loadingDiv);
-  messages.scrollTop = messages.scrollHeight;
-
+  if (!currentTenant) { alert('Select an enterprise first'); return; }
+  appendMessage('user', escapeHtml(question));
+  const loadingDiv = appendMessage('assistant', '<span class="spinner"></span> Thinking...');
   input.value = '';
-  const sendBtn = document.getElementById('sendBtn');
-  sendBtn.disabled = true;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-
+  document.getElementById('sendBtn').disabled = true;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
   try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'X-Tenant-ID': currentTenant
-    };
-    if (isAdmin && adminKey) headers['X-Admin-Key'] = adminKey;
-
-    const resp = await fetch('/api/chat/completions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ message: question }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
+    const resp = await fetch('/api/chat/completions', { method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: question }), signal: ctrl.signal });
+    clearTimeout(tid); loadingDiv.remove();
     const data = await resp.json();
-
-    loadingDiv.remove();
-    let html;
-
-    if (!resp.ok) {
-      html = `<div class="message error">Error: ${escapeHtml(data.error || `Request failed (HTTP ${resp.status})`)}</div>`;
-    } else {
-      html = `<div class="message assistant">${escapeHtml(data.answer || '')}`;
-      if (data.sources && data.sources.length > 0) {
-        html += `<div class="sources">📎 Sources: ${data.sources.map(s => escapeHtml(s)).join(', ')}</div>`;
-      }
-      html += '</div>';
+    if (!resp.ok) { appendMessage('error', 'Error: ' + escapeHtml(data.error || 'HTTP ' + resp.status)); }
+    else {
+      let html = escapeHtml(data.answer || '');
+      if (data.sources && data.sources.length) html += `<div class="sources">📎 Sources: ${data.sources.map(s => escapeHtml(s)).join(', ')}</div>`;
+      appendMessage('assistant', html);
     }
-    messages.insertAdjacentHTML('beforeend', html);
   } catch (err) {
-    clearTimeout(timeoutId);
+    clearTimeout(tid); loadingDiv.remove();
+    appendMessage('error', err.name === 'AbortError' ? 'Request timed out' : 'Network error: ' + err.message);
+  } finally { document.getElementById('sendBtn').disabled = false; }
+}
+
+// ——— Image Search (Chat) ———
+function triggerImageSearch() { document.getElementById('imageSearchInput').click(); }
+
+async function handleImageSearch(file) {
+  if (!file) return;
+  if (!currentTenant) { alert('Select an enterprise first'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    appendMessage('user', `<img class="msg-img" src="${e.target.result}"><br><small>📷 Photo search</small>`);
+  };
+  reader.readAsDataURL(file);
+  const loadingDiv = appendMessage('assistant', '<span class="spinner"></span> Searching similar products...');
+  const fd = new FormData(); fd.append('image', file);
+  try {
+    const resp = await fetch('/api/products/search', { method: 'POST', headers: apiHeaders(), body: fd });
+    const data = await resp.json();
     loadingDiv.remove();
-    let errorMsg;
-    if (err.name === 'AbortError') {
-      errorMsg = 'Request timed out. Please check your API key configuration and try again.';
-    } else {
-      errorMsg = 'Network error: ' + err.message;
+    if (!resp.ok) { appendMessage('error', 'Search failed: ' + (data.error || resp.status)); return; }
+    if (!data.results || data.results.length === 0) {
+      appendMessage('assistant', 'No similar products found.');
+      return;
     }
-    messages.insertAdjacentHTML('beforeend',
-      `<div class="message error">${escapeHtml(errorMsg)}</div>`);
-  } finally {
-    sendBtn.disabled = false;
-    messages.scrollTop = messages.scrollHeight;
+    let html = '<b>🔍 Similar products found:</b><br><div class="img-search-result">';
+    data.results.forEach(r => {
+      html += `<div class="result-item"><img class="r-thumb" src="/api/products/${r.productId}/image?tid=${encodeURIComponent(currentTenant)}" onerror="this.style.display='none'"><div style="flex:1"><div style="font-weight:600">${escapeHtml(r.productName)}</div><div style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.category||'')} · ${escapeHtml((r.description||'').substring(0,60))}</div></div><span class="match">${Math.round(r.similarity*100)}%</span></div>`;
+    });
+    html += '</div>';
+    appendMessage('assistant', html);
+  } catch (err) {
+    loadingDiv.remove();
+    appendMessage('error', 'Network error: ' + err.message);
   }
 }
 
+// ——— Product Library ———
+async function refreshProducts() {
+  if (!currentTenant) return;
+  try {
+    const resp = await fetch('/api/products', { headers: apiHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    allProducts = data.products || [];
+    allCategories = data.categories || [];
+    updateCategoryDropdown();
+    renderProductGrid();
+  } catch (err) { console.error('refreshProducts', err); }
+}
+
+function updateCategoryDropdown() {
+  const sel = document.getElementById('categorySelect');
+  sel.innerHTML = '<option value="">All Categories</option>' + allCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  const dl = document.getElementById('categoryDatalist');
+  dl.innerHTML = allCategories.map(c => `<option value="${escapeHtml(c)}">`).join('');
+}
+
+function filterProducts() {
+  renderProductGrid();
+}
+
+function getProductsImageUrl(id) { return '/api/products/' + id + '/image?tid=' + encodeURIComponent(currentTenant); }
+
+function renderProductGrid() {
+  const grid = document.getElementById('productGrid');
+  const search = (document.getElementById('productSearchBox')?.value || '').toLowerCase();
+  const cat = document.getElementById('categorySelect')?.value || '';
+  let filtered = allProducts;
+  if (cat) filtered = filtered.filter(p => p.category === cat);
+  if (search) filtered = filtered.filter(p => p.name.toLowerCase().includes(search));
+  document.getElementById('productCount').textContent = `${allProducts.length} products · ${filtered.length} shown`;
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);grid-column:1/-1;"><div style="font-size:48px;margin-bottom:12px;">📷</div><p>No products yet. Upload your first product photo!</p></div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(p => `
+    <div class="product-card">
+      <img class="thumb" src="${getProductsImageUrl(p.id)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" loading="lazy">
+      <div class="thumb" style="display:none;font-size:56px;">📷</div>
+      <div class="actions">
+        <button class="act-btn edit" title="Edit" onclick="event.stopPropagation();openEditModal(${p.id},'${escapeHtml(p.name).replace(/'/g,"\\'")}','${escapeHtml(p.category||'').replace(/'/g,"\\'")}','${escapeHtml(p.description||'').replace(/'/g,"\\'")}')">✏️</button>
+        <button class="act-btn del" title="Delete" onclick="event.stopPropagation();deleteProduct(${p.id})">🗑</button>
+      </div>
+      <div class="info">
+        <div class="name">${escapeHtml(p.name)}</div>
+        <div class="meta"><span>📁 ${escapeHtml(p.category||'—')}</span><span>📅 ${(p.uploadTime||'').substring(0,10)}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+// ——— Product Upload Modal ———
+function openUploadModal() {
+  if (!currentTenant) { alert('Select an enterprise first'); return; }
+  modalFile = null; modalImageBytes = null;
+  document.getElementById('modalFileInput').value = '';
+  document.getElementById('productNameInput').value = '';
+  document.getElementById('productCategoryInput').value = '';
+  document.getElementById('productDescInput').value = '';
+  document.getElementById('modalPreview').style.display = 'none';
+  document.getElementById('modalUploadText').textContent = 'Click to select photo';
+  document.getElementById('modalAutoDescHint').textContent = '';
+  document.getElementById('modalProgressWrap').classList.remove('active');
+  document.getElementById('uploadModal').classList.add('active');
+}
+
+function closeUploadModal() { document.getElementById('uploadModal').classList.remove('active'); }
+
+function handleModalFile(file) {
+  if (!file) return;
+  if (file.size > MAX_IMAGE_SIZE) { alert('Max 5MB'); return; }
+  modalFile = file;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('modalPreviewImg').src = e.target.result;
+    document.getElementById('modalPreview').style.display = '';
+    document.getElementById('modalUploadText').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+    document.getElementById('modalAutoDescHint').textContent = '⏳ Generating AI description...';
+    // Auto-fill name from filename
+    if (!document.getElementById('productNameInput').value) {
+      document.getElementById('productNameInput').value = file.name.replace(/\.[^.]+$/, '');
+    }
+    // Pre-read bytes for upload
+    const fetchReader = new FileReader();
+    fetchReader.onload = function(ev) {
+      modalImageBytes = new Uint8Array(ev.target.result);
+      // Generate AI description
+      autoDescribe();
+    };
+    fetchReader.readAsArrayBuffer(file);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function autoDescribe() {
+  if (!modalFile) return;
+  document.getElementById('modalAutoDescHint').textContent = '⏳ Generating AI description...';
+  const fd = new FormData();
+  fd.append('image', modalFile);
+  try {
+    const resp = await fetch('/api/products/describe', { method: 'POST', headers: apiHeaders(), body: fd });
+    if (!resp.ok) {
+      document.getElementById('modalAutoDescHint').textContent = '⚠️ AI description unavailable';
+      return;
+    }
+    const data = await resp.json();
+    document.getElementById('productDescInput').value = data.description || '';
+    document.getElementById('modalAutoDescHint').textContent = '✅ AI description generated (you can edit it)';
+  } catch (err) {
+    document.getElementById('modalAutoDescHint').textContent = '⚠️ AI description unavailable';
+  }
+}
+
+async function doUpload() {
+  if (!modalFile) { alert('Select a photo first'); return; }
+  const name = document.getElementById('productNameInput').value.trim();
+  if (!name) { alert('Product name is required'); return; }
+  const fd = new FormData();
+  fd.append('image', modalFile);
+  fd.append('name', name);
+  fd.append('category', document.getElementById('productCategoryInput').value.trim());
+  fd.append('description', document.getElementById('productDescInput').value.trim());
+  const wrap = document.getElementById('modalProgressWrap');
+  const fill = document.getElementById('modalProgressFill');
+  const label = document.getElementById('modalProgressLabel');
+  wrap.classList.add('active');
+  fill.style.width = '40%'; label.textContent = 'Uploading & generating description...';
+  try {
+    const resp = await fetch('/api/products/upload', { method: 'POST', headers: apiHeaders(), body: fd });
+    const data = await resp.json();
+    if (!resp.ok) { throw new Error(data.error); }
+    fill.style.width = '100%'; label.textContent = 'Uploaded: ' + data.name;
+    label.className = 'upload-progress-label success';
+    await refreshProducts();
+    setTimeout(closeUploadModal, 1200);
+  } catch (err) {
+    fill.className = 'upload-progress-fill error';
+    label.textContent = err.message; label.className = 'upload-progress-label error';
+  }
+}
+
+// ——— Edit Modal ———
+function openEditModal(id, name, category, description) {
+  editingProductId = id;
+  document.getElementById('editNameInput').value = name || '';
+  document.getElementById('editCategoryInput').value = category || '';
+  document.getElementById('editDescInput').value = description || '';
+  document.getElementById('editModal').classList.add('active');
+}
+function closeEditModal() { document.getElementById('editModal').classList.remove('active'); editingProductId = null; }
+
+async function doEditSave() {
+  const name = document.getElementById('editNameInput').value.trim();
+  const category = document.getElementById('editCategoryInput').value.trim();
+  const description = document.getElementById('editDescInput').value.trim();
+  try {
+    const resp = await fetch('/api/products/' + editingProductId, {
+      method: 'PUT', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, category, description })
+    });
+    if (!resp.ok) { const e = await resp.json(); alert('Failed: ' + (e.error||resp.status)); return; }
+    closeEditModal();
+    await refreshProducts();
+  } catch (err) { alert('Network error: ' + err.message); }
+}
+
+// ——— Delete Product ———
+async function deleteProduct(id) {
+  if (!confirm('Delete this product? This cannot be undone.')) return;
+  try {
+    const resp = await fetch('/api/products/' + id, { method: 'DELETE', headers: apiHeaders() });
+    if (!resp.ok) { const e = await resp.json(); alert('Failed: ' + (e.error||resp.status)); return; }
+    await refreshProducts();
+  } catch (err) { alert('Network error: ' + err.message); }
+}
+
+// ——— Util ———
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML.replace(/\n/g, '<br>');
+  const div = document.createElement('div'); div.textContent = text; return div.innerHTML.replace(/\n/g, '<br>');
 }
 </script>
 </body>
