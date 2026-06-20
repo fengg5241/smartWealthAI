@@ -1,6 +1,7 @@
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 RUN groupadd -r app && useradd -r -g app app
+RUN mkdir -p /app/uploads/products && chown -R app:app /app/uploads
 COPY target/*.jar app.jar
 USER app
 EXPOSE 8080

@@ -30,9 +30,12 @@ services:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
     ports:
       - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads/products
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   pgdata:
+  uploads_data:
