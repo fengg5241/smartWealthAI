@@ -1,5 +1,7 @@
 package com.smartwealth.ai.api;
 
+import com.aliyun.oss.OSS;
+import com.smartwealth.ai.config.OssConfig;
 import com.smartwealth.ai.domain.ProductImage;
 import com.smartwealth.ai.service.ProductImageService;
 import com.smartwealth.ai.service.ProductImageService.ProductSearchResult;
@@ -10,8 +12,8 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.*;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.*;
 
 @RestController
@@ -22,11 +24,17 @@ public class ProductImageController {
 
     private final ProductImageService productImageService;
     private final VisionDescriptionService visionService;
+    private final OSS ossClient;
+    private final OssConfig.OssProperties ossProperties;
 
     public ProductImageController(ProductImageService productImageService,
-                                  VisionDescriptionService visionService) {
+                                  VisionDescriptionService visionService,
+                                  OSS ossClient,
+                                  OssConfig.OssProperties ossProperties) {
         this.productImageService = productImageService;
         this.visionService = visionService;
+        this.ossClient = ossClient;
+        this.ossProperties = ossProperties;
     }
 
     @PostMapping("/describe")
@@ -141,12 +149,17 @@ public class ProductImageController {
             return ResponseEntity.notFound().build();
         }
 
-        try {
-            byte[] bytes = Files.readAllBytes(Paths.get(product.getImagePath()));
+        try (InputStream is = ossClient.getObject(ossProperties.getBucket(), product.getImagePath()).getObjectContent();
+             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            byte[] data = new byte[8192];
+            int n;
+            while ((n = is.read(data)) != -1) buffer.write(data, 0, n);
+            byte[] bytes = buffer.toByteArray();
             MediaType mediaType = MediaType.parseMediaType(
                     product.getImageContentType() != null ? product.getImageContentType() : "image/jpeg");
             return ResponseEntity.ok().contentType(mediaType).body(bytes);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            log.error("Failed to read image from OSS: {}", e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }

@@ -37,7 +37,6 @@ demo:
   image-search:
     model: multimodal-embedding-v1
     dimensions: 1024
-    upload-dir: ${IMAGE_UPLOAD_DIR:uploads/products}
     top-k: 5
     similarity-threshold: 0.0
   chat:
@@ -46,6 +45,13 @@ demo:
 
 server:
   port: 8080
+
+aliyun:
+  oss:
+    endpoint: ${OSS_ENDPOINT:oss-ap-southeast-1-internal.aliyuncs.com}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket: ${OSS_BUCKET:smartwealth-product-images}
 
 management:
   endpoints:

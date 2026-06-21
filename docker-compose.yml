@@ -27,15 +27,16 @@ services:
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       DEMO_ADMIN_KEY: ${DEMO_ADMIN_KEY:-}
+      OSS_ENDPOINT: ${OSS_ENDPOINT:-oss-ap-southeast-1-internal.aliyuncs.com}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
+      OSS_BUCKET: ${OSS_BUCKET:-smartwealth-product-images}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
     ports:
       - "8080:8080"
-    volumes:
-      - uploads_data:/app/uploads/products
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   pgdata:
-  uploads_data:

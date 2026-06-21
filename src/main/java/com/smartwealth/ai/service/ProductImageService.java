@@ -1,9 +1,11 @@
 package com.smartwealth.ai.service;
 
+import com.aliyun.oss.OSS;
+import com.aliyun.oss.model.ObjectMetadata;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartwealth.ai.config.DemoProperties;
+import com.smartwealth.ai.config.OssConfig;
 import com.smartwealth.ai.domain.ProductImage;
 import com.smartwealth.ai.repository.ProductImageRepository;
 import org.slf4j.Logger;
@@ -12,8 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.nio.file.*;
+import java.io.ByteArrayInputStream;
 import java.util.*;
 
 @Service
@@ -23,17 +24,20 @@ public class ProductImageService {
 
     private final ProductImageRepository repository;
     private final ImageEmbeddingService embeddingService;
-    private final DemoProperties properties;
+    private final OSS ossClient;
+    private final OssConfig.OssProperties ossProperties;
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
 
     public ProductImageService(ProductImageRepository repository,
                                ImageEmbeddingService embeddingService,
-                               DemoProperties properties,
+                               OSS ossClient,
+                               OssConfig.OssProperties ossProperties,
                                JdbcTemplate jdbc) {
         this.repository = repository;
         this.embeddingService = embeddingService;
-        this.properties = properties;
+        this.ossClient = ossClient;
+        this.ossProperties = ossProperties;
         this.jdbc = jdbc;
         this.objectMapper = new ObjectMapper();
     }
@@ -41,14 +45,6 @@ public class ProductImageService {
     @Transactional
     public ProductImage indexProduct(String tenantId, String productName, String category,
                                      String description, byte[] imageBytes, String contentType) {
-        var dir = properties.getImageSearch().getUploadDir();
-        Path tenantDir = Paths.get(dir, tenantId);
-        try {
-            Files.createDirectories(tenantDir);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to create upload directory: " + tenantDir, e);
-        }
-
         ProductImage entity = new ProductImage();
         entity.setTenantId(tenantId);
         entity.setProductName(productName.trim());
@@ -57,13 +53,17 @@ public class ProductImageService {
         entity.setImageContentType(contentType);
         entity = repository.save(entity);
 
-        String filename = entity.getId() + ".jpg";
-        entity.setImagePath(tenantDir.resolve(filename).toString());
+        String objectKey = tenantId + "/" + entity.getId() + ".jpg";
+        entity.setImagePath(objectKey);
+
         try {
-            Files.write(Paths.get(entity.getImagePath()), imageBytes);
-        } catch (IOException e) {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(contentType != null ? contentType : "image/jpeg");
+            ossClient.putObject(ossProperties.getBucket(), objectKey,
+                    new ByteArrayInputStream(imageBytes), metadata);
+        } catch (Exception e) {
             repository.delete(entity);
-            throw new RuntimeException("Failed to save image file", e);
+            throw new RuntimeException("Failed to upload image to OSS", e);
         }
 
         try {
@@ -95,10 +95,9 @@ public class ProductImageService {
             log.info("Indexed product '{}' (id={}) for tenant={}", productName, entity.getId(), tenantId);
             return entity;
         } catch (Exception e) {
-            // Clean up the file on failure
             try {
-                Files.deleteIfExists(Paths.get(entity.getImagePath()));
-            } catch (IOException ignored) { }
+                ossClient.deleteObject(ossProperties.getBucket(), objectKey);
+            } catch (Exception ignored) { }
             repository.delete(entity);
             throw new RuntimeException("Failed to index product: " + e.getMessage(), e);
         }
@@ -169,7 +168,6 @@ public class ProductImageService {
             entity.setDescription(description.trim());
         }
 
-        // Update the searchable text in vector store
         if (entity.getVectorId() != null) {
             String searchableText = "Product: " + entity.getProductName()
                     + " | Category: " + entity.getCategory()
@@ -192,9 +190,9 @@ public class ProductImageService {
 
         if (entity.getImagePath() != null) {
             try {
-                Files.deleteIfExists(Paths.get(entity.getImagePath()));
-            } catch (IOException e) {
-                log.warn("Failed to delete image file: {}", entity.getImagePath());
+                ossClient.deleteObject(ossProperties.getBucket(), entity.getImagePath());
+            } catch (Exception e) {
+                log.warn("Failed to delete OSS object: {}", entity.getImagePath());
             }
         }
 

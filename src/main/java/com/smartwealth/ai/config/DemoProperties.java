@@ -54,7 +54,6 @@ public class DemoProperties {
     public static class ImageSearch {
         private String model = "multimodal-embedding-v1";
         private int dimensions = 1024;
-        private String uploadDir = "uploads/products";
         private int topK = 5;
         private double similarityThreshold = 0.0;
 
@@ -63,9 +62,6 @@ public class DemoProperties {
 
         public int getDimensions() { return dimensions; }
         public void setDimensions(int dimensions) { this.dimensions = dimensions; }
-
-        public String getUploadDir() { return uploadDir; }
-        public void setUploadDir(String uploadDir) { this.uploadDir = uploadDir; }
 
         public int getTopK() { return topK; }
         public void setTopK(int topK) { this.topK = topK; }
