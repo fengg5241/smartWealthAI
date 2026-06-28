@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,31 +25,47 @@ public class DocumentParserService {
         if (fileName == null) {
             throw new IllegalArgumentException("File name is missing");
         }
+        return parse(file.getBytes(), fileName);
+    }
 
+    public String parse(byte[] fileBytes, String fileName) throws IOException {
         String lower = fileName.toLowerCase();
         if (lower.endsWith(".pdf")) {
-            return parsePdf(file);
+            return parsePdf(fileBytes, fileName);
         } else if (lower.endsWith(".docx")) {
-            return parseDocx(file);
+            return parseDocx(fileBytes, fileName);
         } else if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
-            return parseExcel(file);
+            return parseExcel(fileBytes, fileName);
         } else {
             throw new IllegalArgumentException("Unsupported file type: " + fileName + ". Supported: PDF, DOCX, XLSX, XLS.");
         }
     }
 
-    private String parsePdf(MultipartFile file) throws IOException {
-        try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+    private final OcrService ocrService;
+
+    public DocumentParserService(OcrService ocrService) {
+        this.ocrService = ocrService;
+    }
+
+    private String parsePdf(byte[] fileBytes, String fileName) throws IOException {
+        try (PDDocument document = Loader.loadPDF(fileBytes)) {
             PDFTextStripper stripper = new PDFTextStripper();
             stripper.setSortByPosition(true);
             String text = stripper.getText(document);
-            log.info("Parsed PDF '{}': {} chars", file.getOriginalFilename(), text.length());
-            return text;
+            if (!text.isBlank()) {
+                log.info("Parsed PDF '{}': {} chars", fileName, text.length());
+                return text;
+            }
         }
+        // PDFBox extracted nothing — fallback to OCR
+        log.info("PDF '{}' has no selectable text, falling back to OCR...", fileName);
+        String ocrText = ocrService.ocrPdf(fileBytes, fileName);
+        log.info("Parsed PDF '{}': {} chars (OCR)", fileName, ocrText.length());
+        return ocrText;
     }
 
-    private String parseDocx(MultipartFile file) throws IOException {
-        try (XWPFDocument document = new XWPFDocument(file.getInputStream())) {
+    private String parseDocx(byte[] fileBytes, String fileName) throws IOException {
+        try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(fileBytes))) {
             StringBuilder sb = new StringBuilder();
             document.getParagraphs().forEach(p -> {
                 String text = p.getText();
@@ -56,13 +73,23 @@ public class DocumentParserService {
                     sb.append(text).append("\n");
                 }
             });
-            log.info("Parsed DOCX '{}': {} chars", file.getOriginalFilename(), sb.length());
+            document.getTables().forEach(table -> {
+                table.getRows().forEach(row -> {
+                    row.getTableCells().forEach(cell -> {
+                        String text = cell.getText();
+                        if (text != null && !text.isBlank()) {
+                            sb.append(text).append("\n");
+                        }
+                    });
+                });
+            });
+            log.info("Parsed DOCX '{}': {} chars", fileName, sb.length());
             return sb.toString();
         }
     }
 
-    private String parseExcel(MultipartFile file) throws IOException {
-        try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
+    private String parseExcel(byte[] fileBytes, String fileName) throws IOException {
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(fileBytes))) {
             DataFormatter formatter = new DataFormatter();
             StringBuilder result = new StringBuilder();
             int totalSheets = workbook.getNumberOfSheets();
@@ -128,7 +155,7 @@ public class DocumentParserService {
             }
 
             log.info("Parsed XLSX/XLS '{}': {} sheets, {} data rows, {} chars",
-                    file.getOriginalFilename(), nonEmptySheets, totalRows, result.length());
+                    fileName, nonEmptySheets, totalRows, result.length());
             return result.toString();
         }
     }

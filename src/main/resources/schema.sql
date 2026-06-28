@@ -55,3 +55,42 @@ CREATE TABLE IF NOT EXISTS vector_store_image (
 );
 
 CREATE INDEX IF NOT EXISTS idx_vsi_embedding ON vector_store_image USING hnsw (embedding vector_cosine_ops);
+
+-- IM bot tenant mapping (Slack / WeCom → tenant)
+CREATE TABLE IF NOT EXISTS im_tenant_mapping (
+    id BIGSERIAL PRIMARY KEY,
+    platform VARCHAR(20) NOT NULL,
+    platform_team_id VARCHAR(200) NOT NULL,
+    tenant_id VARCHAR(50) NOT NULL,
+    bot_token VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(platform, platform_team_id)
+);
+
+-- OAuth tokens for document sync (Google Drive / OneDrive)
+CREATE TABLE IF NOT EXISTS sync_auth_token (
+    id BIGSERIAL PRIMARY KEY,
+    platform VARCHAR(20) NOT NULL,
+    tenant_id VARCHAR(50) NOT NULL,
+    access_token TEXT,
+    refresh_token TEXT,
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(platform, tenant_id)
+);
+
+-- Sync status for individual files
+CREATE TABLE IF NOT EXISTS sync_file_status (
+    id BIGSERIAL PRIMARY KEY,
+    platform VARCHAR(20) NOT NULL,
+    tenant_id VARCHAR(50) NOT NULL,
+    file_id VARCHAR(255) NOT NULL,
+    file_name VARCHAR(500),
+    last_modified TIMESTAMP,
+    sync_status VARCHAR(20) DEFAULT 'pending',
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(platform, tenant_id, file_id)
+);

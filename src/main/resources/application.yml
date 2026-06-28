@@ -58,3 +58,38 @@ management:
     web:
       exposure:
         include: health,info
+
+# --- IM Bot Config ---
+
+wecom:
+  enabled: ${WECOM_ENABLED:false}
+  corp-id: ${WECOM_CORP_ID:}
+  token: ${WECOM_TOKEN:}
+  encoding-aes-key: ${WECOM_ENCODING_AES_KEY:}
+  agent-id: ${WECOM_AGENT_ID:0}
+
+slack:
+  enabled: ${SLACK_ENABLED:false}
+  client-id: ${SLACK_CLIENT_ID:}
+  client-secret: ${SLACK_CLIENT_SECRET:}
+  signing-secret: ${SLACK_SIGNING_SECRET:}
+  bot-token: ${SLACK_BOT_TOKEN:}
+
+# --- Document Sync Config ---
+
+googledrive:
+  enabled: ${GOOGLEDRIVE_ENABLED:false}
+  client-id: ${GOOGLEDRIVE_CLIENT_ID:}
+  client-secret: ${GOOGLEDRIVE_CLIENT_SECRET:}
+  redirect-uri: ${GOOGLEDRIVE_REDIRECT_URI:}
+  folder-name: SmartRAG
+  sync-interval-minutes: 10
+
+onedrive:
+  enabled: ${ONEDRIVE_ENABLED:false}
+  client-id: ${ONEDRIVE_CLIENT_ID:}
+  client-secret: ${ONEDRIVE_CLIENT_SECRET:}
+  redirect-uri: ${ONEDRIVE_REDIRECT_URI:}
+  tenant-id: ${ONEDRIVE_TENANT_ID:common}
+  folder-name: SmartRAG
+  sync-interval-minutes: 10

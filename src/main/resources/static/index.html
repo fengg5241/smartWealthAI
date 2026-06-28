@@ -85,6 +85,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .tenant-list .t-item:hover .t-del { visibility: visible; }
 .tenant-list .t-item .t-del:hover { background: #fecaca; color: var(--danger); }
 
+/* Cloud Sync */
+.sync-hint { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.btn-sync { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--primary); background: white; color: var(--primary); transition: all .15s; }
+.btn-sync:hover { background: var(--primary); color: white; }
+.btn-sync-now { width: 24px; height: 24px; padding: 0; border: 1px solid var(--primary); border-radius: 50%; font-size: 13px; cursor: pointer; background: white; color: var(--primary); line-height: 22px; text-align: center; flex-shrink: 0; }
+.btn-sync-now:hover { background: var(--primary); color: white; }
+.sync-label { color: var(--text-muted); }
+.sync-label.connected { color: var(--success); }
+
 /* Chat */
 .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
 .chat-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
@@ -295,6 +304,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
           <div class="upload-progress-label" id="uploadProgressLabel"></div>
         </div>
         <div class="doc-list" id="docList"></div>
+        <!-- Cloud Sync -->
+        <h3>☁️ Cloud Sync</h3>
+        <div id="syncStatus" style="font-size:12px;color:var(--text-muted);">
+          <div class="sync-hint" id="syncGoogleDrive">
+            <span style="margin-right:6px;">🔗</span> Google Drive — <span class="sync-label">checking...</span>
+            <button class="btn-sync" id="btnGDrive" onclick="connectSync('google-drive')" style="display:none;">Connect</button>
+            <button class="btn-sync-now" id="btnGDriveSync" onclick="syncNow('google-drive')" style="display:none;" title="Sync now">↻</button>
+          </div>
+          <div class="sync-hint" id="syncOneDrive" style="margin-top:6px;">
+            <span style="margin-right:6px;">🔗</span> OneDrive — <span class="sync-label">checking...</span>
+            <button class="btn-sync" id="btnOneDrive" onclick="connectSync('onedrive')" style="display:none;">Connect</button>
+            <button class="btn-sync-now" id="btnOneDriveSync" onclick="syncNow('onedrive')" style="display:none;" title="Sync now">↻</button>
+          </div>
+        </div>
         <div class="tenant-mgmt" id="tenantMgmt" style="display:none">
           <h3>Tenant Management</h3>
           <div class="tenant-create">
@@ -447,7 +470,7 @@ async function init() {
   if (!isAdmin && currentTenant) {
     if (!(await validateTenant(currentTenant))) return;
   }
-  if (currentTenant) { loadDocList(); refreshProducts(); }
+  if (currentTenant) { loadDocList(); refreshProducts(); checkSyncStatus(); }
   updateTenantBadge();
 }
 init();
@@ -568,7 +591,7 @@ document.getElementById('tenantSelect').addEventListener('change', function(e) {
     document.getElementById('tenantName').textContent = tenantMap[currentTenant] || currentTenant;
     document.getElementById('tenantBadge').style.display = 'inline-flex';
   } else { document.getElementById('tenantBadge').style.display = 'none'; }
-  clearChat(); loadDocList(); refreshProducts();
+  clearChat(); loadDocList(); refreshProducts(); checkSyncStatus();
 });
 
 // ——— Document Upload ———
@@ -799,7 +822,7 @@ function handleModalFile(file) {
     document.getElementById('modalPreviewImg').src = e.target.result;
     document.getElementById('modalPreview').style.display = '';
     document.getElementById('modalUploadText').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
-    document.getElementById('modalAutoDescHint').textContent = '⏳ Generating AI description...';
+    document.getElementById('modalAutoDescHint').textContent = '· Generating AI description...';
     // Auto-fill name from filename
     if (!document.getElementById('productNameInput').value) {
       document.getElementById('productNameInput').value = file.name.replace(/\.[^.]+$/, '');
@@ -818,7 +841,7 @@ function handleModalFile(file) {
 
 async function autoDescribe() {
   if (!modalFile) return;
-  document.getElementById('modalAutoDescHint').textContent = '⏳ Generating AI description...';
+  document.getElementById('modalAutoDescHint').textContent = '· Generating AI description...';
   const fd = new FormData();
   fd.append('image', modalFile);
   try {
@@ -902,6 +925,117 @@ async function deleteProduct(id) {
 function escapeHtml(text) {
   const div = document.createElement('div'); div.textContent = text; return div.innerHTML.replace(/\n/g, '<br>');
 }
+
+	// Cloud Sync
+	async function checkSyncStatus() {
+	  if (!currentTenant) {
+	    document.getElementById('syncGoogleDrive').querySelector('.sync-label').textContent = 'select a tenant';
+	    document.getElementById('btnGDrive').style.display = 'none';
+		    document.getElementById('btnGDriveSync').style.display = 'none';
+	    document.getElementById('syncOneDrive').querySelector('.sync-label').textContent = 'select a tenant';
+	    document.getElementById('btnOneDrive').style.display = 'none';
+		    document.getElementById('btnOneDriveSync').style.display = 'none';
+	    return;
+	  }
+	  ['google-drive', 'onedrive'].forEach(async (p) => {
+	    const el = document.getElementById(p === 'google-drive' ? 'syncGoogleDrive' : 'syncOneDrive');
+	    const btn = document.getElementById(p === 'google-drive' ? 'btnGDrive' : 'btnOneDrive');
+	    const label = el.querySelector('.sync-label');
+		    const syncBtn = document.getElementById(p === 'google-drive' ? 'btnGDriveSync' : 'btnOneDriveSync');
+	    try {
+	      const resp = await fetch('/api/sync/' + p + '/status?tenantId=' + encodeURIComponent(currentTenant), { headers: apiHeaders() });
+	      if (!resp.ok) { label.textContent = 'unavailable'; label.className = 'sync-label'; btn.style.display = 'none'; syncBtn.style.display = 'none'; return; }
+	      const data = await resp.json();
+	      if (data.connected) {
+	        label.textContent = 'Connected';
+	        label.className = 'sync-label connected';
+	        btn.textContent = 'Disconnect';
+	        btn.style.display = '';
+	        btn.onclick = function() { disconnectSync(p); };
+	        syncBtn.style.display = '';
+	      } else {
+	        label.textContent = 'Not connected';
+	        label.className = 'sync-label';
+	        btn.textContent = 'Connect';
+	        btn.style.display = '';
+	        btn.onclick = function() { connectSync(p); };
+	        syncBtn.style.display = 'none';
+	      }
+	    } catch (err) {
+	      label.textContent = 'unavailable'; label.className = 'sync-label'; btn.style.display = 'none'; syncBtn.style.display = 'none';
+	    }
+	  });
+	}
+
+	function connectSync(platform) {
+	  const url = '/api/sync/' + platform + '/auth?tenantId=' + encodeURIComponent(currentTenant);
+	  const w = 600, h = 700;
+	  const left = (screen.width - w) / 2, top = (screen.height - h) / 2;
+	  const popup = window.open(url, 'sync-oauth', 'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top);
+	  const timer = setInterval(() => { if (popup.closed) { clearInterval(timer); checkSyncStatus(); } }, 1000);
+	}
+
+	async function disconnectSync(platform) {
+	  if (!confirm('Disconnect ' + platform + ' for this tenant?')) return;
+	  try {
+	    await fetch('/api/sync/' + platform + '/disconnect?tenantId=' + encodeURIComponent(currentTenant),
+	      { method: 'POST', headers: apiHeaders() });
+	    checkSyncStatus();
+	  } catch (err) { alert('Network error'); }
+	}
+
+
+		async function syncNow(platform) {
+		  const btn = document.getElementById(platform === 'google-drive' ? 'btnGDriveSync' : 'btnOneDriveSync');
+		  const label = document.getElementById(platform === 'google-drive' ? 'syncGoogleDrive' : 'syncOneDrive').querySelector('.sync-label');
+		  const prevText = label.textContent;
+		  const prevClass = label.className;
+		  btn.textContent = '·'; btn.disabled = true;
+		  try {
+		    const resp = await fetch('/api/sync/' + platform + '/sync-now?tenantId=' + encodeURIComponent(currentTenant),
+		      { headers: apiHeaders() });
+		    const data = await resp.json();
+		    let msg, isOk;
+		    if (resp.ok && data.synced != null) {
+		      if (data.synced > 0) {
+		        msg = 'Synced ' + data.synced + ' file' + (data.synced > 1 ? 's' : '');
+		        isOk = true;
+		        loadDocList();
+		      } else {
+		        msg = 'No new updates';
+		        isOk = true;
+		      }
+		    } else {
+		      msg = 'Sync failed' + (data.error ? ': ' + data.error : '');
+		      isOk = false;
+		    }
+		    label.textContent = msg;
+		    label.className = 'sync-label' + (isOk ? ' connected' : '');
+		    showSyncToast(platform, msg, isOk);
+		    setTimeout(() => { checkSyncStatus(); }, 3000);
+		  } catch (err) {
+		    label.textContent = 'Network error';
+		    label.className = 'sync-label';
+		    showSyncToast(platform, 'Network error', false);
+		    setTimeout(() => { checkSyncStatus(); }, 3000);
+		  } finally { btn.textContent = '↻'; btn.disabled = false; }
+		}
+
+		function showSyncToast(platform, msg, ok) {
+		  let toast = document.getElementById('syncToast');
+		  if (!toast) {
+		    toast = document.createElement('div');
+		    toast.id = 'syncToast';
+		    toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,.15);transition:opacity .3s;pointer-events:none;';
+		    document.body.appendChild(toast);
+		  }
+		  toast.textContent = (platform === 'google-drive' ? 'GDrive: ' : 'OneDrive: ') + msg;
+		  toast.style.background = ok ? '#dcfce7' : '#fef2f2';
+		  toast.style.color = ok ? '#166534' : '#dc2626';
+		  toast.style.opacity = '1';
+		  clearTimeout(toast._tid);
+		  toast._tid = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+		}
 </script>
 </body>
 </html>

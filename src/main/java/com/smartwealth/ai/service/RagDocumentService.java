@@ -70,7 +70,10 @@ public class RagDocumentService {
         }
 
         documentRepository.saveAll(entities);
-        vectorStore.add(vectorDocs);
+        for (int i = 0; i < vectorDocs.size(); i += 10) {
+            int end = Math.min(i + 10, vectorDocs.size());
+            vectorStore.add(vectorDocs.subList(i, end));
+        }
 
         log.info("Indexed {} chunks for tenant={}, file={}", segments.size(), tenantId, fileName);
         return segments.size();

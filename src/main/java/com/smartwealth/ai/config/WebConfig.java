@@ -16,6 +16,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(tenantInterceptor).addPathPatterns("/api/**");
+        registry.addInterceptor(tenantInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(
+                        "/api/wecom/**",
+                        "/api/slack/**",
+                        "/api/sync/*/callback"
+                );
     }
 }

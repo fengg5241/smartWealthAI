@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartRAG — Admin Settings</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232563eb'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>R</text></svg>">
+<style>
+:root {
+  --primary: #2563eb; --primary-light: #eff6ff; --success: #16a34a; --warning: #f59e0b;
+  --danger: #dc2626; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+  --text: #1e293b; --text-muted: #64748b; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* Header */
+.header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo { font-size: 18px; font-weight: 700; color: var(--primary); }
+.nav-item { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: none; color: var(--text-muted); text-decoration: none; border-radius: var(--radius); transition: all .15s; }
+.nav-item:hover { color: var(--text); background: var(--bg); }
+.nav-item.active { color: var(--primary); background: var(--primary-light); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.mode-tag { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600; background: #fef3c7; color: #92400e; }
+
+/* Main container */
+.container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+/* Sections */
+.section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 24px; overflow: hidden; }
+.section-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.section-header h2 { font-size: 16px; font-weight: 700; }
+.section-header .desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.section-body { padding: 20px 24px; }
+
+/* Tenant bindings table */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 14px; background: var(--bg); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--primary-light); }
+
+/* Status badges */
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 10px; border-radius: 12px; font-weight: 600; white-space: nowrap; }
+.badge.good { background: #dcfce7; color: #166534; }
+.badge.warn { background: #fef3c7; color: #92400e; }
+.badge.none { background: var(--bg); color: var(--text-muted); }
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* Buttons */
+.btn { padding: 7px 14px; border-radius: var(--radius); font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text); transition: all .15s; white-space: nowrap; }
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn.btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+.btn.btn-primary:hover { background: #1d4ed8; }
+.btn.btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+.btn.btn-danger:hover { background: #b91c1c; }
+.btn.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Forms */
+.form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.form-group input, .form-group select { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: white; }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+.form-actions { display: flex; align-items: flex-end; gap: 8px; }
+.toast { font-size: 12px; min-height: 18px; padding: 4px 0; }
+.toast.success { color: var(--success); }
+.toast.error { color: var(--danger); }
+
+/* Sync card */
+.sync-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.sync-row:last-child { border-bottom: none; }
+.sync-icon { font-size: 24px; width: 36px; text-align: center; flex-shrink: 0; }
+.sync-info { flex: 1; }
+.sync-info .name { font-weight: 600; font-size: 14px; }
+.sync-info .hint { font-size: 12px; color: var(--text-muted); }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: var(--text-muted); }
+.spin { display: inline-block; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin .6s linear infinite; margin-right: 6px; vertical-align: middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Empty */
+.empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+
+/* Modals */
+.modal-mask { display: none; position: fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.4); z-index:100; align-items:center; justify-content:center; }
+.modal-mask.active { display: flex; }
+.modal { background: var(--card); border-radius: 12px; width: 480px; max-width: 90vw; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.modal-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 15px; font-weight: 700; }
+.modal-header .close { border: none; background: none; font-size: 22px; cursor: pointer; color: var(--text-muted); padding: 2px 8px; border-radius: 4px; }
+.modal-header .close:hover { background: var(--bg); }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-body .form-group { flex: none; }
+
+@media (max-width: 768px) {
+  .header { padding: 8px 12px; }
+  .logo { font-size: 15px; }
+  .container { padding: 16px 12px; }
+  .section-header { padding: 12px 16px; }
+  .section-body { padding: 12px 16px; }
+  table { font-size: 11px; }
+  th, td { padding: 8px 10px; }
+  .form-row { flex-direction: column; }
+  .form-group { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span class="logo">SmartRAG Admin</span>
+    <a class="nav-item" href=".">Q&A Home</a>
+    <a class="nav-item active" href="admin.html">Settings</a>
+  </div>
+  <div class="header-right">
+    <span class="mode-tag">ADMIN</span>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Tenant Bindings Table -->
+  <div class="section" id="tenantSection">
+    <div class="section-header">
+      <div>
+        <h2>Tenant Platform Bindings</h2>
+        <div class="desc">Each tenant's connections to IM bots and document sync platforms</div>
+      </div>
+      <button class="btn" onclick="loadAll()">Refresh</button>
+    </div>
+    <div class="section-body" id="tenantTableBody">
+      <div class="loading"><span class="spin"></span>Loading tenants...</div>
+    </div>
+  </div>
+
+  <!-- IM Bot Mappings -->
+  <div class="section">
+    <div class="section-header">
+      <div>
+        <h2>IM Bot Mappings</h2>
+        <div class="desc">Link WeChat Work and Slack workspaces to tenants</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="showWeComGuide()">📖 WeCom Setup Guide</button>
+        <button class="btn" onclick="showSlackGuide()">📖 Slack Setup Guide</button>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="form-row" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>Platform</label>
+          <select id="imPlatform">
+            <option value="wecom">WeChat Work (WeCom)</option>
+            <option value="slack">Slack</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="imIdLabel">CorpID</label>
+          <input type="text" id="imPlatformId" placeholder="e.g. ww1234567890abcdef">
+        </div>
+        <div class="form-group">
+          <label>Tenant</label>
+          <select id="imTenantId">
+            <option value="">-- Select tenant --</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveImMapping()">Save</button>
+        </div>
+      </div>
+      <div class="toast" id="imToast"></div>
+      <table id="imMappingsTable" style="margin-top:8px;">
+        <thead><tr><th>Platform</th><th>Platform ID</th><th>Tenant</th><th></th></tr></thead>
+        <tbody id="imMappingsBody">
+          <tr><td colspan="4" class="empty">No mappings yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Document Sync -->
+  <div class="section">
+    <div class="section-header">
+      <div>
+        <h2>Document Sync</h2>
+        <div class="desc">Auto-import documents from cloud storage per tenant</div>
+      </div>
+    </div>
+    <div class="section-body" id="syncBody">
+      <div class="loading"><span class="spin"></span>Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit IM Mapping Modal -->
+<div class="modal-mask" id="editImModal" onclick="if(event.target===this)closeEditImModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit IM Mapping</h3>
+      <button class="close" onclick="closeEditImModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Platform ID</label>
+        <input type="text" id="editImPlatformId" readonly style="background:var(--bg);">
+      </div>
+      <div class="form-group">
+        <label>Tenant</label>
+        <select id="editImTenantId"></select>
+      </div>
+      <button class="btn btn-primary" onclick="doEditImSave()" style="width:100%;">Save</button>
+      <div class="toast" id="editImToast"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WeCom Setup Guide Modal -->
+<div class="modal-mask" id="wecomGuideModal" onclick="if(event.target===this)closeWeComGuide()">
+  <div class="modal" style="width:680px;max-width:95vw;">
+    <div class="modal-header">
+      <h3>📖 WeChat Work Bot Setup Guide</h3>
+      <button class="close" onclick="closeWeComGuide()">&times;</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;line-height:1.8;font-size:14px;">
+      <p style="color:var(--text-muted);margin-bottom:16px;">This is a one-time setup done by you or your client's WeChat Work admin. Takes about 5 minutes.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 1: Open WeChat Work Admin</h4>
+      <p>Visit <a href="https://work.weixin.qq.com" target="_blank">work.weixin.qq.com</a> → Log in as admin → <strong>App Management (应用管理)</strong> → <strong>Create App (创建应用)</strong> in the bottom section (Self-built Apps).</p>
+
+      <h4 style="margin:16px 0 8px;">Step 2: Get CorpID</h4>
+      <p>At the very bottom of the App Management page, find <strong>"My Company" (我的企业)</strong> → copy the <strong>CorpID (企业ID)</strong> at the bottom. This is your company's unique identifier (starts with <code>ww</code>).</p>
+
+      <h4 style="margin:16px 0 8px;">Step 3: Get Secret</h4>
+      <p>In the app's settings page, find <strong>Secret</strong> → click "View" → copy it. This is the API secret used to download files sent to the bot.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 4: Configure Callback URL</h4>
+      <p>In the app settings, find <strong>"Receive Messages" (接收消息)</strong> → enable it → set:</p>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;">
+        <p><strong>URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/wecom/callback</code></p>
+        <p><strong>Token:</strong> Click "Random Generate (随机获取)" — copy this value</p>
+        <p><strong>EncodingAESKey:</strong> Click "Random Generate (随机获取)" — copy this value</p>
+      </div>
+      <p style="color:#dc2626;font-size:13px;">⚠️ Do NOT click Save yet — you need to set the env variables first and restart the service, otherwise the URL verification will fail.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 5: Set environment variables & restart</h4>
+      <p>Add to your <code>.env</code> or server config:</p>
+      <div style="background:#1e293b;color:#e2e8f0;border-radius:8px;padding:14px;margin:8px 0;font-family:monospace;font-size:12px;line-height:1.8;">
+        WECOM_ENABLED=true<br>
+        WECOM_CORP_ID=<span style="color:#fbbf24;">&lt;paste CorpID&gt;</span><br>
+        WECOM_TOKEN=<span style="color:#fbbf24;">&lt;paste Token&gt;</span><br>
+        WECOM_ENCODING_AES_KEY=<span style="color:#fbbf24;">&lt;paste EncodingAESKey&gt;</span><br>
+        WECOM_SECRET=<span style="color:#fbbf24;">&lt;paste Secret&gt;</span>
+      </div>
+      <p>Restart your SmartRAG service.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 6: Verify & Save</h4>
+      <p>Go back to the WeChat Work admin page → click <strong>Save</strong>. WeChat Work will send a GET request to verify the URL. If the service is running, it should pass.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 7: Link to a tenant</h4>
+      <p>Back in the IM Bot Mappings section below: select <strong>WeChat Work</strong> → paste the <strong>CorpID</strong> → select a tenant → click Save.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 8: Add bot to group chat</h4>
+      <p>In WeChat Work, open the app page → <strong>Add to Chat (添加到聊天)</strong> → select the group → done. Now users can @mention the bot and upload files.</p>
+
+      <div style="background:var(--primary-light);border:1px solid var(--primary);border-radius:8px;padding:12px;margin-top:16px;">
+        <p style="font-size:13px;color:var(--primary);font-weight:600;">💡 Need help? If the client can't do this, offer to walk them through it via screen sharing in 10 minutes.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slack Setup Guide Modal -->
+<div class="modal-mask" id="slackGuideModal" onclick="if(event.target===this)closeSlackGuide()">
+  <div class="modal" style="width:680px;max-width:95vw;">
+    <div class="modal-header">
+      <h3>📖 Slack Bot Setup Guide</h3>
+      <button class="close" onclick="closeSlackGuide()">&times;</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;line-height:1.8;font-size:14px;">
+      <p style="color:var(--text-muted);margin-bottom:16px;">Slack uses standard OAuth — no copying keys. Setup is done once by you, then customers self-serve.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 1: Create Slack App</h4>
+      <p>Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> → <strong>Create New App</strong> → <strong>From scratch</strong> → pick a name (e.g. "SmartRAG") → choose your workspace.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 2: Configure Slash Command</h4>
+      <p>Left sidebar → <strong>Slash Commands</strong> → Create New Command:</p>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;">
+        <p><strong>Command:</strong> <code>/ask</code></p>
+        <p><strong>Request URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/slack/commands</code></p>
+        <p><strong>Short Description:</strong> Ask questions about your documents</p>
+      </div>
+
+      <h4 style="margin:16px 0 8px;">Step 3: Enable Events</h4>
+      <p>Left sidebar → <strong>Event Subscriptions</strong> → enable:</p>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;">
+        <p><strong>Request URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/slack/events</code></p>
+        <p><strong>Subscribe to bot events:</strong></p>
+        <ul style="margin-left:20px;">
+          <li><code>app_mention</code> — when someone @mentions the bot</li>
+          <li><code>file_shared</code> — when someone uploads a file</li>
+        </ul>
+      </div>
+
+      <h4 style="margin:16px 0 8px;">Step 4: Configure OAuth & Permissions</h4>
+      <p>Left sidebar → <strong>OAuth & Permissions</strong> → add Redirect URL:</p>
+      <p><code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/slack/oauth/callback</code></p>
+      <p>Add Bot Token Scopes:</p>
+      <ul style="margin-left:20px;">
+        <li><code>chat:write</code> — send messages</li>
+        <li><code>commands</code> — slash commands</li>
+        <li><code>files:read</code> — download uploaded files</li>
+        <li><code>app_mentions:read</code> — detect @mentions</li>
+      </ul>
+
+      <h4 style="margin:16px 0 8px;">Step 5: Set environment variables & restart</h4>
+      <p>From <strong>Basic Information</strong> → App Credentials, copy the values:</p>
+      <div style="background:#1e293b;color:#e2e8f0;border-radius:8px;padding:14px;margin:8px 0;font-family:monospace;font-size:12px;line-height:1.8;">
+        SLACK_ENABLED=true<br>
+        SLACK_CLIENT_ID=<span style="color:#fbbf24;">&lt;paste Client ID&gt;</span><br>
+        SLACK_CLIENT_SECRET=<span style="color:#fbbf24;">&lt;paste Client Secret&gt;</span><br>
+        SLACK_SIGNING_SECRET=<span style="color:#fbbf24;">&lt;paste Signing Secret&gt;</span><br>
+        SLACK_BOT_TOKEN=<span style="color:#fbbf24;">&lt;OAuth → Bot User OAuth Token&gt;</span>
+      </div>
+      <p>Restart your SmartRAG service.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 6: Customer self-serve</h4>
+      <p>From <strong>Manage Distribution</strong> → copy the "Add to Slack" button HTML, or give the customer this URL:</p>
+      <div style="background:#fef3c7;border-radius:8px;padding:12px;margin:8px 0;font-size:13px;">
+        <code>https://slack.com/oauth/v2/authorize?client_id=&lt;CLIENT_ID&gt;&scope=chat:write,commands,files:read,app_mentions:read</code>
+      </div>
+      <p>Customer clicks the link → picks their workspace → clicks <strong>Allow</strong> → done in 30 seconds. No tech skills needed.</p>
+
+      <h4 style="margin:16px 0 8px;">Step 7: Link to a tenant</h4>
+      <p>After the customer installs, you'll see the Team ID in the OAuth callback. Go to IM Bot Mappings below: select <strong>Slack</strong> → paste <strong>Team ID</strong> → select the customer's tenant → Save.</p>
+
+      <div style="background:#dcfce7;border:1px solid #16a34a;border-radius:8px;padding:12px;margin-top:16px;">
+        <p style="font-size:13px;color:#166534;font-weight:600;">✅ Slack is the easiest. Once configured, customers install it themselves with zero technical steps.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let adminKey = '', tenantMap = {};
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  adminKey = params.get('key') || '';
+  document.getElementById('imPlatform').addEventListener('change', updatePlatformLabel);
+  await loadAll();
+}
+init();
+
+function updatePlatformLabel() {
+  const p = document.getElementById('imPlatform').value;
+  document.getElementById('imIdLabel').textContent = p === 'wecom' ? 'CorpID' : 'Slack Team ID';
+}
+
+function showWeComGuide() { document.getElementById('wecomGuideModal').classList.add('active'); }
+function closeWeComGuide() { document.getElementById('wecomGuideModal').classList.remove('active'); }
+function showSlackGuide() { document.getElementById('slackGuideModal').classList.add('active'); }
+function closeSlackGuide() { document.getElementById('slackGuideModal').classList.remove('active'); }
+
+function apiHeaders(extra) {
+  const h = { 'X-Admin-Key': adminKey, ...(extra || {}) };
+  return h;
+}
+
+async function loadAll() {
+  await Promise.all([loadTenants(), loadImMappings()]);
+  renderSyncSection();
+}
+
+async function loadTenants() {
+  try {
+    const resp = await fetch('/api/admin/tenants', { headers: apiHeaders() });
+    if (resp.status === 403) {
+      document.getElementById('tenantTableBody').innerHTML =
+        '<div class="empty" style="color:var(--danger);">Access denied — check admin key in URL (?key=xxx)</div>';
+      return;
+    }
+    const tenants = await resp.json();
+    tenantMap = {};
+    tenants.forEach(t => { tenantMap[t.tenantId] = t; });
+    renderTenantTable(tenants);
+  } catch (err) {
+    document.getElementById('tenantTableBody').innerHTML =
+      '<div class="empty" style="color:var(--danger);">Failed to load: ' + err.message + '</div>';
+  }
+}
+
+function renderTenantTable(tenants) {
+  if (!tenants.length) {
+    document.getElementById('tenantTableBody').innerHTML = '<div class="empty">No tenants yet</div>';
+    return;
+  }
+
+  // Build tenant dropdown for IM mapping form
+  const sel = document.getElementById('imTenantId');
+  sel.innerHTML = '<option value="">-- Select tenant --</option>' +
+    tenants.map(t => `<option value="${esc(t.tenantId)}">${esc(t.name)} (${esc(t.tenantId)})</option>`).join('');
+
+  document.getElementById('tenantTableBody').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Tenant</th><th>Tenant ID</th>
+        <th>WeChat Work</th><th>Slack</th>
+        <th>Google Drive</th><th>OneDrive</th>
+      </tr></thead>
+      <tbody>${tenants.map(t => `
+        <tr>
+          <td><strong>${esc(t.name)}</strong></td>
+          <td><code style="font-size:12px;">${esc(t.tenantId)}</code></td>
+          <td>${t.wecom ? `<span class="badge good"><span class="dot"></span>${esc(t.wecom)}</span>` : '<span class="badge none">—</span>'}</td>
+          <td>${t.slack ? `<span class="badge good"><span class="dot"></span>${esc(t.slack)}</span>` : '<span class="badge none">—</span>'}</td>
+          <td>
+            ${t.google_drive
+              ? '<span class="badge good"><span class="dot"></span>Connected</span>'
+              : '<span class="badge warn">Not connected</span>'}
+          </td>
+          <td>
+            ${t.onedrive
+              ? '<span class="badge good"><span class="dot"></span>Connected</span>'
+              : '<span class="badge warn">Not connected</span>'}
+          </td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// --- IM Mappings ---
+
+async function loadImMappings() {
+  try {
+    const resp = await fetch('/api/admin/im-mappings', { headers: apiHeaders() });
+    const mappings = await resp.json();
+    const body = document.getElementById('imMappingsBody');
+    if (!mappings.length) {
+      body.innerHTML = '<tr><td colspan="4" class="empty">No mappings yet</td></tr>';
+      return;
+    }
+    body.innerHTML = mappings.map(m => `
+      <tr>
+        <td>${m.platform === 'wecom' ? '💬 WeChat Work' : '💬 Slack'}</td>
+        <td><code style="font-size:12px;">${esc(m.platformTeamId)}</code></td>
+        <td><strong>${esc(tenantMap[m.tenantId]?.name || m.tenantId)}</strong></td>
+        <td style="text-align:right;">
+          <button class="btn btn-sm" onclick="openEditImModal(${m.id},'${esc(m.platform)}','${esc(m.platformTeamId)}','${esc(m.tenantId)}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteImMapping(${m.id})">Delete</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    console.error('loadImMappings', err);
+  }
+}
+
+async function saveImMapping() {
+  const toast = document.getElementById('imToast');
+  const platform = document.getElementById('imPlatform').value;
+  const platformTeamId = document.getElementById('imPlatformId').value.trim();
+  const tenantId = document.getElementById('imTenantId').value;
+
+  if (!platformTeamId || !tenantId) {
+    toast.textContent = 'Platform ID and tenant are required';
+    toast.className = 'toast error'; return;
+  }
+  try {
+    const resp = await fetch('/api/admin/im-mappings', {
+      method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, platformTeamId, tenantId })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || 'Failed'; toast.className = 'toast error'; return; }
+    toast.textContent = 'Saved!';
+    toast.className = 'toast success';
+    document.getElementById('imPlatformId').value = '';
+    await Promise.all([loadTenants(), loadImMappings()]);
+  } catch (err) {
+    toast.textContent = 'Network error'; toast.className = 'toast error';
+  }
+}
+
+async function deleteImMapping(id) {
+  if (!confirm('Delete this mapping?')) return;
+  try {
+    await fetch('/api/admin/im-mappings/' + id, { method: 'DELETE', headers: apiHeaders() });
+    await Promise.all([loadTenants(), loadImMappings()]);
+  } catch (err) { alert('Network error'); }
+}
+
+// --- Edit Modal ---
+
+function openEditImModal(id, platform, platformTeamId, tenantId) {
+  document.getElementById('editImPlatformId').value = platformTeamId;
+  document.getElementById('editImModal').dataset.id = id;
+  document.getElementById('editImModal').dataset.platform = platform;
+  const sel = document.getElementById('editImTenantId');
+  sel.innerHTML = Object.entries(tenantMap)
+    .map(([tid, t]) => `<option value="${esc(tid)}" ${tid===tenantId?'selected':''}>${esc(t.name)} (${esc(tid)})</option>`)
+    .join('');
+  document.getElementById('editImToast').textContent = '';
+  document.getElementById('editImModal').classList.add('active');
+}
+
+function closeEditImModal() {
+  document.getElementById('editImModal').classList.remove('active');
+}
+
+async function doEditImSave() {
+  const id = document.getElementById('editImModal').dataset.id;
+  const platform = document.getElementById('editImModal').dataset.platform;
+  const tenantId = document.getElementById('editImTenantId').value;
+  const platformTeamId = document.getElementById('editImPlatformId').value;
+  const toast = document.getElementById('editImToast');
+
+  try {
+    const resp = await fetch('/api/admin/im-mappings', {
+      method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, platformTeamId, tenantId })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || 'Failed'; toast.className = 'toast error'; return; }
+    closeEditImModal();
+    await Promise.all([loadTenants(), loadImMappings()]);
+  } catch (err) {
+    toast.textContent = 'Network error'; toast.className = 'toast error';
+  }
+}
+
+// --- Sync Section ---
+
+function renderSyncSection() {
+  const tenants = Object.values(tenantMap);
+  if (!tenants.length) {
+    document.getElementById('syncBody').innerHTML = '<div class="empty">No tenants configured</div>';
+    return;
+  }
+
+  document.getElementById('syncBody').innerHTML = tenants.map(t => `
+    <div class="sync-row">
+      <div class="sync-icon">☁️</div>
+      <div class="sync-info">
+        <div class="name">${esc(t.name)}</div>
+        <div class="hint">${esc(t.tenantId)}</div>
+      </div>
+      <div>
+        ${t.google_drive
+          ? '<button class="btn btn-sm btn-danger" onclick="disconnectSync(\'google-drive\', \'' + esc(t.tenantId) + '\')">Disconnect Google Drive</button>'
+          : '<button class="btn btn-sm btn-primary" onclick="connectSync(\'google-drive\', \'' + esc(t.tenantId) + '\')">Connect Google Drive</button>'}
+      </div>
+      <div>
+        ${t.onedrive
+          ? '<button class="btn btn-sm btn-danger" onclick="disconnectSync(\'onedrive\', \'' + esc(t.tenantId) + '\')">Disconnect OneDrive</button>'
+          : '<button class="btn btn-sm btn-primary" onclick="connectSync(\'onedrive\', \'' + esc(t.tenantId) + '\')">Connect OneDrive</button>'}
+      </div>
+    </div>`).join('');
+}
+
+function connectSync(platform, tenantId) {
+  // Open OAuth in a popup; the callback page will close itself
+  const url = '/api/sync/' + platform + '/auth?tenantId=' + encodeURIComponent(tenantId);
+  const w = 600, h = 700;
+  const left = (screen.width - w) / 2, top = (screen.height - h) / 2;
+  const popup = window.open(url, 'sync-oauth',
+    'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top);
+  // Poll for popup close, then refresh
+  const timer = setInterval(() => {
+    if (popup.closed) { clearInterval(timer); loadAll(); }
+  }, 1000);
+}
+
+async function disconnectSync(platform, tenantId) {
+  if (!confirm('Disconnect ' + platform + ' for this tenant?')) return;
+  try {
+    const resp = await fetch('/api/sync/' + platform + '/disconnect?tenantId=' + encodeURIComponent(tenantId),
+      { method: 'POST', headers: apiHeaders() });
+    if (resp.ok) await loadAll();
+    else alert('Failed: ' + (await resp.json()).error);
+  } catch (err) { alert('Network error'); }
+}
+
+// --- Util ---
+function esc(s) { const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+</script>
+</body>
+</html>

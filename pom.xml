@@ -89,6 +89,14 @@
             <artifactId>poi-ooxml</artifactId>
             <version>5.4.0</version>
         </dependency>
+
+        <!-- WeChat Work (WeCom) Bot — raw HTTP, crypto implemented in-app -->
+
+        <!-- Slack Bot (raw HTTP, no SDK needed) -->
+
+        <!-- Google Drive API — raw HTTP OAuth2 + REST calls -->
+
+        <!-- Microsoft Graph / OneDrive — raw HTTP OAuth2 + REST calls -->
     </dependencies>
 
     <build>
