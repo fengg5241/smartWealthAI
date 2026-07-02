@@ -19,6 +19,9 @@ public class Tenant {
     @Column(columnDefinition = "TEXT")
     private String config;
 
+    @Column(name = "tenant_group", nullable = false, length = 20)
+    private String tenantGroup = "enterprise";
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -30,4 +33,7 @@ public class Tenant {
 
     public String getConfig() { return config; }
     public void setConfig(String config) { this.config = config; }
+
+    public String getTenantGroup() { return tenantGroup; }
+    public void setTenantGroup(String tenantGroup) { this.tenantGroup = tenantGroup; }
 }

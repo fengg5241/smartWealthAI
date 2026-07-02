@@ -1,6 +1,7 @@
 package com.smartwealth.ai.service;
 
 import com.smartwealth.ai.config.WeComProperties;
+import com.smartwealth.ai.domain.GoodPhrase;
 import com.smartwealth.ai.repository.ImTenantMappingRepository;
 import com.smartwealth.ai.domain.ImTenantMapping;
 import org.slf4j.Logger;
@@ -8,11 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.Base64;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,16 +29,28 @@ public class WeComBotService {
     private final DocumentParserService documentParser;
     private final RagDocumentService ragDocumentService;
     private final WeComProperties props;
+    // Learning assistant services
+    private final GoodPhraseService phraseService;
+    private final LearningAIService learningAI;
+    private final OcrService ocrService;
+    // Session state: track user entry mode (for multi-turn: prefix then image)
+    private final Map<String, String> userSessionMode = new ConcurrentHashMap<>();
 
     public WeComBotService(WeComProperties props, ImTenantMappingRepository mappingRepo,
                            RagChatService ragChatService, DocumentParserService documentParser,
-                           RagDocumentService ragDocumentService) {
+                           RagDocumentService ragDocumentService,
+                           GoodPhraseService phraseService,
+                           LearningAIService learningAI,
+                           OcrService ocrService) {
         this.props = props;
         this.cryptUtil = new WeComCryptUtil(props.getToken(), props.getEncodingAesKey(), props.getCorpId());
         this.mappingRepo = mappingRepo;
         this.ragChatService = ragChatService;
         this.documentParser = documentParser;
         this.ragDocumentService = ragDocumentService;
+        this.phraseService = phraseService;
+        this.learningAI = learningAI;
+        this.ocrService = ocrService;
     }
 
     public boolean isEnabled() {
@@ -79,6 +92,10 @@ public class WeComBotService {
             if ("text".equals(msgType)) {
                 String content = extractTag(plainXml, "Content");
                 return handleTextMessage(fromUser, toUser, createTime, content);
+            } else if ("image".equals(msgType)) {
+                String mediaId = extractTag(plainXml, "MediaId");
+                String picUrl = extractTag(plainXml, "PicUrl");
+                return handleImageMessage(fromUser, toUser, createTime, mediaId, picUrl);
             } else if ("file".equals(msgType)) {
                 String mediaId = extractTag(plainXml, "MediaId");
                 String fileNameTag = extractTag(plainXml, "FileName");
@@ -108,21 +125,94 @@ public class WeComBotService {
             return textReply(fromUser, toUser, createTime, "Please ask a question.");
         }
 
-        // Strip @bot mention if present
-        String question = content.replaceAll("@\\S+\\s*", "").trim();
-        if (question.isEmpty()) {
-            return textReply(fromUser, toUser, createTime,
-                    "How can I help? Ask me any question about the knowledge base.");
-        }
-
-        // Find tenant mapping by CorpID
         String tenantId = resolveTenant(props.getCorpId());
         if (tenantId == null) {
             return textReply(fromUser, toUser, createTime,
                     "Bot not yet configured. Please map this WeCom corp to a tenant first.");
         }
 
-        RagChatService.ChatResult result = ragChatService.ask(tenantId, fromUser, question);
+        // Strip @bot mention
+        String text = content.replaceAll("@\\S+\\s*", "").trim();
+        if (text.isEmpty()) {
+            return textReply(fromUser, toUser, createTime,
+                    "How can I help? Send '录入错题' to enter mistake mode, '录入好句：+ 内容' to add a phrase, '查找错题 + keyword' to search, or ask any question.");
+        }
+
+        // --- Learning commands ---
+
+        // Phrase entry: 录入好句：xxx
+        if (text.startsWith("录入好句：") || text.startsWith("录入好句:")) {
+            String phraseText = text.substring(text.indexOf('：') >= 0 ? text.indexOf('：') + 1 : text.indexOf(':') + 1).trim();
+            if (phraseText.isEmpty()) return textReply(fromUser, toUser, createTime, "请输入好句内容，如：录入好句：落霞与孤鹜齐飞");
+
+            LearningAIService.PhraseTags tags = learningAI.tagPhrase(phraseText);
+            GoodPhraseService.PhraseInput input = new GoodPhraseService.PhraseInput();
+            input.content = phraseText;
+            input.theme = tags.theme();
+            input.emotion = tags.emotion();
+            input.usageType = tags.usageType();
+            input.tags = tags.tags();
+            GoodPhrase saved = phraseService.create(tenantId, input, null, null);
+
+            String reply = "好句已录入 📝\n原文：" + phraseText
+                    + "\n主题：" + saved.getTheme() + " | 情感：" + saved.getEmotion()
+                    + " | 用途：" + saved.getUsageType()
+                    + "\n标签：" + (saved.getTags() != null ? saved.getTags() : "");
+            return textReply(fromUser, toUser, createTime, reply);
+        }
+
+        // Mistake entry mode: 录入错题 (sets session mode, next image will be processed)
+        if (text.startsWith("录入错题")) {
+            userSessionMode.put(fromUser, "mistake-entry");
+            return textReply(fromUser, toUser, createTime,
+                    "已进入错题录入模式。请发送错题图片，或发送文字\"取消\"退出。");
+        }
+
+        // Cancel entry mode
+        if ("取消".equals(text) || "cancel".equalsIgnoreCase(text)) {
+            userSessionMode.remove(fromUser);
+            return textReply(fromUser, toUser, createTime, "已退出录入模式。");
+        }
+
+        // Search mistakes: 查找错题 xxx
+        if (text.startsWith("查找错题") || text.startsWith("找错题")) {
+            String query = text.replaceFirst("查找错题|找错题", "").trim();
+            if (query.isEmpty()) query = "错题";
+            List<String> results = searchMistakesByText(tenantId, query);
+            if (results.isEmpty()) {
+                return textReply(fromUser, toUser, createTime, "未找到匹配的错题。试试：" + query);
+            }
+            return textReply(fromUser, toUser, createTime,
+                    "找到以下错题：\n" + String.join("\n", results));
+        }
+
+        // Search phrases: 查找好句 xxx
+        if (text.startsWith("查找好句") || text.startsWith("找好句")) {
+            String keyword = text.replaceFirst("查找好句|找好句", "").trim();
+            return textReply(fromUser, toUser, createTime,
+                    "请在网页端浏览好词好句库，支持按主题/情感筛选。");
+        }
+
+        // Review status: 复习
+        if ("复习".equals(text) || "今日复习".equals(text)) {
+            // For review status, we need ReviewService — skip for now, direct to web
+            return textReply(fromUser, toUser, createTime,
+                    "请在网页端「复习」页面查看今日待复习错题。");
+        }
+
+        // Help
+        if ("帮助".equals(text) || "help".equalsIgnoreCase(text)) {
+            return textReply(fromUser, toUser, createTime,
+                    "支持的命令：\n" +
+                    "• 录入错题 — 进入错题录入模式\n" +
+                    "• 录入好句：内容 — 直接添加好词好句\n" +
+                    "• 查找错题 关键词 — 搜索错题\n" +
+                    "• 取消 — 退出当前模式\n" +
+                    "• 任何其他文字 — AI 问答");
+        }
+
+        // --- Default: RAG Q&A ---
+        RagChatService.ChatResult result = ragChatService.ask(tenantId, fromUser, text);
 
         String replyText = result.answer();
         if (!result.sources().isEmpty()) {
@@ -130,6 +220,54 @@ public class WeComBotService {
         }
 
         return textReply(fromUser, toUser, createTime, replyText);
+    }
+
+    private String handleImageMessage(String fromUser, String toUser, String createTime,
+                                       String mediaId, String picUrl) {
+        String tenantId = resolveTenant(props.getCorpId());
+        if (tenantId == null) {
+            return textReply(fromUser, toUser, createTime,
+                    "Bot not yet configured.");
+        }
+
+        String mode = userSessionMode.getOrDefault(fromUser, "");
+
+        // If in mistake entry mode, download image and process
+        if ("mistake-entry".equals(mode)) {
+            try {
+                byte[] imageBytes = downloadWeComMedia(mediaId);
+                if (imageBytes == null || imageBytes.length == 0) {
+                    return textReply(fromUser, toUser, createTime,
+                            "图片下载失败，请重试。");
+                }
+
+                String ocrText = ocrService.ocrImage(imageBytes);
+                LearningAIService.MistakeClassification cls =
+                        learningAI.classifyMistake(
+                                ocrText.isBlank() ? null : ocrText, imageBytes);
+
+                userSessionMode.remove(fromUser);
+
+                return textReply(fromUser, toUser, createTime,
+                        "错题识别完成 📋\n" +
+                        "科目：" + cls.subject() + "\n" +
+                        "题型：" + cls.questionType() + "\n" +
+                        "错因：" + cls.errorReason() + "\n" +
+                        "建议答案：" + cls.suggestedAnswer() + "\n\n" +
+                        "请到网页端确认并补充年级、来源后入库。");
+            } catch (Exception e) {
+                log.error("Mistake entry processing failed", e);
+                return textReply(fromUser, toUser, createTime,
+                        "错题处理失败：" + e.getMessage());
+            }
+        }
+
+        return textReply(fromUser, toUser, createTime,
+                "收到图片。请先发送「录入错题」进入录入模式，或发送「帮助」查看所有命令。");
+    }
+
+    private List<String> searchMistakesByText(String tenantId, String query) {
+        return List.of("请在网页端「错题库」页面搜索：\"" + query + "\"");
     }
 
     private String handleFileMessage(String fromUser, String toUser, String createTime,

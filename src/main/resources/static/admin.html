@@ -11,6 +11,36 @@
   --danger: #dc2626; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
   --text: #1e293b; --text-muted: #64748b; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.1);
 }
+
+async function createTenant() {
+  const toast = document.getElementById('tenantCreateToast');
+  const tid = document.getElementById('newTenantId').value.trim();
+  const tname = document.getElementById('newTenantName').value.trim();
+  const tgroup = document.getElementById('newTenantGroup').value;
+  if (!tid || !tname) { toast.textContent = 'Tenant ID and name are required'; toast.className = 'toast error'; return; }
+  try {
+    const resp = await fetch('/api/admin/tenants', {
+      method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId: tid, name: tname, tenantGroup: tgroup })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || 'Failed'; toast.className = 'toast error'; return; }
+    toast.textContent = 'Created ' + tid + ' (' + tgroup + ')';
+    toast.className = 'toast success';
+    document.getElementById('newTenantId').value = '';
+    document.getElementById('newTenantName').value = '';
+    await loadAll();
+  } catch (err) { toast.textContent = 'Network error'; toast.className = 'toast error'; }
+}
+
+async function deleteTenant(tenantId) {
+  if (!confirm('Delete "' + tenantId + '"? This cannot be undone.')) return;
+  try {
+    const resp = await fetch('/api/admin/tenants/' + encodeURIComponent(tenantId), { method: 'DELETE', headers: apiHeaders() });
+    if (!resp.ok) { const d = await resp.json(); alert('Failed: ' + (d.error || resp.status)); return; }
+    await loadAll();
+  } catch (err) { alert('Network error'); }
+}
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -132,8 +162,32 @@ tr:hover td { background: var(--primary-light); }
       </div>
       <button class="btn" onclick="loadAll()">Refresh</button>
     </div>
-    <div class="section-body" id="tenantTableBody">
-      <div class="loading"><span class="spin"></span>Loading tenants...</div>
+    <div class="section-body">
+      <div class="form-row" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>Tenant ID</label>
+          <input type="text" id="newTenantId" placeholder="e.g. acme_corp" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="newTenantName" placeholder="e.g. ACME Corp" maxlength="100">
+        </div>
+        <div class="form-group">
+          <label>Group</label>
+          <select id="newTenantGroup">
+            <option value="enterprise">Enterprise</option>
+            <option value="study">Study</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="createTenant()">+ Create Tenant</button>
+        </div>
+      </div>
+      <div class="toast" id="tenantCreateToast"></div>
+      <div id="tenantTableBody">
+        <div class="loading"><span class="spin"></span>Loading tenants...</div>
+      </div>
     </div>
   </div>
 
@@ -214,6 +268,36 @@ tr:hover td { background: var(--primary-light); }
       </div>
       <button class="btn btn-primary" onclick="doEditImSave()" style="width:100%;">Save</button>
       <div class="toast" id="editImToast"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Tenant Modal -->
+<div class="modal-mask" id="editTenantModal" onclick="if(event.target===this)closeEditTenantModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Tenant</h3>
+      <button class="close" onclick="closeEditTenantModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Tenant ID</label>
+        <input type="text" id="editTenantId" readonly style="background:var(--bg);">
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="editTenantName">
+      </div>
+      <div class="form-group">
+        <label>Group</label>
+        <select id="editTenantGroup">
+          <option value="enterprise">Enterprise (Q&A + Products)</option>
+          <option value="study">Study (错题 + 好词好句 + 复习)</option>
+          <option value="all">All (全部可见)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="doEditTenantSave()" style="width:100%;">Save</button>
+      <div class="toast" id="editTenantToast"></div>
     </div>
   </div>
 </div>
@@ -407,14 +491,15 @@ function renderTenantTable(tenants) {
   document.getElementById('tenantTableBody').innerHTML = `
     <table>
       <thead><tr>
-        <th>Tenant</th><th>Tenant ID</th>
+        <th>Tenant</th><th>Tenant ID</th><th>Group</th>
         <th>WeChat Work</th><th>Slack</th>
-        <th>Google Drive</th><th>OneDrive</th>
+        <th>Google Drive</th><th>OneDrive</th><th></th>
       </tr></thead>
       <tbody>${tenants.map(t => `
         <tr>
           <td><strong>${esc(t.name)}</strong></td>
           <td><code style="font-size:12px;">${esc(t.tenantId)}</code></td>
+          <td><span class="badge ${t.tenantGroup==='study'?'good':t.tenantGroup==='all'?'warn':'none'}">${esc(t.tenantGroup||'enterprise')}</span></td>
           <td>${t.wecom ? `<span class="badge good"><span class="dot"></span>${esc(t.wecom)}</span>` : '<span class="badge none">—</span>'}</td>
           <td>${t.slack ? `<span class="badge good"><span class="dot"></span>${esc(t.slack)}</span>` : '<span class="badge none">—</span>'}</td>
           <td>
@@ -427,8 +512,39 @@ function renderTenantTable(tenants) {
               ? '<span class="badge good"><span class="dot"></span>Connected</span>'
               : '<span class="badge warn">Not connected</span>'}
           </td>
+          <td><button class="btn btn-sm" onclick="openEditTenantModal('${esc(t.tenantId)}','${esc(t.name)}','${esc(t.tenantGroup||'enterprise')}')">Edit</button></td>
         </tr>`).join('')}</tbody>
     </table>`;
+}
+
+async function createTenant() {
+  const toast = document.getElementById("tenantCreateToast");
+  const tid = document.getElementById("newTenantId").value.trim();
+  const tname = document.getElementById("newTenantName").value.trim();
+  const tgroup = document.getElementById("newTenantGroup").value;
+  if (!tid || !tname) { toast.textContent = "Tenant ID and name required"; toast.className = "toast error"; return; }
+  try {
+    const resp = await fetch("/api/admin/tenants", {
+      method: "POST", headers: { ...apiHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ tenantId: tid, name: tname, tenantGroup: tgroup })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || "Failed"; toast.className = "toast error"; return; }
+    toast.textContent = "Created " + tid + " (" + tgroup + ")";
+    toast.className = "toast success";
+    document.getElementById("newTenantId").value = "";
+    document.getElementById("newTenantName").value = "";
+    await loadAll();
+  } catch (err) { toast.textContent = "Network error"; toast.className = "toast error"; }
+}
+
+async function deleteTenant(tenantId) {
+  if (!confirm('Delete "' + tenantId + '"? This cannot be undone.')) return;
+  try {
+    const resp = await fetch("/api/admin/tenants/" + encodeURIComponent(tenantId), { method: "DELETE", headers: apiHeaders() });
+    if (!resp.ok) { const d = await resp.json(); alert("Failed: " + (d.error || resp.status)); return; }
+    await loadAll();
+  } catch (err) { alert("Network error"); }
 }
 
 // --- IM Mappings ---
@@ -525,6 +641,43 @@ async function doEditImSave() {
     if (!resp.ok) { toast.textContent = data.error || 'Failed'; toast.className = 'toast error'; return; }
     closeEditImModal();
     await Promise.all([loadTenants(), loadImMappings()]);
+  } catch (err) {
+    toast.textContent = 'Network error'; toast.className = 'toast error';
+  }
+}
+
+// --- Edit Tenant Modal ---
+
+function openEditTenantModal(tenantId, name, group) {
+  document.getElementById('editTenantId').value = tenantId;
+  document.getElementById('editTenantName').value = name;
+  document.getElementById('editTenantGroup').value = group || 'enterprise';
+  document.getElementById('editTenantToast').textContent = '';
+  document.getElementById('editTenantModal').classList.add('active');
+}
+
+function closeEditTenantModal() {
+  document.getElementById('editTenantModal').classList.remove('active');
+}
+
+async function doEditTenantSave() {
+  const tenantId = document.getElementById('editTenantId').value;
+  const name = document.getElementById('editTenantName').value.trim();
+  const tenantGroup = document.getElementById('editTenantGroup').value;
+  const toast = document.getElementById('editTenantToast');
+
+  if (!name) { toast.textContent = 'Name is required'; toast.className = 'toast error'; return; }
+
+  try {
+    const resp = await fetch('/api/admin/tenants/' + encodeURIComponent(tenantId), {
+      method: 'PUT', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, tenantGroup })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || 'Failed'; toast.className = 'toast error'; return; }
+    toast.textContent = 'Saved!';
+    toast.className = 'toast success';
+    setTimeout(() => { closeEditTenantModal(); loadAll(); }, 800);
   } catch (err) {
     toast.textContent = 'Network error'; toast.className = 'toast error';
   }

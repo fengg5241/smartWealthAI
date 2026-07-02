@@ -4,8 +4,10 @@ CREATE TABLE IF NOT EXISTS tenant (
     id BIGSERIAL PRIMARY KEY,
     tenant_id VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
-    config TEXT
+    config TEXT,
+    tenant_group VARCHAR(20) NOT NULL DEFAULT 'enterprise'
 );
+ALTER TABLE tenant ADD COLUMN IF NOT EXISTS tenant_group VARCHAR(20) NOT NULL DEFAULT 'enterprise';
 
 CREATE TABLE IF NOT EXISTS enterprise_document (
     id BIGSERIAL PRIMARY KEY,
@@ -79,6 +81,87 @@ CREATE TABLE IF NOT EXISTS sync_auth_token (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(platform, tenant_id)
 );
+
+-- ============================================================
+-- Learning Assistant tables (错题库 + 好词好句库 + 复习系统)
+-- ============================================================
+
+-- Notebook (错题本 / 好句分组)
+CREATE TABLE IF NOT EXISTS notebook (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255),
+    notebook_type VARCHAR(20) DEFAULT 'mistake',  -- mistake / phrase
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_nb_tenant ON notebook(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_nb_tenant_type ON notebook(tenant_id, notebook_type);
+
+-- Mistake question (错题)
+CREATE TABLE IF NOT EXISTS mistake_question (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    notebook_id BIGINT,
+    subject VARCHAR(30),
+    question_type VARCHAR(60),
+    grade_level VARCHAR(20),
+    content TEXT,
+    correct_answer TEXT,
+    error_reason VARCHAR(100),
+    source VARCHAR(255),
+    mastery_level VARCHAR(20) DEFAULT '不熟悉',
+    orig_image VARCHAR(500),
+    clean_image VARCHAR(500),
+    handwrite_removed BOOLEAN DEFAULT FALSE,
+    vector_id VARCHAR(100),
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_mq_tenant ON mistake_question(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_mq_notebook ON mistake_question(tenant_id, notebook_id);
+CREATE INDEX IF NOT EXISTS idx_mq_subject_type ON mistake_question(tenant_id, subject, question_type);
+CREATE INDEX IF NOT EXISTS idx_mq_mastery ON mistake_question(tenant_id, mastery_level);
+CREATE INDEX IF NOT EXISTS idx_mq_grade ON mistake_question(tenant_id, grade_level);
+CREATE INDEX IF NOT EXISTS idx_mq_source ON mistake_question(tenant_id, source);
+
+-- Good phrase (好词好句)
+CREATE TABLE IF NOT EXISTS good_phrase (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    notebook_id BIGINT,
+    content TEXT NOT NULL,
+    source VARCHAR(255),
+    theme VARCHAR(50),
+    emotion VARCHAR(30),
+    usage_type VARCHAR(50),
+    tags VARCHAR(255),
+    mastery_level VARCHAR(20) DEFAULT '不熟悉',
+    entry_method VARCHAR(20) DEFAULT 'photo',
+    image_path VARCHAR(500),
+    vector_id VARCHAR(100),
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_gp_tenant ON good_phrase(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_gp_notebook ON good_phrase(tenant_id, notebook_id);
+CREATE INDEX IF NOT EXISTS idx_gp_theme ON good_phrase(tenant_id, theme);
+CREATE INDEX IF NOT EXISTS idx_gp_mastery ON good_phrase(tenant_id, mastery_level);
+
+-- Review schedule (SM-2 algorithm)
+CREATE TABLE IF NOT EXISTS review_schedule (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    mistake_id BIGINT REFERENCES mistake_question(id) ON DELETE CASCADE,
+    review_stage INTEGER DEFAULT 1,
+    ease_factor DOUBLE PRECISION DEFAULT 2.5,
+    interval_days INTEGER DEFAULT 1,
+    next_review_date DATE NOT NULL,
+    last_reviewed TIMESTAMP,
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_rs_tenant ON review_schedule(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_rs_next_date ON review_schedule(tenant_id, next_review_date);
+CREATE INDEX IF NOT EXISTS idx_rs_mistake ON review_schedule(mistake_id);
 
 -- Sync status for individual files
 CREATE TABLE IF NOT EXISTS sync_file_status (

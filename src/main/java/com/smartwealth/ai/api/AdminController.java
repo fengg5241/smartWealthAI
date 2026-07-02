@@ -62,6 +62,7 @@ public class AdminController {
                     Map<String, Object> info = new LinkedHashMap<>();
                     info.put("tenantId", tid);
                     info.put("name", t.getName());
+                    info.put("tenantGroup", t.getTenantGroup() != null ? t.getTenantGroup() : "enterprise");
 
                     // Find IM bindings for this tenant
                     imMappings.stream()
@@ -87,6 +88,10 @@ public class AdminController {
         }
         String tenantId = body.get("tenantId");
         String name = body.get("name");
+        String tenantGroup = body.getOrDefault("tenantGroup", "enterprise");
+        if (!tenantGroup.equals("enterprise") && !tenantGroup.equals("study") && !tenantGroup.equals("all")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "tenantGroup must be 'enterprise', 'study', or 'all'"));
+        }
         if (tenantId == null || tenantId.isBlank() || name == null || name.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "tenantId and name are required"));
         }
@@ -96,8 +101,9 @@ public class AdminController {
         Tenant tenant = new Tenant();
         tenant.setTenantId(tenantId);
         tenant.setName(name);
+        tenant.setTenantGroup(tenantGroup);
         tenantRepository.save(tenant);
-        return ResponseEntity.ok(Map.of("message", "Tenant created", "tenantId", tenantId, "name", name));
+        return ResponseEntity.ok(Map.of("message", "Tenant created", "tenantId", tenantId, "name", name, "tenantGroup", tenantGroup));
     }
 
     @DeleteMapping("/tenants/{tenantId}")
@@ -112,6 +118,30 @@ public class AdminController {
         }
         tenantRepository.delete(tenant);
         return ResponseEntity.ok(Map.of("message", "Tenant deleted", "tenantId", tenantId));
+    }
+
+    @PutMapping("/tenants/{tenantId}")
+    public ResponseEntity<?> updateTenant(@PathVariable String tenantId, @RequestBody Map<String, String> body) {
+        if (!TenantContext.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Admin access required"));
+        }
+        Tenant tenant = tenantRepository.findByTenantId(tenantId).orElse(null);
+        if (tenant == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Tenant not found: " + tenantId));
+        }
+        String name = body.get("name");
+        String tenantGroup = body.get("tenantGroup");
+        if (name != null && !name.isBlank()) tenant.setName(name);
+        if (tenantGroup != null) {
+            if (!tenantGroup.equals("enterprise") && !tenantGroup.equals("study") && !tenantGroup.equals("all")) {
+                return ResponseEntity.badRequest().body(Map.of("error", "tenantGroup must be 'enterprise', 'study', or 'all'"));
+            }
+            tenant.setTenantGroup(tenantGroup);
+        }
+        tenantRepository.save(tenant);
+        return ResponseEntity.ok(Map.of("message", "Tenant updated", "tenantId", tenantId,
+                "name", tenant.getName(), "tenantGroup", tenant.getTenantGroup()));
     }
 
     // --- IM Bot Tenant Mappings ---

@@ -70,6 +70,17 @@ public class OcrService {
         }
     }
 
+    /**
+     * OCR a single image (photo of a page or question).
+     */
+    public String ocrImage(byte[] imageBytes) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("DASHSCOPE_API_KEY not set, skipping image OCR");
+            return "";
+        }
+        return ocrPage(imageBytes, 1, 1);
+    }
+
     private String ocrPage(byte[] imageBytes, int pageNum, int totalPages) {
         try {
             String base64Image = "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(imageBytes);

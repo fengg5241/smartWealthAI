@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SmartRAG - Multi-Tenant Knowledge Base</title>
+<title>SmartRAG</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232563eb'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white'>R</text></svg>">
 <style>
 :root {
@@ -15,13 +15,14 @@
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
 
 /* Header */
-.header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; position: relative; z-index: 10; }
 .header-left { display: flex; align-items: center; gap: 24px; }
 .logo { font-size: 20px; font-weight: 700; color: var(--primary); }
 .nav { display: flex; align-items: center; gap: 0; }
 .nav-item { padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: none; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all .15s; }
 .nav-item:hover { color: var(--text); }
 .nav-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+.nav-item.hidden-nav { display: none; }
 .header-right { display: flex; align-items: center; gap: 12px; }
 .header-right label { font-size:13px; color:var(--text-muted); }
 .header-right select { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; background: white; cursor: pointer; min-width: 160px; }
@@ -33,11 +34,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .mode-tag.customer { background: #dcfce7; color: #166534; }
 
 /* Main */
-.main { flex: 1; display: flex; overflow: hidden; }
+.main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
 
 /* Pages */
-.page { display: none; flex: 1; overflow: hidden; }
-.page.active { display: flex; }
+.page { display: none; flex: 1; min-height: 0; }
+.page.active { display: flex; flex-direction: column; overflow: hidden; }
 
 /* ===== PAGE 1: Q&A ===== */
 .qa-layout { display: flex; flex: 1; overflow: hidden; }
@@ -190,7 +191,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   .header-right { width: 100%; }
   .header-right select { width: 100%; min-width: 0; }
   .logo { font-size: 16px; }
-  .nav-item { padding: 6px 12px; font-size: 12px; }
+  .nav { flex-wrap: wrap; }
+  .nav-item { padding: 6px 10px; font-size: 12px; }
   .tenant-badge { font-size: 11px; padding: 3px 10px; }
 
   /* Sidebar — overlay mode */
@@ -266,6 +268,81 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   .modal-body { padding: 12px; }
   .modal-upload-zone { padding: 24px 12px; }
 }
+
+/* ===== Learning pages ===== */
+.learning-page { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; padding: 20px 24px; }
+.learn-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0; gap: 10px; flex-wrap: wrap; }
+.learn-toolbar h2 { font-size: 20px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.learn-toolbar .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.learn-toolbar select, .learn-toolbar .search-box, .learn-toolbar input { padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: var(--card); }
+.learn-toolbar select { min-width: 100px; }
+.learn-toolbar select:focus, .learn-toolbar .search-box:focus, .learn-toolbar input:focus { outline: none; border-color: var(--primary); }
+.card-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; align-content: start; }
+.card-grid.phrase-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.learn-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all .15s; display: flex; flex-direction: column; gap: 8px; }
+.learn-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-1px); }
+.learn-card .card-subject { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; display: inline-block; }
+.learn-card .card-subject.math { background: #dbeafe; color: #1e40af; }
+.learn-card .card-subject.english { background: #fce7f3; color: #9d174d; }
+.learn-card .card-subject.chinese { background: #dcfce7; color: #166534; }
+.learn-card .card-subject.science { background: #fef3c7; color: #92400e; }
+.learn-card .card-subject.other { background: #f1f5f9; color: #475569; }
+.learn-card .card-content { font-size: 13px; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.learn-card .card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.learn-card .card-mastery { font-size: 11px; padding: 2px 6px; border-radius: 8px; font-weight: 600; }
+.learn-card .card-mastery.good { background: #dcfce7; color: #166534; }
+.learn-card .card-mastery.ok { background: #fef3c7; color: #92400e; }
+.learn-card .card-mastery.poor { background: #fecaca; color: #991b1b; }
+.learn-card .card-thumb { width: 100%; height: 120px; background: #f1f5f9; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 32px; object-fit: cover; }
+.phrase-card .card-content { font-size: 16px; font-weight: 600; line-height: 1.7; -webkit-line-clamp: 4; }
+.phrase-card .card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.phrase-card .card-tags span { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--primary-light); color: var(--primary); }
+.review-dash { display: flex; gap: 16px; margin-bottom: 20px; flex-shrink: 0; }
+.review-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; flex: 1; }
+.review-stat .num { font-size: 36px; font-weight: 700; color: var(--primary); }
+.review-stat .label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.review-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 12px; }
+.review-card .q-content { font-size: 15px; line-height: 1.7; margin-bottom: 16px; white-space: pre-wrap; }
+.review-card .q-answer { display: none; font-size: 15px; line-height: 1.7; color: #16a34a; margin-bottom: 16px; padding: 12px; background: #f0fdf4; border-radius: 8px; }
+.review-card .q-answer.show { display: block; }
+.review-card .q-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+.review-actions { display: flex; gap: 10px; }
+.review-actions button { flex: 1; padding: 12px; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; }
+.review-actions .btn-again { background: #fecaca; color: #991b1b; }
+.review-actions .btn-hard { background: #fef3c7; color: #92400e; }
+.review-actions .btn-good { background: #bbf7d0; color: #166534; }
+.empty-state { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state h3 { font-size: 18px; margin-bottom: 4px; }
+.empty-state p { font-size: 13px; }
+.notebook-sidebar { width: 200px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--border); padding-right: 16px; }
+.notebook-sidebar h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin-bottom: 8px; }
+.notebook-item { padding: 8px 10px; font-size: 13px; cursor: pointer; border-radius: 6px; margin-bottom: 2px; }
+.notebook-item:hover { background: var(--primary-light); }
+.notebook-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.notebook-item .count { font-size: 11px; color: var(--text-muted); float: right; }
+.notebook-create { margin-top: 8px; }
+.notebook-create input { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; margin-bottom: 4px; }
+.notebook-create button { width: 100%; padding: 6px; background: var(--primary); color: white; border: none; border-radius: var(--radius); font-size: 12px; cursor: pointer; }
+.learn-content-area { display: flex; flex: 1; overflow: hidden; gap: 16px; }
+@media (max-width: 768px) {
+  .learning-page { padding: 12px; }
+  .learn-toolbar { flex-direction: column; align-items: stretch; }
+  .learn-toolbar h2 { font-size: 17px; }
+  .learn-toolbar .tools { flex-direction: column; align-items: stretch; }
+  .learn-toolbar select, .learn-toolbar .search-box, .learn-toolbar .tools .btn { width: 100%; }
+  .learn-toolbar select { min-width: 0; }
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .card-grid.phrase-grid { grid-template-columns: 1fr; }
+  .review-dash { flex-wrap: wrap; }
+  .review-stat { min-width: 80px; padding: 14px; }
+  .review-stat .num { font-size: 22px; }
+  .notebook-sidebar { width: 120px; padding-right: 8px; }
+  .review-card { padding: 16px; }
+  .review-card .q-content { font-size: 14px; }
+  .review-actions { flex-direction: column; gap: 6px; }
+}
+
 </style>
 </head>
 <body>
@@ -274,8 +351,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   <div class="header-left">
     <span class="logo">SmartRAG</span>
     <nav class="nav" id="mainNav">
-      <button class="nav-item active" onclick="switchPage('qa')">💬 Q&A</button>
-      <button class="nav-item" onclick="switchPage('products')">🏷️ Products</button>
+      <button class="nav-item active" data-page="qa" onclick="switchPage('qa')">💬 Q&A</button>
+      <button class="nav-item" data-page="mistakes" onclick="switchPage('mistakes')">📝 错题库</button>
+      <button class="nav-item" data-page="phrases" onclick="switchPage('phrases')">✨ 好词好句</button>
+      <button class="nav-item" data-page="review" onclick="switchPage('review')">🔄 复习</button>
+      <button class="nav-item" data-page="products" onclick="switchPage('products')">🏷️ Products</button>
     </nav>
     <span class="tenant-badge" id="tenantBadge" style="display:none">
       <span class="dot"></span><span id="tenantName"></span>
@@ -319,13 +399,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
           </div>
         </div>
         <div class="tenant-mgmt" id="tenantMgmt" style="display:none">
-          <h3>Tenant Management</h3>
-          <div class="tenant-create">
-            <input type="text" id="newTenantId" placeholder="tenant_id (e.g. acme_corp)" maxlength="50">
-            <input type="text" id="newTenantName" placeholder="Display name (e.g. ACME Corp)" maxlength="100">
-            <button onclick="createTenant()">+ Create Tenant</button>
-          </div>
-          <div class="tenant-create-msg" id="tenantCreateMsg"></div>
+          <h3>Tenants</h3>
           <div class="tenant-list" id="tenantList"></div>
         </div>
       </div>
@@ -333,8 +407,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
           <div class="chat-empty" id="chatEmpty">
-            <div class="icon">💬</div><h2>Enterprise Knowledge Base Q&A</h2>
-            <p id="chatEmptyHint">Select an enterprise, upload a document, then ask questions based on its content.</p>
+            <div class="icon">💬</div><h2>智能学习助手</h2>
+            <p id="chatEmptyHint" style="display:none">Select an enterprise, upload a document, then ask questions based on its content.</p>
           </div>
         </div>
         <div class="chat-input-area">
@@ -365,6 +439,132 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
         </div>
       </div>
       <div class="product-grid" id="productGrid"></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: Mistakes ===== -->
+  <div class="page" id="page-mistakes">
+    <div class="learning-page">
+      <div class="learn-toolbar">
+        <h2>📝 错题库</h2>
+        <div class="tools">
+          <select id="mistakeSubjectFilter" onchange="loadMistakes()"><option value="">全部科目</option><option>数学</option><option>语文</option><option>英语</option><option>科学</option><option>其他</option></select>
+          <select id="mistakeTypeFilter" onchange="loadMistakes()"><option value="">全部题型</option><option>选择题</option><option>填空题</option><option>计算题</option><option>应用题</option><option>图形题</option><option>阅读理解</option><option>语法填空</option><option>动词时态</option><option>错别字</option><option>病句</option><option>作文</option></select>
+          <select id="mistakeGradeFilter" onchange="loadMistakes()"><option value="">全部年级</option><option>一年级</option><option>二年级</option><option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option><option>七年级</option><option>八年级</option><option>九年级</option></select>
+          <select id="mistakeMasteryFilter" onchange="loadMistakes()"><option value="">全部掌握度</option><option>不熟悉</option><option>一般</option><option>掌握</option></select>
+          <input class="search-box" id="mistakeSearchBox" placeholder="🔍 搜索..." oninput="loadMistakes()" style="width:160px;">
+          <button class="btn btn-primary" onclick="openMistakeEntry()">📷 拍整页录入</button>
+          <button class="btn" onclick="exportMistakeWord()">📄 导出Word</button>
+        </div>
+      </div>
+      <div class="learn-content-area">
+        <div class="notebook-sidebar" id="mistakeNotebookSidebar">
+          <h3>📚 错题本</h3>
+          <div id="mistakeNotebookList"></div>
+          <div class="notebook-create">
+            <input type="text" id="newNotebookName" placeholder="新建错题本...">
+            <button onclick="createNotebook('mistake')">+ 创建</button>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;">
+          <div class="card-grid" id="mistakeGrid"></div>
+          <div class="empty-state" id="mistakeEmpty" style="display:flex;width:100%;min-height:200px;">
+            <div class="icon">📝</div><h3>还没有错题</h3><p>点击右上角「拍整页录入」开始添加</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: Phrases ===== -->
+  <div class="page" id="page-phrases">
+    <div class="learning-page">
+      <div class="learn-toolbar">
+        <h2>✨ 好词好句</h2>
+        <div class="tools">
+          <select id="phraseThemeFilter" onchange="loadPhrases()"><option value="">全部主题</option></select>
+          <select id="phraseEmotionFilter" onchange="loadPhrases()"><option value="">全部情感</option></select>
+          <select id="phraseMasteryFilter" onchange="loadPhrases()"><option value="">全部掌握度</option><option>不熟悉</option><option>一般</option><option>掌握</option></select>
+          <button class="btn btn-primary" onclick="openPhraseEntry()">+ 录入好句</button>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;">
+        <div class="card-grid phrase-grid" id="phraseGrid"></div>
+        <div class="empty-state" id="phraseEmpty" style="display:flex;width:100%;min-height:200px;">
+          <div class="icon">✨</div><h3>还没有好词好句</h3><p>点击「录入好句」开始添加</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: Review ===== -->
+  <div class="page" id="page-review">
+    <div class="learning-page">
+      <div class="learn-toolbar"><h2>🔄 错题复习</h2></div>
+      <div class="review-dash">
+        <div class="review-stat"><div class="num" id="reviewDueCount">0</div><div class="label">今日待复习</div></div>
+        <div class="review-stat"><div class="num" id="reviewUpcoming7">0</div><div class="label">7天内待复习</div></div>
+      </div>
+      <div style="flex:1;overflow-y:auto;" id="reviewCardList">
+        <div class="empty-state" id="reviewEmpty" style="display:flex;width:100%;height:100%;min-height:200px;">
+          <div class="icon">🎉</div><h3>今天没有要复习的错题</h3><p>继续加油！</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Mistake Detail Modal ===== -->
+<div class="modal-mask" id="detailModal" onclick="if(event.target===this)closeDetailModal()">
+  <div class="modal">
+    <div class="modal-header"><h3 id="detailModalTitle">错题详情</h3><button class="close" onclick="closeDetailModal()">&times;</button></div>
+    <div class="modal-body" id="detailModalBody" style="max-height:70vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ===== Mistake Entry Modal ===== -->
+<div class="modal-mask" id="mistakeEntryModal" onclick="if(event.target===this)closeMistakeEntry()">
+  <div class="modal" style="width:800px;max-width:95vw;">
+    <div class="modal-header"><h3>📷 拍整页录入</h3><button class="close" onclick="closeMistakeEntry()">&times;</button></div>
+    <div class="modal-body">
+      <div id="mistakeEntryStep1">
+        <div class="modal-upload-zone" onclick="document.getElementById('meFileInput').click()">
+          <div class="icon">📄</div><p>点击拍照或选择整页卷子图片</p><p class="hint">AI 会自动拆分题目，你勾选做错的即可</p>
+        </div>
+        <input type="file" id="meFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleMistakeEntryFile(this.files[0])">
+        <div id="meProgress" style="display:none;text-align:center;padding:20px;">
+          <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--primary);width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;"></div><span> AI 正在拆题识别...</span>
+        </div>
+      </div>
+      <div id="mistakeEntryStep2" style="display:none;">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">AI 识别到以下题目，请<strong>勾选做错的题</strong>，并填入正确答案：</p>
+        <div id="meQuestions" style="max-height:45vh;overflow-y:auto;"></div>
+        <div class="form-group" style="margin-top:12px;">
+          <label>批量填入（应用到所有勾选题）</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="meSource" placeholder="来源（如：黄冈小状元P32）" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;">
+            <select id="meGrade" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"><option value="">选择年级</option><option>一年级</option><option>二年级</option><option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option><option>七年级</option><option>八年级</option><option>九年级</option></select>
+            <select id="meNotebook" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"><option value="">选择错题本</option></select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn" onclick="closeMistakeEntry()">取消</button>
+          <button class="btn btn-primary" onclick="batchSubmitMistakes()" style="flex:1;">提交勾选的错题</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Phrase Entry Modal ===== -->
+<div class="modal-mask" id="phraseEntryModal" onclick="if(event.target===this)closePhraseEntry()">
+  <div class="modal" style="width:500px;">
+    <div class="modal-header"><h3>✨ 录入好词好句</h3><button class="close" onclick="closePhraseEntry()">&times;</button></div>
+    <div class="modal-body">
+      <textarea id="peContent" placeholder="输入好词好句内容..." style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;"></textarea>
+      <input id="peSource" placeholder="出处（如：草房子）" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-top:8px;">
+      <div id="peAITags" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
+      <button class="btn btn-primary" onclick="submitPhrase()" style="width:100%;padding:12px;margin-top:8px;">AI 识别标签并录入</button>
     </div>
   </div>
 </div>
@@ -441,6 +641,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const FETCH_TIMEOUT = 45000;
 let currentTenant = '', isAdmin = false, adminKey = '', tenantMap = {};
+let currentTenantGroup = 'all';
 let allProducts = [], allCategories = [];
 let modalFile = null, modalImageBytes = null;
 let editingProductId = null;
@@ -469,8 +670,9 @@ async function init() {
   await loadTenants();
   if (!isAdmin && currentTenant) {
     if (!(await validateTenant(currentTenant))) return;
+    fetchTenantGroup();
   }
-  if (currentTenant) { loadDocList(); refreshProducts(); checkSyncStatus(); }
+  if (currentTenant) { loadDocList(); refreshProducts(); checkSyncStatus(); loadNotebooks(); }
   updateTenantBadge();
 }
 init();
@@ -504,6 +706,40 @@ function apiHeaders(extra) {
   const h = { 'X-Tenant-ID': currentTenant, ...(extra || {}) };
   if (isAdmin && adminKey) h['X-Admin-Key'] = adminKey;
   return h;
+}
+
+// ——— Nav visibility based on tenant group ———
+function applyNavVisibility(group) {
+  currentTenantGroup = group || 'all';
+  const enterprisePages = ['qa', 'products'];
+  const studyPages = ['mistakes', 'phrases', 'review'];
+  const allNavItems = document.querySelectorAll('#mainNav .nav-item');
+
+  allNavItems.forEach(btn => {
+    const page = btn.getAttribute('data-page');
+    if (group === 'enterprise') {
+      btn.classList.toggle('hidden-nav', !enterprisePages.includes(page));
+    } else if (group === 'study') {
+      btn.classList.toggle('hidden-nav', !studyPages.includes(page));
+    } else {
+      btn.classList.remove('hidden-nav');
+    }
+  });
+
+  // Switch to default page for the group
+  if (group === 'enterprise') switchPage('qa');
+  else if (group === 'study') switchPage('mistakes');
+}
+
+async function fetchTenantGroup() {
+  if (!currentTenant) return;
+  try {
+    const resp = await fetch('/api/tenant/me', { headers: { 'X-Tenant-ID': currentTenant } });
+    if (resp.ok) {
+      const data = await resp.json();
+      applyNavVisibility(data.tenantGroup || 'all');
+    }
+  } catch (e) { /* keep defaults */ }
 }
 
 // ——— Navigation ———
@@ -548,32 +784,9 @@ async function loadTenants() {
 function renderTenantList(tenants) {
   const el = document.getElementById('tenantList');
   if (tenants.length === 0) { el.innerHTML = '<div class="empty-hint">No tenants yet</div>'; return; }
+  const groupLabels = { enterprise: '🏢', study: '📚', all: '🌐' };
   el.innerHTML = tenants.map(t =>
-    `<div class="t-item"><div><span class="t-name">${escapeHtml(t.name)}</span>&nbsp;<span class="t-id">${escapeHtml(t.tenantId)}</span></div><button class="t-del" title="Delete" onclick="deleteTenant('${escapeHtml(t.tenantId)}')">&times;</button></div>`).join('');
-}
-
-async function createTenant() {
-  const tid = document.getElementById('newTenantId').value.trim();
-  const tname = document.getElementById('newTenantName').value.trim();
-  const msg = document.getElementById('tenantCreateMsg');
-  if (!tid || !tname) { msg.textContent = 'Both fields required'; msg.className = 'tenant-create-msg error'; return; }
-  try {
-    const resp = await fetch('/api/admin/tenants', { method: 'POST', headers: { ...adminHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId: tid, name: tname }) });
-    const data = await resp.json();
-    if (!resp.ok) { msg.textContent = data.error || 'Failed'; msg.className = 'tenant-create-msg error'; return; }
-    msg.textContent = 'Created ' + tid; msg.className = 'tenant-create-msg success';
-    document.getElementById('newTenantId').value = ''; document.getElementById('newTenantName').value = '';
-    await loadTenants();
-  } catch (err) { msg.textContent = 'Network error'; msg.className = 'tenant-create-msg error'; }
-}
-
-async function deleteTenant(tenantId) {
-  if (!confirm('Delete "' + tenantId + '"? This cannot be undone.')) return;
-  try {
-    const resp = await fetch('/api/admin/tenants/' + encodeURIComponent(tenantId), { method: 'DELETE', headers: adminHeaders() });
-    if (!resp.ok) { const d = await resp.json(); alert('Failed: ' + (d.error || resp.status)); return; }
-    await loadTenants();
-  } catch (err) { alert('Network error'); }
+    `<div class="t-item"><div><span class="t-name">${escapeHtml(t.name)}</span>&nbsp;<span class="t-id">${escapeHtml(t.tenantId)}</span>&nbsp;<span style="font-size:10px;color:var(--text-muted);">${groupLabels[t.tenantGroup]||'🏢'} ${t.tenantGroup||'enterprise'}</span></div></div>`).join('');
 }
 
 function updateTenantBadge() {
@@ -592,6 +805,7 @@ document.getElementById('tenantSelect').addEventListener('change', function(e) {
     document.getElementById('tenantBadge').style.display = 'inline-flex';
   } else { document.getElementById('tenantBadge').style.display = 'none'; }
   clearChat(); loadDocList(); refreshProducts(); checkSyncStatus();
+  fetchTenantGroup();
 });
 
 // ——— Document Upload ———
@@ -921,9 +1135,515 @@ async function deleteProduct(id) {
   } catch (err) { alert('Network error: ' + err.message); }
 }
 
+
+
+// ==================== Learning State ====================
+let currentNotebookId = null;
+let allNotebooks = [];
+let allMistakes = [];
+let meSplitQuestions = [];
+let mePageImageBytes = null;
+
+// ==================== Page switching ====================
+const origSwitchPage = switchPage;
+switchPage = function(page) {
+  // Update nav active
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  const btns = document.querySelectorAll('.nav-item');
+  const pageMap = {qa:0, mistakes:1, phrases:2, review:3, products:4};
+  const idx = pageMap[page] || 0;
+  if (btns[idx]) btns[idx].classList.add('active');
+
+  // Show/hide pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + page);
+  if (target) target.classList.add('active');
+
+  // Hide sidebar for non-QA pages on mobile
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const imgSearchBtn = document.getElementById('imgSearchBtn');
+  if (page === 'qa') {
+    sidebar.style.display = '';
+    sidebarToggle.style.display = '';
+    imgSearchBtn.style.display = '';
+  } else {
+    sidebar.style.display = 'none';
+    sidebarToggle.style.display = 'none';
+    imgSearchBtn.style.display = 'none';
+    if (sidebar.classList.contains('open')) toggleSidebar();
+  }
+
+  // Load data for learning pages
+  if (!currentTenant) return;
+  if (page === 'mistakes') { loadNotebooks(); loadMistakes(); }
+  if (page === 'phrases') loadPhrases();
+  if (page === 'review') loadReviews();
+};
+
+// ==================== Notebooks ====================
+async function loadNotebooks() {
+  try {
+    const resp = await fetch('/api/notebooks?type=mistake', { headers: apiHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    allNotebooks = data.notebooks || [];
+    renderNotebookList();
+  } catch(e) {}
+}
+
+function renderNotebookList() {
+  const list = document.getElementById('mistakeNotebookList');
+  let html = '<div class="notebook-item' + (!currentNotebookId ? ' active' : '') + '" onclick="currentNotebookId=null;renderNotebookList();loadMistakes();">📋 全部 (' + (allMistakes.length || '0') + ')</div>';
+  for (const nb of allNotebooks) {
+    html += '<div class="notebook-item' + (currentNotebookId === nb.id ? ' active' : '') + '" onclick="currentNotebookId=' + nb.id + ';renderNotebookList();loadMistakes();">📓 ' + escapeHtml(nb.name) + '</div>';
+  }
+  list.innerHTML = html;
+}
+
+async function createNotebook(type) {
+  const nameInput = document.getElementById('newNotebookName');
+  const name = nameInput.value.trim();
+  if (!name) return;
+  try {
+    const resp = await fetch('/api/notebooks', {
+      method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({name, notebookType: type})
+    });
+    if (!resp.ok) { alert('创建失败'); return; }
+    nameInput.value = '';
+    await loadNotebooks();
+  } catch(e) { alert('网络错误'); }
+}
+
+// ==================== Mistakes ====================
+async function loadMistakes() {
+  if (!currentTenant) return;
+  const params = new URLSearchParams();
+  if (currentNotebookId) params.set('notebookId', currentNotebookId);
+  const subject = document.getElementById('mistakeSubjectFilter')?.value;
+  const qtype = document.getElementById('mistakeTypeFilter')?.value;
+  const grade = document.getElementById('mistakeGradeFilter')?.value;
+  const mastery = document.getElementById('mistakeMasteryFilter')?.value;
+  if (subject) params.set('subject', subject);
+  if (qtype) params.set('questionType', qtype);
+  if (grade) params.set('gradeLevel', grade);
+  if (mastery) params.set('masteryLevel', mastery);
+
+  try {
+    const resp = await fetch('/api/mistakes?' + params.toString(), { headers: apiHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    allMistakes = data.mistakes || [];
+    renderMistakeGrid();
+    renderNotebookList();
+  } catch(e) { console.error(e); }
+}
+
+function renderMistakeGrid() {
+  const grid = document.getElementById('mistakeGrid');
+  const empty = document.getElementById('mistakeEmpty');
+  if (!allMistakes.length) {
+    grid.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  grid.style.display = '';
+  empty.style.display = 'none';
+  let html = '';
+  for (const m of allMistakes) {
+    const subjClass = (m.subject === '数学' ? 'math' : m.subject === '英语' ? 'english' : m.subject === '语文' ? 'chinese' : m.subject === '科学' ? 'science' : 'other');
+    const mClass = m.masteryLevel === '掌握' ? 'good' : m.masteryLevel === '一般' ? 'ok' : 'poor';
+    const content = (m.content || '').substring(0, 100);
+    html += '<div class="learn-card" onclick="openMistakeDetail(' + m.id + ')">';
+    html += '<div><span class="card-subject ' + subjClass + '">' + (m.subject||'未知') + '</span>';
+    if (m.questionType) html += ' <span style="font-size:11px;color:var(--text-muted);">' + escapeHtml(m.questionType) + '</span>';
+    html += '</div>';
+    html += '<div class="card-content">' + escapeHtml(content || '[无题目文本，点击查看图片]') + '</div>';
+    html += '<div class="card-meta">';
+    if (m.gradeLevel) html += '<span>' + escapeHtml(m.gradeLevel) + '</span>';
+    if (m.source) html += '<span>📖 ' + escapeHtml(m.source) + '</span>';
+    html += '<span class="card-mastery ' + mClass + '">' + (m.masteryLevel||'不熟悉') + '</span>';
+    html += '</div></div>';
+  }
+  grid.innerHTML = html;
+}
+
+async function openMistakeDetail(id) {
+  const m = allMistakes.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('detailModalTitle').textContent = '错题详情';
+  let body = '<div style="display:flex;flex-direction:column;gap:12px;">';
+  body += '<div><b>科目：</b>' + escapeHtml(m.subject||'') + ' | <b>题型：</b>' + escapeHtml(m.questionType||'') + ' | <b>年级：</b>' + escapeHtml(m.gradeLevel||'') + '</div>';
+  body += '<div><b>来源：</b>' + escapeHtml(m.source||'') + ' | <b>掌握：</b>' + escapeHtml(m.masteryLevel||'') + '</div>';
+  if (m.hasImage) body += '<div><img src="/api/mistakes/' + m.id + '/image" style="max-width:100%;border-radius:8px;"></div>';
+  body += '<div style="background:#f8fafc;padding:12px;border-radius:8px;"><b>题目：</b><br>' + escapeHtml(m.content||'[无文本]') + '</div>';
+  body += '<div style="display:none;background:#f0fdf4;padding:12px;border-radius:8px;" id="detailAnswer"><b>答案：</b><br>' + escapeHtml(m.correctAnswer||'') + '</div>';
+  if (m.errorReason) body += '<div style="color:#dc2626;font-size:13px;"><b>错因：</b>' + escapeHtml(m.errorReason) + '</div>';
+  body += '<div style="display:flex;gap:8px;">';
+  body += '<button class="btn" onclick="document.getElementById(\'detailAnswer\').style.display=\'block\';this.style.display=\'none\';">👁 显示答案</button>';
+  body += '<button class="btn" onclick="editMistakeInDetail(' + m.id + ')">✏️ 编辑</button>';
+  body += '<button class="btn" style="color:var(--danger);" onclick="if(confirm(\'确定删除？\'))deleteMistake(' + m.id + ')">🗑 删除</button>';
+  body += '</div></div>';
+  document.getElementById('detailModalBody').innerHTML = body;
+  document.getElementById('detailModal').classList.add('active');
+}
+
+function closeDetailModal() { document.getElementById('detailModal').classList.remove('active'); }
+
+async function deleteMistake(id) {
+  try {
+    await fetch('/api/mistakes/' + id, { method: 'DELETE', headers: apiHeaders() });
+    closeDetailModal();
+    loadMistakes();
+  } catch(e) { alert('删除失败'); }
+}
+
+async function editMistakeInDetail(id) {
+  const m = allMistakes.find(x => x.id === id);
+  if (!m) return;
+  let body = '<div style="display:flex;flex-direction:column;gap:10px;">';
+  body += '<div class="form-group"><label>题目内容</label><textarea id="edContent" style="min-height:80px;">' + cleanText(m.content||'') + '</textarea></div>';
+  body += '<div class="form-group"><label>正确答案</label><input id="edAnswer" value="' + cleanText(m.correctAnswer||'') + '"></div>';
+  body += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>科目</label><select id="edSubject"><option value="">--</option><option>数学</option><option>语文</option><option>英语</option><option>科学</option><option>其他</option></select></div>';
+  body += '<div class="form-group" style="flex:1;"><label>题型</label><input id="edType" value="' + escapeHtml(m.questionType||'') + '"></div></div>';
+  body += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>年级</label><input id="edGrade" value="' + escapeHtml(m.gradeLevel||'') + '"></div>';
+  body += '<div class="form-group" style="flex:1;"><label>来源</label><input id="edSource" value="' + escapeHtml(m.source||'') + '"></div></div>';
+  body += '<div class="form-group"><label>掌握程度</label><select id="edMastery"><option>不熟悉</option><option>一般</option><option>掌握</option></select></div>';
+  body += '<button class="btn btn-primary" onclick="saveMistakeEdit(' + m.id + ')">保存</button>';
+  body += '</div>';
+  document.getElementById('detailModalBody').innerHTML = body;
+  document.getElementById('edSubject').value = m.subject || '';
+  document.getElementById('edMastery').value = m.masteryLevel || '不熟悉';
+}
+
+async function saveMistakeEdit(id) {
+  const body = {
+    content: document.getElementById('edContent').value,
+    correctAnswer: document.getElementById('edAnswer').value,
+    subject: document.getElementById('edSubject').value,
+    questionType: document.getElementById('edType').value,
+    gradeLevel: document.getElementById('edGrade').value,
+    source: document.getElementById('edSource').value,
+    masteryLevel: document.getElementById('edMastery').value
+  };
+  try {
+    await fetch('/api/mistakes/' + id, {
+      method: 'PUT', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    closeDetailModal();
+    loadMistakes();
+  } catch(e) { alert('保存失败'); }
+}
+
+// ==================== Mistake Entry (whole page) ====================
+async function openMistakeEntry() {
+  document.getElementById('mistakeEntryStep1').style.display = '';
+  document.getElementById('mistakeEntryStep2').style.display = 'none';
+  document.getElementById('meProgress').style.display = 'none';
+  document.getElementById('meFileInput').value = '';
+  document.getElementById('mistakeEntryModal').classList.add('active');
+  // Load notebooks for dropdown
+  const sel = document.getElementById('meNotebook');
+  sel.innerHTML = '<option value="">选择错题本</option>';
+  for (const nb of allNotebooks) sel.innerHTML += '<option value="' + nb.id + '">' + escapeHtml(nb.name) + '</option>';
+}
+
+function closeMistakeEntry() {
+  document.getElementById('mistakeEntryModal').classList.remove('active');
+  meSplitQuestions = [];
+  mePageImageBytes = null;
+}
+
+async function handleMistakeEntryFile(file) {
+  if (!file) return;
+  document.getElementById('mistakeEntryStep1').style.display = 'none';
+  document.getElementById('meProgress').style.display = '';
+
+  const fd = new FormData();
+  fd.append('image', file);
+
+  try {
+    const resp = await fetch('/api/mistakes/split-page', { method: 'POST', headers: apiHeaders(), body: fd });
+    if (!resp.ok) { alert('AI 拆题失败，请重试'); closeMistakeEntry(); return; }
+    const data = await resp.json();
+
+    // Convert image file to bytes for batch submit
+    const buf = await file.arrayBuffer();
+    mePageImageBytes = new Uint8Array(buf);
+
+    meSplitQuestions = data.questions || [];
+    renderSplitQuestions();
+    document.getElementById('meProgress').style.display = 'none';
+    document.getElementById('mistakeEntryStep2').style.display = '';
+  } catch(e) {
+    alert('拆题出错: ' + e.message);
+    closeMistakeEntry();
+  }
+}
+
+function renderSplitQuestions() {
+  const container = document.getElementById('meQuestions');
+  let html = '';
+  for (const q of meSplitQuestions) {
+    const idx = meSplitQuestions.indexOf(q);
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">';
+    html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">';
+    html += '<input type="checkbox" class="me-q-check" style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" data-idx="' + idx + '">';
+    html += '<div style="flex:1;"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">题号: ' + escapeHtml(q.number||'?') + '</div>';
+    html += '<div style="font-size:12px;color:var(--text);max-height:200px;overflow-y:auto;white-space:pre-wrap;">' + escapeHtml(q.text||'') + '</div></div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:6px;margin-left:28px;">';
+    html += '<input class="me-q-answer" data-idx="' + idx + '" placeholder="正确答案（必填）" style="flex:2;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
+    html += '<input class="me-q-type" data-idx="' + idx + '" placeholder="题型，如：分数计算" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
+    html += '<select class="me-q-subject" data-idx="' + idx + '" style="flex:1;padding:6px 4px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;"><option value="">科目</option><option>数学</option><option>语文</option><option>英语</option><option>科学</option><option>其他</option></select>';
+    html += '<input class="me-q-error" data-idx="' + idx + '" placeholder="错误原因（可选）" style="flex:2;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
+    html += '</div></div>';
+  }
+  container.innerHTML = html || '<p style="color:var(--text-muted);">AI 未识别到题目，请确保图片清晰。</p>';
+}
+
+async function batchSubmitMistakes() {
+  const checks = document.querySelectorAll('.me-q-check:checked');
+  if (!checks.length) { alert('请至少勾选一道错题'); return; }
+
+  const questions = [];
+  checks.forEach(cb => {
+    const idx = parseInt(cb.getAttribute('data-idx'));
+    const q = meSplitQuestions[idx];
+    if (!q) return;
+    const answerEl = document.querySelector('.me-q-answer[data-idx="' + idx + '"]');
+    const typeEl = document.querySelector('.me-q-type[data-idx="' + idx + '"]');
+    const subjectEl = document.querySelector('.me-q-subject[data-idx="' + idx + '"]');
+    const errorEl = document.querySelector('.me-q-error[data-idx="' + idx + '"]');
+    const answer = answerEl ? answerEl.value.trim() : '';
+    if (!answer) { return; } // skip items without answer
+    questions.push({
+      content: q.text || '',
+      correctAnswer: answer,
+      questionType: typeEl ? typeEl.value.trim() : '',
+      subject: subjectEl ? subjectEl.value : '',
+      errorReason: errorEl ? errorEl.value.trim() : ''
+    });
+  });
+
+  if (!questions.length) { alert('请为勾选的错题填入正确答案'); return; }
+
+  const source = document.getElementById('meSource').value.trim();
+  const grade = document.getElementById('meGrade').value;
+  const notebookId = document.getElementById('meNotebook').value;
+
+  const body = {
+    notebookId: notebookId ? parseInt(notebookId) : null,
+    source: source || null,
+    gradeLevel: grade || null,
+    questions: questions
+  };
+
+  try {
+    const resp = await fetch('/api/mistakes/batch', {
+      method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) { const e = await resp.json(); alert('提交失败: ' + (e.error||resp.status)); return; }
+    closeMistakeEntry();
+    loadNotebooks();
+    loadMistakes();
+  } catch(e) { alert('网络错误: ' + e.message); }
+}
+
+// ==================== Word Export ====================
+async function exportMistakeWord() {
+  if (!allMistakes.length) { alert('没有错题可导出'); return; }
+  const ids = allMistakes.map(m => m.id);
+  const mode = prompt('选择导出模式:\\n1 = 纯题目（留空作答）\\n2 = 题目+答案\\n3 = 完整分析', '1');
+  const modeMap = {1:'questions-only', 2:'questions-answers', 3:'full-analysis'};
+  const exportMode = modeMap[mode] || 'questions-only';
+
+  try {
+    const resp = await fetch('/api/mistakes/export-word', {
+      method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({ids, mode: exportMode, notebookName: '错题本'})
+    });
+    if (!resp.ok) { alert('导出失败'); return; }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'mistakes.docx'; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('导出出错: ' + e.message); }
+}
+
+// ==================== Phrases ====================
+async function loadPhrases() {
+  if (!currentTenant) return;
+  const params = new URLSearchParams();
+  const theme = document.getElementById('phraseThemeFilter')?.value;
+  const emotion = document.getElementById('phraseEmotionFilter')?.value;
+  const mastery = document.getElementById('phraseMasteryFilter')?.value;
+  if (theme) params.set('theme', theme);
+  if (emotion) params.set('emotion', emotion);
+  if (mastery) params.set('masteryLevel', mastery);
+
+  try {
+    const resp = await fetch('/api/phrases?' + params.toString(), { headers: apiHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    // Update filter dropdowns
+    const themeSel = document.getElementById('phraseThemeFilter');
+    const emotionSel = document.getElementById('phraseEmotionFilter');
+    if (data.themes) {
+      const curT = themeSel.value;
+      themeSel.innerHTML = '<option value="">全部主题</option>' + data.themes.map(t => '<option>' + t + '</option>').join('');
+      themeSel.value = curT;
+    }
+    if (data.emotions) {
+      const curE = emotionSel.value;
+      emotionSel.innerHTML = '<option value="">全部情感</option>' + data.emotions.map(e => '<option>' + e + '</option>').join('');
+      emotionSel.value = curE;
+    }
+
+    const phrases = data.phrases || [];
+    renderPhraseGrid(phrases);
+  } catch(e) { console.error(e); }
+}
+
+function renderPhraseGrid(phrases) {
+  const grid = document.getElementById('phraseGrid');
+  const empty = document.getElementById('phraseEmpty');
+  if (!phrases.length) {
+    grid.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  grid.style.display = '';
+  empty.style.display = 'none';
+  let html = '';
+  for (const p of phrases) {
+    const mClass = p.masteryLevel === '掌握' ? 'good' : p.masteryLevel === '一般' ? 'ok' : 'poor';
+    html += '<div class="learn-card phrase-card">';
+    html += '<div class="card-content">' + escapeHtml(p.content || '') + '</div>';
+    html += '<div class="card-tags">';
+    if (p.theme) html += '<span>' + escapeHtml(p.theme) + '</span>';
+    if (p.emotion) html += '<span>' + escapeHtml(p.emotion) + '</span>';
+    if (p.usageType) html += '<span>' + escapeHtml(p.usageType) + '</span>';
+    if (p.tags) p.tags.split(',').forEach(t => { if (t.trim()) html += '<span>' + escapeHtml(t.trim()) + '</span>'; });
+    html += '</div>';
+    html += '<div class="card-meta">';
+    if (p.source) html += '<span>📖 ' + escapeHtml(p.source) + '</span>';
+    html += '<span class="card-mastery ' + mClass + '">' + (p.masteryLevel||'不熟悉') + '</span>';
+    html += '</div></div>';
+  }
+  grid.innerHTML = html;
+}
+
+function openPhraseEntry() {
+  document.getElementById('peContent').value = '';
+  document.getElementById('peSource').value = '';
+  document.getElementById('peAITags').textContent = '';
+  document.getElementById('phraseEntryModal').classList.add('active');
+}
+
+function closePhraseEntry() { document.getElementById('phraseEntryModal').classList.remove('active'); }
+
+async function submitPhrase() {
+  const content = document.getElementById('peContent').value.trim();
+  if (!content) { alert('请输入内容'); return; }
+  const source = document.getElementById('peSource').value.trim();
+
+  const fd = new FormData();
+  fd.append('content', content);
+  if (source) fd.append('source', source);
+
+  try {
+    const resp = await fetch('/api/phrases', { method: 'POST', headers: apiHeaders(), body: fd });
+    if (!resp.ok) { const e = await resp.json(); alert('录入失败: ' + (e.error||resp.status)); return; }
+    const data = await resp.json();
+    document.getElementById('peAITags').textContent = '✅ 已录入 | 主题:' + (data.theme||'') + ' | 情感:' + (data.emotion||'') + ' | 用途:' + (data.usageType||'');
+    document.getElementById('peContent').value = '';
+    document.getElementById('peSource').value = '';
+    closePhraseEntry();
+    loadPhrases();
+  } catch(e) { alert('网络错误: ' + e.message); }
+}
+
+// ==================== Review ====================
+async function loadReviews() {
+  if (!currentTenant) return;
+  try {
+    const resp = await fetch('/api/reviews/due', { headers: apiHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('reviewDueCount').textContent = data.dueCount || 0;
+
+    let upcoming7 = 0;
+    if (data.upcoming) {
+      Object.entries(data.upcoming).forEach(([date, count]) => { upcoming7 += count; });
+    }
+    document.getElementById('reviewUpcoming7').textContent = upcoming7;
+
+    const cards = data.cards || [];
+    renderReviewCards(cards);
+  } catch(e) { console.error(e); }
+}
+
+function renderReviewCards(cards) {
+  const list = document.getElementById('reviewCardList');
+  let empty = document.getElementById('reviewEmpty');
+  if (!cards.length) {
+    if (!empty) empty = ensureReviewEmpty(list);
+    list.innerHTML = '';
+    list.appendChild(empty);
+    empty.style.display = 'flex';
+    return;
+  }
+  let html = '';
+  for (const c of cards) {
+    html += '<div class="review-card">';
+    html += '<div class="q-meta">' + (c.subject||'') + ' | ' + (c.questionType||'') + ' | 第' + c.reviewStage + '轮复习</div>';
+    html += '<div class="q-content">' + escapeHtml(c.content||'[无文本]') + '</div>';
+    html += '<div class="q-answer" id="ans' + c.mistakeId + '">✅ ' + escapeHtml(c.correctAnswer||'暂无答案') + '</div>';
+    html += '<button class="btn" style="width:100%;margin-bottom:8px;" onclick="document.getElementById(\'ans' + c.mistakeId + '\').classList.toggle(\'show\')">👁 显示/隐藏答案</button>';
+    html += '<div class="review-actions">';
+    html += '<button class="btn-again" onclick="submitReview(' + c.mistakeId + ',0)">❌ 又错了</button>';
+    html += '<button class="btn-hard" onclick="submitReview(' + c.mistakeId + ',1)">😐 不太熟</button>';
+    html += '<button class="btn-good" onclick="submitReview(' + c.mistakeId + ',2)">✅ 掌握了</button>';
+    html += '</div></div>';
+  }
+  list.innerHTML = html + '<div class="empty-state" id="reviewEmpty" style="display:none;width:100%;min-height:200px;"></div>';
+}
+function ensureReviewEmpty(list) {
+  const d = document.createElement('div');
+  d.className = 'empty-state';
+  d.id = 'reviewEmpty';
+  d.style.cssText = 'display:none;width:100%;min-height:200px;';
+  d.innerHTML = '<div class="icon">🎉</div><h3>今天没有要复习的错题</h3><p>继续加油！</p>';
+  return d;
+}
+
+async function submitReview(mistakeId, quality) {
+  try {
+    const resp = await fetch('/api/reviews/' + mistakeId, {
+      method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({quality})
+    });
+    if (!resp.ok) { alert('提交失败'); return; }
+    loadReviews();
+  } catch(e) { alert('网络错误'); }
+}
+
+
 // ——— Util ———
 function escapeHtml(text) {
-  const div = document.createElement('div'); div.textContent = text; return div.innerHTML.replace(/\n/g, '<br>');
+  // Convert existing <br> tags to newlines before escaping, so they render properly
+  const clean = String(text||'').replace(/<br\s*\/?>/gi, '\n');
+  const div = document.createElement('div'); div.textContent = clean; return div.innerHTML.replace(/\n/g, '<br>');
+}
+// For input/textarea values: replace <br> with \n, no HTML escaping needed
+function cleanText(text) {
+  return String(text||'').replace(/<br\s*\/?>/gi, '\n');
 }
 
 	// Cloud Sync
