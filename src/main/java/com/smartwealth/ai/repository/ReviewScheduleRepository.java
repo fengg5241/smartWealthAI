@@ -10,12 +10,16 @@ import java.util.Optional;
 
 public interface ReviewScheduleRepository extends JpaRepository<ReviewSchedule, Long> {
     Optional<ReviewSchedule> findByTenantIdAndMistakeId(String tenantId, Long mistakeId);
+    Optional<ReviewSchedule> findByTenantIdAndPhraseId(String tenantId, Long phraseId);
 
     @Query("SELECT r FROM ReviewSchedule r WHERE r.tenantId = :tenantId AND r.nextReviewDate <= :today ORDER BY r.nextReviewDate ASC")
     List<ReviewSchedule> findDueReviews(@Param("tenantId") String tenantId, @Param("today") LocalDate today);
 
     @Query("SELECT COUNT(r) FROM ReviewSchedule r WHERE r.tenantId = :tenantId AND r.nextReviewDate <= :today")
     long countDueReviews(@Param("tenantId") String tenantId, @Param("today") LocalDate today);
+
+    @Query("SELECT COUNT(r) FROM ReviewSchedule r WHERE r.tenantId = :tenantId AND r.lastReviewed IS NOT NULL")
+    long countReviewed(@Param("tenantId") String tenantId);
 
     @Query("SELECT r FROM ReviewSchedule r WHERE r.tenantId = :tenantId ORDER BY r.nextReviewDate ASC")
     List<ReviewSchedule> findAllByTenantId(@Param("tenantId") String tenantId);

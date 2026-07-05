@@ -38,6 +38,9 @@ public class GoodPhrase extends TenantAwareEntity {
     @Column(name = "entry_method", length = 20)
     private String entryMethod = "text";
 
+    @Column(name = "language", length = 10, nullable = false)
+    private String language = "zh";
+
     @Column(name = "image_path", length = 500)
     private String imagePath;
 
@@ -83,6 +86,9 @@ public class GoodPhrase extends TenantAwareEntity {
 
     public String getEntryMethod() { return entryMethod; }
     public void setEntryMethod(String entryMethod) { this.entryMethod = entryMethod; }
+
+    public String getLanguage() { return language; }
+    public void setLanguage(String language) { this.language = language; }
 
     public String getImagePath() { return imagePath; }
     public void setImagePath(String imagePath) { this.imagePath = imagePath; }

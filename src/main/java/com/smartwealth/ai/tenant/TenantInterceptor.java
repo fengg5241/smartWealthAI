@@ -1,11 +1,14 @@
 package com.smartwealth.ai.tenant;
 
+import com.smartwealth.ai.domain.Tenant;
 import com.smartwealth.ai.repository.TenantRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.time.LocalDate;
 
 @Component
 public class TenantInterceptor implements HandlerInterceptor {
@@ -24,13 +27,32 @@ public class TenantInterceptor implements HandlerInterceptor {
         String tenantId = request.getHeader("X-Tenant-ID");
         if (tenantId != null && !tenantId.isBlank()) {
             String tid = tenantId.trim();
-            // Tenant management endpoints don't require tenant to exist (admin manages them)
             if (!request.getRequestURI().startsWith("/api/admin/tenants")) {
-                if (tenantRepository.findByTenantId(tid).isEmpty()) {
+                Tenant tenant = tenantRepository.findByTenantId(tid).orElse(null);
+                if (tenant == null) {
                     response.setStatus(404);
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\":\"Tenant '" + tid + "' not found\"}");
                     return false;
+                }
+
+                // Subscription enforcement for study tenants
+                if ("study".equals(tenant.getTenantGroup())) {
+                    boolean hasActiveSub = tenant.getSubscriptionExpiry() != null
+                            && !tenant.getSubscriptionExpiry().isBefore(LocalDate.now());
+                    boolean hasTrial = tenant.getTrialEndsAt() != null
+                            && !tenant.getTrialEndsAt().isBefore(LocalDate.now());
+
+                    if (!hasActiveSub && !hasTrial) {
+                        String method = request.getMethod();
+                        if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
+                            response.setStatus(402);
+                            response.setContentType("application/json");
+                            response.getWriter().write(
+                                    "{\"error\":\"Subscription expired\",\"subscriptionExpired\":true}");
+                            return false;
+                        }
+                    }
                 }
             }
             TenantContext.setCurrentTenantId(tid);

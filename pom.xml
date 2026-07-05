@@ -97,6 +97,25 @@
         <!-- Google Drive API — raw HTTP OAuth2 + REST calls -->
 
         <!-- Microsoft Graph / OneDrive — raw HTTP OAuth2 + REST calls -->
+
+        <!-- Stripe -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>28.4.0</version>
+        </dependency>
+
+        <!-- BCrypt password hashing (no full Spring Security needed) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
+        <!-- Email (forgot password) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

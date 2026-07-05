@@ -21,7 +21,9 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/wecom/**",
                         "/api/slack/**",
-                        "/api/sync/*/callback"
+                        "/api/sync/*/callback",
+                        "/api/auth/**",
+                        "/api/stripe/webhook"
                 );
     }
 }

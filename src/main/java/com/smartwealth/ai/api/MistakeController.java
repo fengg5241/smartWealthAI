@@ -291,7 +291,51 @@ public class MistakeController {
                 "question", sq.question(), "answer", sq.answer(), "hint", sq.hint()));
     }
 
-    // ==================== Word export ====================
+    // ==================== Semantic search ====================
+
+    @GetMapping("/search")
+    public ResponseEntity<Map<String, Object>> search(@RequestParam("q") String query) {
+        String tenantId = TenantContext.getCurrentTenantId();
+        if (tenantId == null) return bad("Missing X-Tenant-ID header");
+        if (query == null || query.isBlank()) return bad("q is required");
+
+        List<Long> ids = learningAI.searchMistakes(tenantId, query.trim(), 20);
+        if (ids.isEmpty()) return ResponseEntity.ok(Map.of("mistakes", List.of(), "count", 0));
+
+        List<MistakeQuestion> results = new ArrayList<>();
+        for (Long id : ids) {
+            mistakeService.get(tenantId, id).ifPresent(results::add);
+        }
+        return ResponseEntity.ok(Map.of("mistakes", results.stream().map(this::toMap).toList(), "count", results.size()));
+    }
+
+    // ==================== Stats ====================
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> stats() {
+        String tenantId = TenantContext.getCurrentTenantId();
+        if (tenantId == null) return bad("Missing X-Tenant-ID header");
+
+        List<MistakeQuestion> all = mistakeService.list(tenantId, null, null, null, null, null);
+        Map<String, Long> bySubject = new LinkedHashMap<>();
+        Map<String, Long> byMastery = new LinkedHashMap<>();
+        Map<String, Long> byGrade = new LinkedHashMap<>();
+        long totalReviewed = reviewService.getTotalReviewedCount(tenantId);
+
+        for (MistakeQuestion m : all) {
+            if (m.getSubject() != null) bySubject.merge(m.getSubject(), 1L, Long::sum);
+            String mastery = m.getMasteryLevel() != null ? m.getMasteryLevel() : "不熟悉";
+            byMastery.merge(mastery, 1L, Long::sum);
+            if (m.getGradeLevel() != null) byGrade.merge(m.getGradeLevel(), 1L, Long::sum);
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "total", all.size(),
+                "bySubject", bySubject,
+                "byMastery", byMastery,
+                "byGrade", byGrade,
+                "totalReviewed", totalReviewed));
+    }
 
     @PostMapping("/export-word")
     public ResponseEntity<byte[]> exportWord(@RequestBody Map<String, Object> body) {

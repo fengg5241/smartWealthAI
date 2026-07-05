@@ -19,6 +19,14 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 12MB
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
   ai:
     vectorstore:
       pgvector:
@@ -45,6 +53,11 @@ demo:
 
 server:
   port: 8080
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      remote-ip-header: X-Real-IP
+      protocol-header: X-Forwarded-Proto
 
 aliyun:
   oss:
@@ -93,3 +106,20 @@ onedrive:
   tenant-id: ${ONEDRIVE_TENANT_ID:common}
   folder-name: SmartRAG
   sync-interval-minutes: 10
+
+# --- Stripe ---
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  domain: ${APP_DOMAIN:http://localhost:8080}
+  pricing:
+    currency: ${PRICING_CURRENCY:SGD}
+    trial-days: 7
+    monthly:
+      price-id: ${STRIPE_PRICE_MONTHLY_ID:}
+      amount: ${PRICING_MONTHLY_AMOUNT:5.90}
+      label: "Monthly"
+    annual:
+      price-id: ${STRIPE_PRICE_ANNUAL_ID:}
+      amount: ${PRICING_ANNUAL_AMOUNT:59.00}
+      label: "Annual"

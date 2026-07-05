@@ -12,8 +12,11 @@ public class ReviewSchedule extends TenantAwareEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "mistake_id", nullable = false)
+    @Column(name = "mistake_id")
     private Long mistakeId;
+
+    @Column(name = "phrase_id")
+    private Long phraseId;
 
     @Column(name = "review_stage")
     private Integer reviewStage = 1;
@@ -45,6 +48,9 @@ public class ReviewSchedule extends TenantAwareEntity {
 
     public Long getMistakeId() { return mistakeId; }
     public void setMistakeId(Long mistakeId) { this.mistakeId = mistakeId; }
+
+    public Long getPhraseId() { return phraseId; }
+    public void setPhraseId(Long phraseId) { this.phraseId = phraseId; }
 
     public Integer getReviewStage() { return reviewStage; }
     public void setReviewStage(Integer reviewStage) { this.reviewStage = reviewStage; }

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS tenant (
     tenant_group VARCHAR(20) NOT NULL DEFAULT 'enterprise'
 );
 ALTER TABLE tenant ADD COLUMN IF NOT EXISTS tenant_group VARCHAR(20) NOT NULL DEFAULT 'enterprise';
+ALTER TABLE tenant ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(20);
 
 CREATE TABLE IF NOT EXISTS enterprise_document (
     id BIGSERIAL PRIMARY KEY,
@@ -146,12 +147,15 @@ CREATE INDEX IF NOT EXISTS idx_gp_tenant ON good_phrase(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_gp_notebook ON good_phrase(tenant_id, notebook_id);
 CREATE INDEX IF NOT EXISTS idx_gp_theme ON good_phrase(tenant_id, theme);
 CREATE INDEX IF NOT EXISTS idx_gp_mastery ON good_phrase(tenant_id, mastery_level);
+ALTER TABLE good_phrase ADD COLUMN IF NOT EXISTS language VARCHAR(10) NOT NULL DEFAULT 'zh';
+CREATE INDEX IF NOT EXISTS idx_gp_language ON good_phrase(tenant_id, language);
 
 -- Review schedule (SM-2 algorithm)
 CREATE TABLE IF NOT EXISTS review_schedule (
     id BIGSERIAL PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL,
     mistake_id BIGINT REFERENCES mistake_question(id) ON DELETE CASCADE,
+    phrase_id BIGINT,
     review_stage INTEGER DEFAULT 1,
     ease_factor DOUBLE PRECISION DEFAULT 2.5,
     interval_days INTEGER DEFAULT 1,
@@ -162,6 +166,7 @@ CREATE TABLE IF NOT EXISTS review_schedule (
 CREATE INDEX IF NOT EXISTS idx_rs_tenant ON review_schedule(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_rs_next_date ON review_schedule(tenant_id, next_review_date);
 CREATE INDEX IF NOT EXISTS idx_rs_mistake ON review_schedule(mistake_id);
+ALTER TABLE review_schedule ADD COLUMN IF NOT EXISTS phrase_id BIGINT;
 
 -- Sync status for individual files
 CREATE TABLE IF NOT EXISTS sync_file_status (

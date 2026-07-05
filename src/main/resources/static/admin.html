@@ -292,8 +292,8 @@ tr:hover td { background: var(--primary-light); }
         <label>Group</label>
         <select id="editTenantGroup">
           <option value="enterprise">Enterprise (Q&A + Products)</option>
-          <option value="study">Study (错题 + 好词好句 + 复习)</option>
-          <option value="all">All (全部可见)</option>
+          <option value="study">Study (Mistake Bank + Phrases + Review)</option>
+          <option value="all">All (All pages visible)</option>
         </select>
       </div>
       <button class="btn btn-primary" onclick="doEditTenantSave()" style="width:100%;">Save</button>
@@ -313,20 +313,20 @@ tr:hover td { background: var(--primary-light); }
       <p style="color:var(--text-muted);margin-bottom:16px;">This is a one-time setup done by you or your client's WeChat Work admin. Takes about 5 minutes.</p>
 
       <h4 style="margin:16px 0 8px;">Step 1: Open WeChat Work Admin</h4>
-      <p>Visit <a href="https://work.weixin.qq.com" target="_blank">work.weixin.qq.com</a> → Log in as admin → <strong>App Management (应用管理)</strong> → <strong>Create App (创建应用)</strong> in the bottom section (Self-built Apps).</p>
+      <p>Visit <a href="https://work.weixin.qq.com" target="_blank">work.weixin.qq.com</a> → Log in as admin → <strong>App Management</strong> → <strong>Create App</strong> in the bottom section (Self-built Apps).</p>
 
       <h4 style="margin:16px 0 8px;">Step 2: Get CorpID</h4>
-      <p>At the very bottom of the App Management page, find <strong>"My Company" (我的企业)</strong> → copy the <strong>CorpID (企业ID)</strong> at the bottom. This is your company's unique identifier (starts with <code>ww</code>).</p>
+      <p>At the very bottom of the App Management page, find <strong>"My Company"</strong> → copy the <strong>CorpID</strong> at the bottom. This is your company's unique identifier (starts with <code>ww</code>).</p>
 
       <h4 style="margin:16px 0 8px;">Step 3: Get Secret</h4>
       <p>In the app's settings page, find <strong>Secret</strong> → click "View" → copy it. This is the API secret used to download files sent to the bot.</p>
 
       <h4 style="margin:16px 0 8px;">Step 4: Configure Callback URL</h4>
-      <p>In the app settings, find <strong>"Receive Messages" (接收消息)</strong> → enable it → set:</p>
+      <p>In the app settings, find <strong>"Receive Messages"</strong> → enable it → set:</p>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;">
-        <p><strong>URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/wecom/callback</code></p>
-        <p><strong>Token:</strong> Click "Random Generate (随机获取)" — copy this value</p>
-        <p><strong>EncodingAESKey:</strong> Click "Random Generate (随机获取)" — copy this value</p>
+        <p><strong>URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://your-domain.com/api/wecom/callback</code></p>
+        <p><strong>Token:</strong> Click "Random Generate" — copy this value</p>
+        <p><strong>EncodingAESKey:</strong> Click "Random Generate" — copy this value</p>
       </div>
       <p style="color:#dc2626;font-size:13px;">⚠️ Do NOT click Save yet — you need to set the env variables first and restart the service, otherwise the URL verification will fail.</p>
 
@@ -348,7 +348,7 @@ tr:hover td { background: var(--primary-light); }
       <p>Back in the IM Bot Mappings section below: select <strong>WeChat Work</strong> → paste the <strong>CorpID</strong> → select a tenant → click Save.</p>
 
       <h4 style="margin:16px 0 8px;">Step 8: Add bot to group chat</h4>
-      <p>In WeChat Work, open the app page → <strong>Add to Chat (添加到聊天)</strong> → select the group → done. Now users can @mention the bot and upload files.</p>
+      <p>In WeChat Work, open the app page → <strong>Add to Chat</strong> → select the group → done. Now users can @mention the bot and upload files.</p>
 
       <div style="background:var(--primary-light);border:1px solid var(--primary);border-radius:8px;padding:12px;margin-top:16px;">
         <p style="font-size:13px;color:var(--primary);font-weight:600;">💡 Need help? If the client can't do this, offer to walk them through it via screen sharing in 10 minutes.</p>
@@ -374,14 +374,14 @@ tr:hover td { background: var(--primary-light); }
       <p>Left sidebar → <strong>Slash Commands</strong> → Create New Command:</p>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;">
         <p><strong>Command:</strong> <code>/ask</code></p>
-        <p><strong>Request URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/slack/commands</code></p>
+        <p><strong>Request URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://your-domain.com/api/slack/commands</code></p>
         <p><strong>Short Description:</strong> Ask questions about your documents</p>
       </div>
 
       <h4 style="margin:16px 0 8px;">Step 3: Enable Events</h4>
       <p>Left sidebar → <strong>Event Subscriptions</strong> → enable:</p>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;">
-        <p><strong>Request URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/slack/events</code></p>
+        <p><strong>Request URL:</strong> <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://your-domain.com/api/slack/events</code></p>
         <p><strong>Subscribe to bot events:</strong></p>
         <ul style="margin-left:20px;">
           <li><code>app_mention</code> — when someone @mentions the bot</li>
@@ -391,7 +391,7 @@ tr:hover td { background: var(--primary-light); }
 
       <h4 style="margin:16px 0 8px;">Step 4: Configure OAuth & Permissions</h4>
       <p>Left sidebar → <strong>OAuth & Permissions</strong> → add Redirect URL:</p>
-      <p><code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://你的域名/api/slack/oauth/callback</code></p>
+      <p><code style="background:#fef3c7;padding:2px 6px;border-radius:4px;">https://your-domain.com/api/slack/oauth/callback</code></p>
       <p>Add Bot Token Scopes:</p>
       <ul style="margin-left:20px;">
         <li><code>chat:write</code> — send messages</li>

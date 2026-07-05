@@ -27,8 +27,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .header-right label { font-size:13px; color:var(--text-muted); }
 .header-right select { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; background: white; cursor: pointer; min-width: 160px; }
 .header-right select:focus { outline: none; border-color: var(--primary); }
+.btn-logout { padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; font-weight: 600; cursor: pointer; background: var(--card); color: var(--text-muted); transition: all .15s; display: none; white-space: nowrap; }
+.btn-logout:hover { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
+.btn-logout.visible { display: inline-block; }
 .tenant-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary); border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600; }
 .tenant-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.sub-badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; text-decoration: none; }
+.sub-badge.trial { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+.sub-badge.active { background: #dcfce7; color: #166534; border: 1px solid #16a34a; }
+.sub-badge.expired { background: #fecaca; color: #991b1b; border: 1px solid #dc2626; animation: pulse 1.5s infinite; }
+.sub-badge.expired:hover { background: #dc2626; color: white; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+.sub-renew-banner { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 8px 16px; text-align: center; font-size: 13px; font-weight: 600; }
+.sub-renew-banner.show { display: block; }
+.sub-renew-banner button { margin-left: 10px; padding: 4px 14px; background: var(--primary); color: white; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; }
+.sub-renew-banner button:hover { background: #1d4ed8; }
 .mode-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 .mode-tag.admin { background: #fef3c7; color: #92400e; }
 .mode-tag.customer { background: #dcfce7; color: #166534; }
@@ -157,6 +170,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 /* Upload Modal */
 .modal-mask { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
 .modal-mask.active { display: flex; }
+.processing-mask { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.35); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+.processing-mask.active { display: flex; }
+.processing-mask .spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+.processing-mask .text { color: #fff; font-size: 15px; font-weight: 600; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .modal { background: var(--card); border-radius: 12px; width: 600px; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
 .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .modal-header h3 { font-size: 16px; font-weight: 700; }
@@ -288,19 +306,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .learn-card .card-subject.science { background: #fef3c7; color: #92400e; }
 .learn-card .card-subject.other { background: #f1f5f9; color: #475569; }
 .learn-card .card-content { font-size: 13px; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.learn-card .card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.learn-card .card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
 .learn-card .card-mastery { font-size: 11px; padding: 2px 6px; border-radius: 8px; font-weight: 600; }
 .learn-card .card-mastery.good { background: #dcfce7; color: #166534; }
 .learn-card .card-mastery.ok { background: #fef3c7; color: #92400e; }
 .learn-card .card-mastery.poor { background: #fecaca; color: #991b1b; }
 .learn-card .card-thumb { width: 100%; height: 120px; background: #f1f5f9; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 32px; object-fit: cover; }
-.phrase-card .card-content { font-size: 16px; font-weight: 600; line-height: 1.7; -webkit-line-clamp: 4; }
+.phrase-card .card-content { font-size: 16px; font-weight: 600; line-height: 1.7; max-height: 7em; overflow: hidden; }
 .phrase-card .card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
 .phrase-card .card-tags span { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--primary-light); color: var(--primary); }
 .review-dash { display: flex; gap: 16px; margin-bottom: 20px; flex-shrink: 0; }
 .review-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; flex: 1; }
 .review-stat .num { font-size: 36px; font-weight: 700; color: var(--primary); }
 .review-stat .label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+/* Stats dashboard */
+.stats-dash { display: none; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; flex-shrink: 0; }
+.stats-dash.visible { display: flex; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; min-width: 120px; flex: 1; }
+.stat-card .stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.stat-card .stat-bar { margin-top: 6px; }
+.stat-card .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin: 2px 0; }
+.stat-card .stat-row .bar-tag { color: var(--text); min-width: 50px; }
+.stat-card .stat-row .bar-val { color: var(--text-muted); min-width: 22px; text-align: right; }
+.stat-card .stat-row .bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; margin: 0 6px; overflow: hidden; }
+.stat-card .stat-row .bar-fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width .3s; }
 .review-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 12px; }
 .review-card .q-content { font-size: 15px; line-height: 1.7; margin-bottom: 16px; white-space: pre-wrap; }
 .review-card .q-answer { display: none; font-size: 15px; line-height: 1.7; color: #16a34a; margin-bottom: 16px; padding: 12px; background: #f0fdf4; border-radius: 8px; }
@@ -352,20 +383,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     <span class="logo">SmartRAG</span>
     <nav class="nav" id="mainNav">
       <button class="nav-item active" data-page="qa" onclick="switchPage('qa')">💬 Q&A</button>
-      <button class="nav-item" data-page="mistakes" onclick="switchPage('mistakes')">📝 错题库</button>
-      <button class="nav-item" data-page="phrases" onclick="switchPage('phrases')">✨ 好词好句</button>
-      <button class="nav-item" data-page="review" onclick="switchPage('review')">🔄 复习</button>
+      <button class="nav-item" data-page="mistakes" onclick="switchPage('mistakes')">📝 Mistake Bank</button>
+      <button class="nav-item" data-page="phrases" onclick="switchPage('phrases')">✨ Phrases</button>
+      <button class="nav-item" data-page="review" onclick="switchPage('review')">🔄 Review</button>
       <button class="nav-item" data-page="products" onclick="switchPage('products')">🏷️ Products</button>
     </nav>
     <span class="tenant-badge" id="tenantBadge" style="display:none">
       <span class="dot"></span><span id="tenantName"></span>
     </span>
+    <span id="subscriptionBadge"></span>
     <span class="mode-tag" id="modeTag"></span>
   </div>
   <div class="header-right" id="headerRight">
-    <label for="tenantSelect">Enterprise:</label>
-    <select id="tenantSelect"><option value="">-- Loading... --</option></select>
+    <button class="btn-logout" id="btnLogout" onclick="doLogout()">Logout</button>
+    <span id="tenantSelectWrap"><label for="tenantSelect">Enterprise:</label>
+    <select id="tenantSelect"><option value="">-- Loading... --</option></select></span>
   </div>
+</div>
+
+<div class="sub-renew-banner" id="subRenewBanner">
+  Your subscription has expired. Viewing is still available, but new entries are disabled.
+  <button onclick="openStripeCheckout()">Renew Now</button>
 </div>
 
 <div class="main">
@@ -407,7 +445,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
           <div class="chat-empty" id="chatEmpty">
-            <div class="icon">💬</div><h2>智能学习助手</h2>
+            <div class="icon">💬</div><h2>Smart Learning Assistant</h2>
             <p id="chatEmptyHint" style="display:none">Select an enterprise, upload a document, then ask questions based on its content.</p>
           </div>
         </div>
@@ -446,30 +484,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   <div class="page" id="page-mistakes">
     <div class="learning-page">
       <div class="learn-toolbar">
-        <h2>📝 错题库</h2>
+        <h2>📝 Mistake Bank</h2>
         <div class="tools">
-          <select id="mistakeSubjectFilter" onchange="loadMistakes()"><option value="">全部科目</option><option>数学</option><option>语文</option><option>英语</option><option>科学</option><option>其他</option></select>
-          <select id="mistakeTypeFilter" onchange="loadMistakes()"><option value="">全部题型</option><option>选择题</option><option>填空题</option><option>计算题</option><option>应用题</option><option>图形题</option><option>阅读理解</option><option>语法填空</option><option>动词时态</option><option>错别字</option><option>病句</option><option>作文</option></select>
-          <select id="mistakeGradeFilter" onchange="loadMistakes()"><option value="">全部年级</option><option>一年级</option><option>二年级</option><option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option><option>七年级</option><option>八年级</option><option>九年级</option></select>
-          <select id="mistakeMasteryFilter" onchange="loadMistakes()"><option value="">全部掌握度</option><option>不熟悉</option><option>一般</option><option>掌握</option></select>
-          <input class="search-box" id="mistakeSearchBox" placeholder="🔍 搜索..." oninput="loadMistakes()" style="width:160px;">
-          <button class="btn btn-primary" onclick="openMistakeEntry()">📷 拍整页录入</button>
-          <button class="btn" onclick="exportMistakeWord()">📄 导出Word</button>
+          <select id="mistakeSubjectFilter" onchange="loadMistakes()"><option value="">All Subjects</option><option>Math</option><option>Chinese</option><option>English</option><option>Science</option><option>Other</option></select>
+          <select id="mistakeTypeFilter" onchange="loadMistakes()"><option value="">All Types</option><option>Multiple Choice</option><option>Fill in the Blank</option><option>Calculation</option><option>Word Problem</option><option>Geometry</option><option>Reading Comprehension</option><option>Grammar Cloze</option><option>Verb Tense</option><option>Spelling</option><option>Incorrect Sentence</option><option>Essay</option></select>
+          <select id="mistakeGradeFilter" onchange="loadMistakes()"><option value="">All Grades</option><option>Grade 1</option><option>Grade 2</option><option>Grade 3</option><option>Grade 4</option><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option></select>
+          <select id="mistakeMasteryFilter" onchange="loadMistakes()"><option value="">All Levels</option><option>Unfamiliar</option><option>Fair</option><option>Mastered</option></select>
+          <input class="search-box" id="mistakeSearchBox" placeholder="🔍 Search..." oninput="loadMistakes()" style="width:160px;">
+          <button class="btn" id="btnSelectAllMistakes" onclick="toggleSelectAllMistakes()" style="font-size:12px;">☐ Select All</button>
+          <button class="btn btn-primary" onclick="openMistakeEntry()">📷 Scan Page Entry</button>
+          <button class="btn" id="btnExportMistakes" onclick="exportMistakeWord()">📄 Export (0 selected)</button>
         </div>
       </div>
+      <div class="stats-dash" id="mistakeStats"></div>
       <div class="learn-content-area">
         <div class="notebook-sidebar" id="mistakeNotebookSidebar">
-          <h3>📚 错题本</h3>
+          <h3>📚 Mistake Notebook</h3>
           <div id="mistakeNotebookList"></div>
           <div class="notebook-create">
-            <input type="text" id="newNotebookName" placeholder="新建错题本...">
-            <button onclick="createNotebook('mistake')">+ 创建</button>
+            <input type="text" id="newNotebookName" placeholder="New notebook...">
+            <button onclick="createNotebook('mistake')">+ Create</button>
           </div>
         </div>
         <div style="flex:1;overflow-y:auto;">
           <div class="card-grid" id="mistakeGrid"></div>
           <div class="empty-state" id="mistakeEmpty" style="display:flex;width:100%;min-height:200px;">
-            <div class="icon">📝</div><h3>还没有错题</h3><p>点击右上角「拍整页录入」开始添加</p>
+            <div class="icon">📝</div><h3>No mistakes yet</h3><p>Click "Scan Page Entry" to start adding</p>
           </div>
         </div>
       </div>
@@ -480,18 +520,45 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   <div class="page" id="page-phrases">
     <div class="learning-page">
       <div class="learn-toolbar">
-        <h2>✨ 好词好句</h2>
-        <div class="tools">
-          <select id="phraseThemeFilter" onchange="loadPhrases()"><option value="">全部主题</option></select>
-          <select id="phraseEmotionFilter" onchange="loadPhrases()"><option value="">全部情感</option></select>
-          <select id="phraseMasteryFilter" onchange="loadPhrases()"><option value="">全部掌握度</option><option>不熟悉</option><option>一般</option><option>掌握</option></select>
-          <button class="btn btn-primary" onclick="openPhraseEntry()">+ 录入好句</button>
+        <h2>✨ Good Phrases</h2>
+        <div class="tools" style="flex-wrap:wrap;">
+          <input class="search-box" id="phraseSearchBox" placeholder="🔍 Search phrases..." oninput="handlePhraseSearchInput()" style="width:160px;">
+          <div class="tag-search-wrap" style="position:relative;flex:1;min-width:150px;">
+            <input type="text" id="phraseTagSearch" placeholder="Search tags..."
+              style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"
+              oninput="handleTagSearchInput()" onfocus="handleTagSearchFocus()" onblur="closeTagDropdown()" autocomplete="off">
+            <div id="phraseTagChips" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;"></div>
+            <div class="tag-dd" id="tagDropdown"
+              style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);z-index:99;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.1);"></div>
+          </div>
+          <select id="phraseLanguageFilter" onchange="loadPhrases()" style="min-width:110px;">
+            <option value="">All Languages</option>
+            <option value="zh">Chinese</option>
+            <option value="en">English</option>
+          </select>
+          <select id="phraseThemeFilter" onchange="loadPhrases()"><option value="">All Themes</option></select>
+          <select id="phraseEmotionFilter" onchange="loadPhrases()"><option value="">All Emotions</option></select>
+          <select id="phraseMasteryFilter" onchange="loadPhrases()"><option value="">All Levels</option><option>Unfamiliar</option><option>Fair</option><option>Mastered</option></select>
+          <button class="btn btn-primary" onclick="openPhraseEntry()">+ Add Phrase</button>
+          <button class="btn" id="btnSelectAllPhrases" onclick="toggleSelectAllPhrases()" style="font-size:12px;">☐ Select All</button>
+          <button class="btn" id="btnExportPhrases" onclick="exportPhraseWord()">📄 Export (0 selected)</button>
         </div>
       </div>
-      <div style="flex:1;overflow-y:auto;">
-        <div class="card-grid phrase-grid" id="phraseGrid"></div>
-        <div class="empty-state" id="phraseEmpty" style="display:flex;width:100%;min-height:200px;">
-          <div class="icon">✨</div><h3>还没有好词好句</h3><p>点击「录入好句」开始添加</p>
+      <div class="stats-dash" id="phraseStats"></div>
+      <div class="learn-content-area">
+        <div class="notebook-sidebar" id="phraseNotebookSidebar">
+          <h3>📚 Phrase Notebooks</h3>
+          <div id="phraseNotebookList"></div>
+          <div class="notebook-create">
+            <input type="text" id="newPhraseNotebookName" placeholder="New notebook...">
+            <button onclick="createNotebook('phrase')">+ Create</button>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;">
+          <div class="card-grid phrase-grid" id="phraseGrid"></div>
+          <div class="empty-state" id="phraseEmpty" style="display:flex;width:100%;min-height:200px;">
+            <div class="icon">✨</div><h3>No phrases yet</h3><p>Click "Add Phrase" to start</p>
+          </div>
         </div>
       </div>
     </div>
@@ -500,14 +567,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   <!-- ===== PAGE: Review ===== -->
   <div class="page" id="page-review">
     <div class="learning-page">
-      <div class="learn-toolbar"><h2>🔄 错题复习</h2></div>
+      <div class="learn-toolbar"><h2>🔄 Mistake Review</h2></div>
       <div class="review-dash">
-        <div class="review-stat"><div class="num" id="reviewDueCount">0</div><div class="label">今日待复习</div></div>
-        <div class="review-stat"><div class="num" id="reviewUpcoming7">0</div><div class="label">7天内待复习</div></div>
+        <div class="review-stat"><div class="num" id="reviewDueCount">0</div><div class="label">Due Today</div></div>
+        <div class="review-stat"><div class="num" id="reviewUpcoming7">0</div><div class="label">Due in 7 Days</div></div>
       </div>
       <div style="flex:1;overflow-y:auto;" id="reviewCardList">
         <div class="empty-state" id="reviewEmpty" style="display:flex;width:100%;height:100%;min-height:200px;">
-          <div class="icon">🎉</div><h3>今天没有要复习的错题</h3><p>继续加油！</p>
+          <div class="icon">🎉</div><h3>No mistakes to review today</h3><p>Keep up the good work!</p>
         </div>
       </div>
     </div>
@@ -517,7 +584,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 <!-- ===== Mistake Detail Modal ===== -->
 <div class="modal-mask" id="detailModal" onclick="if(event.target===this)closeDetailModal()">
   <div class="modal">
-    <div class="modal-header"><h3 id="detailModalTitle">错题详情</h3><button class="close" onclick="closeDetailModal()">&times;</button></div>
+    <div class="modal-header"><h3 id="detailModalTitle">Mistake Details</h3><button class="close" onclick="closeDetailModal()">&times;</button></div>
     <div class="modal-body" id="detailModalBody" style="max-height:70vh;overflow-y:auto;"></div>
   </div>
 </div>
@@ -525,31 +592,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 <!-- ===== Mistake Entry Modal ===== -->
 <div class="modal-mask" id="mistakeEntryModal" onclick="if(event.target===this)closeMistakeEntry()">
   <div class="modal" style="width:800px;max-width:95vw;">
-    <div class="modal-header"><h3>📷 拍整页录入</h3><button class="close" onclick="closeMistakeEntry()">&times;</button></div>
+    <div class="modal-header"><h3>📷 Scan Page Entry</h3><button class="close" onclick="closeMistakeEntry()">&times;</button></div>
     <div class="modal-body">
       <div id="mistakeEntryStep1">
         <div class="modal-upload-zone" onclick="document.getElementById('meFileInput').click()">
-          <div class="icon">📄</div><p>点击拍照或选择整页卷子图片</p><p class="hint">AI 会自动拆分题目，你勾选做错的即可</p>
+          <div class="icon">📄</div><p>Click to take a photo or select a page image</p><p class="hint">AI will split questions automatically; check the ones you got wrong</p>
         </div>
         <input type="file" id="meFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleMistakeEntryFile(this.files[0])">
         <div id="meProgress" style="display:none;text-align:center;padding:20px;">
-          <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--primary);width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;"></div><span> AI 正在拆题识别...</span>
+          <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--primary);width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;"></div><span> AI is analyzing questions...</span>
         </div>
       </div>
       <div id="mistakeEntryStep2" style="display:none;">
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">AI 识别到以下题目，请<strong>勾选做错的题</strong>，并填入正确答案：</p>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">AI recognized the following questions. Please <strong>check the ones you got wrong</strong> and fill in the correct answers:</p>
         <div id="meQuestions" style="max-height:45vh;overflow-y:auto;"></div>
         <div class="form-group" style="margin-top:12px;">
-          <label>批量填入（应用到所有勾选题）</label>
+          <label>Batch fill (apply to all checked items)</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <input id="meSource" placeholder="来源（如：黄冈小状元P32）" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;">
-            <select id="meGrade" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"><option value="">选择年级</option><option>一年级</option><option>二年级</option><option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option><option>七年级</option><option>八年级</option><option>九年级</option></select>
-            <select id="meNotebook" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"><option value="">选择错题本</option></select>
+            <input id="meSource" placeholder="Source (e.g. Workbook P32)" style="flex:1;min-width:150px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;">
+            <select id="meGrade" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"><option value="">Select Grade</option><option>Grade 1</option><option>Grade 2</option><option>Grade 3</option><option>Grade 4</option><option>Grade 5</option><option>Grade 6</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option></select>
+            <select id="meNotebook" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"><option value="">Select Notebook</option></select>
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn" onclick="closeMistakeEntry()">取消</button>
-          <button class="btn btn-primary" onclick="batchSubmitMistakes()" style="flex:1;">提交勾选的错题</button>
+          <button class="btn" onclick="closeMistakeEntry()">Cancel</button>
+          <button class="btn btn-primary" onclick="batchSubmitMistakes()" style="flex:1;">Submit Checked Mistakes</button>
         </div>
       </div>
     </div>
@@ -559,12 +626,141 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 <!-- ===== Phrase Entry Modal ===== -->
 <div class="modal-mask" id="phraseEntryModal" onclick="if(event.target===this)closePhraseEntry()">
   <div class="modal" style="width:500px;">
-    <div class="modal-header"><h3>✨ 录入好词好句</h3><button class="close" onclick="closePhraseEntry()">&times;</button></div>
+    <div class="modal-header"><h3>✨ Add Good Phrase</h3><button class="close" onclick="closePhraseEntry()">&times;</button></div>
     <div class="modal-body">
-      <textarea id="peContent" placeholder="输入好词好句内容..." style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;"></textarea>
-      <input id="peSource" placeholder="出处（如：草房子）" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-top:8px;">
-      <div id="peAITags" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
-      <button class="btn btn-primary" onclick="submitPhrase()" style="width:100%;padding:12px;margin-top:8px;">AI 识别标签并录入</button>
+      <!-- Tab switcher -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn btn-sm" id="peTabText" onclick="switchPhraseTab('text')" style="flex:1;background:var(--primary);color:white;">Text Entry</button>
+        <button class="btn btn-sm" id="peTabOCR" onclick="switchPhraseTab('ocr')" style="flex:1;">Photo OCR</button>
+      </div>
+      <!-- Notebook selector shared across both tabs -->
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:var(--text-muted);">Notebook:</label>
+        <select id="peNotebook" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;margin-top:2px;">
+          <option value="">(None)</option>
+        </select>
+      </div>
+
+      <!-- Text Entry Tab -->
+      <div id="peTextTab">
+        <textarea id="peContent" placeholder="Enter phrase content..." style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;" oninput="autoDetectPhraseLanguage()"></textarea>
+        <input id="peSource" placeholder="Source (e.g. book name)" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-top:8px;">
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+          <span style="font-size:12px;color:var(--text-muted);">Language:</span>
+          <select id="peLanguage" style="padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">
+            <option value="zh">Chinese</option><option value="en">English</option>
+          </select>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:auto;" id="peLangDetect"></span>
+        </div>
+        <div id="peAITags" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
+        <button class="btn btn-primary" onclick="submitPhrase()" style="width:100%;padding:12px;margin-top:8px;">AI Tag &amp; Save</button>
+      </div>
+
+      <!-- OCR Tab -->
+      <div id="peOCRTab" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--text-muted);">Grading Standard:</label>
+          <select id="ocrStandard" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;">
+            <option value="PSLE">PSLE (Primary 6)</option>
+            <option value="O_LEVEL">O Level (Secondary 4)</option>
+            <option value="A_LEVEL">A Level (Junior College)</option>
+          </select>
+        </div>
+        <div id="ocrUploadZone" class="modal-upload-zone" onclick="document.getElementById('ocrFileInput').click()">
+          <div class="icon">📷</div><p>Tap to take photo or select image</p><p class="hint">AI will extract good phrases from the image</p>
+        </div>
+        <input type="file" id="ocrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleOCRFile(this.files[0])">
+        <div id="ocrProgress" style="display:none;text-align:center;padding:16px;">
+          <span style="display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px;"></span>
+          <span>Extracting phrases...</span>
+        </div>
+        <div id="ocrCandidates" style="display:none;max-height:60vh;overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Edit Phrase Modal ===== -->
+<div class="modal-mask" id="phraseEditModal" onclick="if(event.target===this)closePhraseEdit()">
+  <div class="modal" style="width:500px;max-width:95vw;">
+    <div class="modal-header"><h3>Edit Phrase</h3><button class="close" onclick="closePhraseEdit()">&times;</button></div>
+    <div class="modal-body" style="gap:10px;max-height:65vh;overflow-y:auto;">
+      <div class="form-group">
+        <label>Content *</label>
+        <textarea id="edPhContent" style="min-height:80px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Source</label>
+        <input type="text" id="edPhSource">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Theme</label>
+          <select id="edPhTheme" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"></select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Emotion</label>
+          <select id="edPhEmotion" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Usage Type</label>
+          <select id="edPhUsageType" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;"></select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Tags (comma separated)</label>
+          <input type="text" id="edPhTags" placeholder="e.g. simile,metaphor">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Notebook</label>
+          <select id="edPhNotebook" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;">
+            <option value="">(None)</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Language</label>
+          <select id="edPhLanguage">
+            <option value="zh">Chinese</option><option value="en">English</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Mastery Level</label>
+          <select id="edPhMastery">
+            <option>Unfamiliar</option><option>Fair</option><option>Mastered</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:0;background:var(--card);padding-top:8px;border-top:1px solid var(--border);">
+        <button class="btn btn-primary" onclick="savePhraseEdit()" style="flex:2;min-width:120px;padding:12px;">Save Changes</button>
+        <button class="btn" onclick="deletePhrase()" style="flex:1;min-width:80px;background:#fef2f2;border-color:#fecaca;color:var(--danger);padding:12px;">Delete</button>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Word Export Modal -->
+<div class="modal-mask" id="exportModal" onclick="if(event.target===this)closeExportModal()">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header"><h3>📄 Export Word</h3><button class="close" onclick="closeExportModal()">&times;</button></div>
+    <div class="modal-body" style="gap:12px;">
+      <p style="font-size:13px;color:var(--text-muted);">Choose an export mode:</p>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;">
+        <input type="radio" name="exportMode" value="questions-only" checked> Questions only (blank for answers)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;">
+        <input type="radio" name="exportMode" value="questions-answers"> Questions + Answers
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;">
+        <input type="radio" name="exportMode" value="full-analysis"> Full Analysis (+ error reasons)
+      </label>
+      <button class="btn btn-primary" onclick="doExportWord()" style="width:100%;padding:12px;">Export to Word</button>
     </div>
   </div>
 </div>
@@ -634,6 +830,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   </div>
 </div>
 
+<!-- ===== Subscription Plan Modal ===== -->
+<div class="modal-mask" id="planModal" onclick="if(event.target===this)closePlanModal()">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header"><h3>Choose a Plan</h3><button class="close" onclick="closePlanModal()">&times;</button></div>
+    <div class="modal-body">
+      <div id="planTrialBadge" style="display:none;text-align:center;background:var(--primary-light);color:var(--primary);padding:8px;border-radius:var(--radius);margin-bottom:12px;font-weight:600;font-size:14px;"></div>
+      <div id="planCards" style="display:flex;gap:12px;">
+        <div class="plan-card" id="planMonthly" onclick="selectPlan('monthly')" style="flex:1;border:2px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;text-align:center;transition:border-color .2s;">
+          <div style="font-weight:700;font-size:16px;margin-bottom:4px;" id="planMonthlyLabel">Monthly</div>
+          <div style="font-size:24px;font-weight:800;color:var(--primary);" id="planMonthlyAmt"></div>
+          <div style="font-size:12px;color:var(--text-muted);text-decoration:line-through;margin-bottom:2px;" id="planMonthlyOrig"></div>
+          <div style="font-size:12px;color:var(--text-muted);">per month</div>
+        </div>
+        <div class="plan-card" id="planAnnual" onclick="selectPlan('annual')" style="flex:1;border:2px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;text-align:center;transition:border-color .2s;">
+          <div style="font-weight:700;font-size:16px;margin-bottom:4px;" id="planAnnualLabel">Annual</div>
+          <div style="font-size:24px;font-weight:800;color:var(--primary);" id="planAnnualAmt"></div>
+          <div style="font-size:12px;color:var(--text-muted);text-decoration:line-through;margin-bottom:2px;" id="planAnnualOrig"></div>
+          <div style="font-size:12px;color:var(--text-muted);">per year</div>
+          <div id="planAnnualSave" style="margin-top:4px;font-size:11px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;display:inline-block;"></div>
+        </div>
+      </div>
+      <div id="planError" style="display:none;color:var(--danger);font-size:13px;margin-top:8px;text-align:center;"></div>
+      <button class="btn btn-primary" id="planSubscribeBtn" onclick="startSubscription()" style="width:100%;padding:12px;margin-top:12px;" disabled>Select a plan</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ——— State ———
 const FILE_ICONS = { PDF: '📕', DOCX: '📘', XLSX: '📗', XLS: '📗' };
@@ -642,8 +865,13 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const FETCH_TIMEOUT = 45000;
 let currentTenant = '', isAdmin = false, adminKey = '', tenantMap = {};
 let currentTenantGroup = 'all';
+let subscriptionActive = true, inTrial = false, subscriptionExpiry = null;
 let allProducts = [], allCategories = [];
 let modalFile = null, modalImageBytes = null;
+// Phrase state
+let allPhraseTags = [], phraseTagChips = [], editingPhraseId = null, ocrCandidates = [];
+let currentPhraseNotebookId = null;
+let pricingData = null, selectedPlan = 'monthly';
 let editingProductId = null;
 
 // ——— Init ———
@@ -663,7 +891,7 @@ async function init() {
     currentTenant = tenantParam;
     document.getElementById('modeTag').textContent = 'Customer';
     document.getElementById('modeTag').className = 'mode-tag customer';
-    document.getElementById('headerRight').style.display = 'none';
+    document.getElementById('tenantSelectWrap').style.display = 'none';
     document.getElementById('tenantBadge').style.display = 'inline-flex';
     document.getElementById('tenantName').textContent = tenantParam;
   }
@@ -673,6 +901,23 @@ async function init() {
     fetchTenantGroup();
   }
   if (currentTenant) { loadDocList(); refreshProducts(); checkSyncStatus(); loadNotebooks(); }
+
+  // Handle Stripe Checkout return
+  const subscribed = params.get('subscribed');
+  const cancelled = params.get('cancelled');
+  if (subscribed === 'true') {
+    setTimeout(() => {
+      fetchTenantGroup(); // refresh subscription state
+      alert('Thank you for subscribing! Your account is now active.');
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname + '?tenant=' + currentTenant);
+    }, 1000);
+  } else if (cancelled === 'true') {
+    setTimeout(() => {
+      window.history.replaceState({}, '', window.location.pathname + '?tenant=' + currentTenant);
+    }, 1000);
+  }
+
   updateTenantBadge();
 }
 init();
@@ -729,6 +974,9 @@ function applyNavVisibility(group) {
   // Switch to default page for the group
   if (group === 'enterprise') switchPage('qa');
   else if (group === 'study') switchPage('mistakes');
+
+  // Show logout only for non-enterprise (study) tenants
+  document.getElementById('btnLogout').classList.toggle('visible', group !== 'enterprise');
 }
 
 async function fetchTenantGroup() {
@@ -738,8 +986,135 @@ async function fetchTenantGroup() {
     if (resp.ok) {
       const data = await resp.json();
       applyNavVisibility(data.tenantGroup || 'all');
+      // Subscription state for study tenants
+      if (data.tenantGroup === 'study') {
+        subscriptionActive = data.subscriptionActive === true;
+        inTrial = data.inTrial === true;
+        subscriptionExpiry = data.subscriptionExpiry || null;
+        updateSubscriptionBadge();
+      }
     }
   } catch (e) { /* keep defaults */ }
+}
+
+function updateSubscriptionBadge() {
+  const badge = document.getElementById('subscriptionBadge');
+  const banner = document.getElementById('subRenewBanner');
+
+  if (currentTenantGroup !== 'study') {
+    badge.innerHTML = '';
+    banner.classList.remove('show');
+    return;
+  }
+
+  if (subscriptionActive) {
+    const expiryDate = subscriptionExpiry || '';
+    badge.innerHTML = '<span class="sub-badge active">Subscribed until ' + expiryDate + '</span>';
+    banner.classList.remove('show');
+  } else if (inTrial) {
+    badge.innerHTML = '<span class="sub-badge trial" onclick="openPlanModal()" title="Click to subscribe">Free Trial — Subscribe Now</span>';
+    banner.classList.remove('show');
+  } else {
+    badge.innerHTML = '<span class="sub-badge expired" onclick="openPlanModal()">Expired — Renew Now</span>';
+    banner.classList.add('show');
+  }
+}
+
+async function openPlanModal() {
+  document.getElementById('planError').style.display = 'none';
+  document.getElementById('planSubscribeBtn').disabled = true;
+  document.getElementById('planSubscribeBtn').textContent = 'Select a plan';
+  selectedPlan = 'monthly';
+  document.getElementById('planMonthly').style.borderColor = 'var(--border)';
+  document.getElementById('planAnnual').style.borderColor = 'var(--border)';
+
+  if (!pricingData) {
+    try {
+      const resp = await fetch('/api/stripe/pricing');
+      if (resp.ok) pricingData = await resp.json();
+    } catch(e) { /* use defaults */ }
+  }
+
+  const pd = pricingData || { currency: 'SGD', trialDays: 7, plans: [
+    { id: 'monthly', label: 'Monthly', amount: 5.90, interval: 'month' },
+    { id: 'annual', label: 'Annual', amount: 59.00, interval: 'year' }
+  ]};
+
+  document.getElementById('planMonthlyLabel').textContent = pd.plans[0].label;
+  document.getElementById('planMonthlyAmt').textContent = pd.currency + ' ' + pd.plans[0].amount.toFixed(2);
+  document.getElementById('planAnnualLabel').textContent = pd.plans[1].label;
+  document.getElementById('planAnnualAmt').textContent = pd.currency + ' ' + pd.plans[1].amount.toFixed(2);
+
+  // Original prices (strikethrough)
+  document.getElementById('planMonthlyOrig').textContent = pd.currency + ' 9.90';
+  document.getElementById('planAnnualOrig').textContent = pd.currency + ' 99.00';
+
+  // Show savings percentage
+  const monthlyPrice = pd.plans[0].amount * 12;
+  const annualPrice = pd.plans[1].amount;
+  const savings = Math.round((1 - annualPrice / monthlyPrice) * 100);
+  document.getElementById('planAnnualSave').textContent = 'Save ' + savings + '%';
+
+  // Show trial badge
+  const trialEl = document.getElementById('planTrialBadge');
+  if (!subscriptionActive && !subscriptionExpiry) {
+    trialEl.style.display = '';
+    trialEl.textContent = pd.trialDays + '-day free trial included';
+  } else {
+    trialEl.style.display = 'none';
+  }
+
+  document.getElementById('planModal').classList.add('active');
+}
+
+function selectPlan(plan) {
+  selectedPlan = plan;
+  document.getElementById('planMonthly').style.borderColor = plan === 'monthly' ? 'var(--primary)' : 'var(--border)';
+  document.getElementById('planAnnual').style.borderColor = plan === 'annual' ? 'var(--primary)' : 'var(--border)';
+  document.getElementById('planSubscribeBtn').disabled = false;
+  document.getElementById('planSubscribeBtn').textContent = 'Subscribe — ' + (plan === 'monthly' ? 'Monthly' : 'Annual');
+}
+
+function closePlanModal() {
+  document.getElementById('planModal').classList.remove('active');
+}
+
+async function startSubscription() {
+  document.getElementById('planError').style.display = 'none';
+  try {
+    const resp = await fetch('/api/stripe/create-checkout', {
+      method: 'POST', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: selectedPlan })
+    });
+    const data = await resp.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      document.getElementById('planError').textContent = data.error || 'Failed to start checkout';
+      document.getElementById('planError').style.display = '';
+    }
+  } catch (e) {
+    document.getElementById('planError').textContent = 'Network error: ' + e.message;
+    document.getElementById('planError').style.display = '';
+  }
+}
+
+// Keep old openStripeCheckout for backward compatibility (redirects to plan modal)
+async function openStripeCheckout() {
+  openPlanModal();
+}
+
+function ensureSubscription() {
+  if (currentTenantGroup === 'study' && !subscriptionActive && !inTrial) {
+    alert('Your subscription has expired. Please renew to continue.');
+    openStripeCheckout();
+    return false;
+  }
+  return true;
+}
+
+function doLogout() {
+  window.location.href = '/login.html';
 }
 
 // ——— Navigation ———
@@ -832,6 +1207,7 @@ function setUploadProgress(pct, label, type) {
 
 async function uploadFile(file) {
   if (!currentTenant) { setUploadProgress(100, 'Select an enterprise first', 'error'); return; }
+  if (!ensureSubscription()) return;
   if (file.size > MAX_FILE_SIZE) { setUploadProgress(100, 'File too large (max 10MB)', 'error'); return; }
   const fd = new FormData(); fd.append('file', file);
   setUploadProgress(0, 'Starting...', '');
@@ -870,7 +1246,7 @@ async function loadDocList() {
 }
 
 async function deleteDocument(fileName) {
-  if (!confirm(`Delete "${fileName}"?`)) return;
+  if (!ensureSubscription()) return;
   try {
     const resp = await fetch('/api/documents/' + encodeURIComponent(fileName), { method: 'DELETE', headers: apiHeaders() });
     if (!resp.ok) { const e = await resp.json(); alert('Failed: ' + (e.error||resp.status)); return; }
@@ -900,6 +1276,7 @@ async function sendMessage() {
   const question = input.value.trim();
   if (!question) return;
   if (!currentTenant) { alert('Select an enterprise first'); return; }
+  if (!ensureSubscription()) return;
   appendMessage('user', escapeHtml(question));
   const loadingDiv = appendMessage('assistant', '<span class="spinner"></span> Thinking...');
   input.value = '';
@@ -1073,7 +1450,7 @@ async function autoDescribe() {
 }
 
 async function doUpload() {
-  if (!modalFile) { alert('Select a photo first'); return; }
+  if (!ensureSubscription()) return;
   const name = document.getElementById('productNameInput').value.trim();
   if (!name) { alert('Product name is required'); return; }
   const fd = new FormData();
@@ -1140,7 +1517,10 @@ async function deleteProduct(id) {
 // ==================== Learning State ====================
 let currentNotebookId = null;
 let allNotebooks = [];
+let allPhraseNotebooks = [];
 let allMistakes = [];
+let selectedMistakeIds = new Set();
+let selectedPhraseIds = new Set();
 let meSplitQuestions = [];
 let mePageImageBytes = null;
 
@@ -1185,24 +1565,39 @@ switchPage = function(page) {
 async function loadNotebooks() {
   try {
     const resp = await fetch('/api/notebooks?type=mistake', { headers: apiHeaders() });
-    if (!resp.ok) return;
-    const data = await resp.json();
-    allNotebooks = data.notebooks || [];
+    if (resp.ok) { const data = await resp.json(); allNotebooks = data.notebooks || []; }
     renderNotebookList();
+  } catch(e) {}
+  // Also load phrase notebooks
+  try {
+    const resp = await fetch('/api/notebooks?type=phrase', { headers: apiHeaders() });
+    if (resp.ok) { const data = await resp.json(); allPhraseNotebooks = data.notebooks || []; }
+    renderPhraseNotebookList();
   } catch(e) {}
 }
 
 function renderNotebookList() {
   const list = document.getElementById('mistakeNotebookList');
-  let html = '<div class="notebook-item' + (!currentNotebookId ? ' active' : '') + '" onclick="currentNotebookId=null;renderNotebookList();loadMistakes();">📋 全部 (' + (allMistakes.length || '0') + ')</div>';
+  let html = '<div class="notebook-item' + (!currentNotebookId ? ' active' : '') + '" onclick="currentNotebookId=null;renderNotebookList();loadMistakes();">📋 All (' + (allMistakes.length || '0') + ')</div>';
   for (const nb of allNotebooks) {
     html += '<div class="notebook-item' + (currentNotebookId === nb.id ? ' active' : '') + '" onclick="currentNotebookId=' + nb.id + ';renderNotebookList();loadMistakes();">📓 ' + escapeHtml(nb.name) + '</div>';
   }
   list.innerHTML = html;
 }
 
+function renderPhraseNotebookList() {
+  const list = document.getElementById('phraseNotebookList');
+  if (!list) return;
+  let html = '<div class="notebook-item' + (!currentPhraseNotebookId ? ' active' : '') + '" onclick="currentPhraseNotebookId=null;renderPhraseNotebookList();loadPhrases();">📋 All</div>';
+  for (const nb of allPhraseNotebooks) {
+    html += '<div class="notebook-item' + (currentPhraseNotebookId === nb.id ? ' active' : '') + '" onclick="currentPhraseNotebookId=' + nb.id + ';renderPhraseNotebookList();loadPhrases();">📓 ' + escapeHtml(nb.name) + '</div>';
+  }
+  list.innerHTML = html;
+}
+
 async function createNotebook(type) {
-  const nameInput = document.getElementById('newNotebookName');
+  if (!ensureSubscription()) return;
+  const nameInput = type === 'mistake' ? document.getElementById('newNotebookName') : document.getElementById('newPhraseNotebookName');
   const name = nameInput.value.trim();
   if (!name) return;
   try {
@@ -1210,15 +1605,32 @@ async function createNotebook(type) {
       method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
       body: JSON.stringify({name, notebookType: type})
     });
-    if (!resp.ok) { alert('创建失败'); return; }
+    if (!resp.ok) { alert('Create failed'); return; }
     nameInput.value = '';
     await loadNotebooks();
-  } catch(e) { alert('网络错误'); }
+  } catch(e) { alert('Network error'); }
 }
 
 // ==================== Mistakes ====================
 async function loadMistakes() {
   if (!currentTenant) return;
+  const searchBox = document.getElementById('mistakeSearchBox');
+  const searchQuery = searchBox?.value.trim();
+
+  if (searchQuery) {
+    // Semantic search
+    try {
+      const resp = await fetch('/api/mistakes/search?q=' + encodeURIComponent(searchQuery), { headers: apiHeaders() });
+      if (!resp.ok) { allMistakes = []; renderMistakeGrid(); return; }
+      const data = await resp.json();
+      allMistakes = data.mistakes || [];
+      renderMistakeGrid();
+      renderNotebookList();
+      loadMistakeStats();
+    } catch(e) { console.error(e); }
+    return;
+  }
+
   const params = new URLSearchParams();
   if (currentNotebookId) params.set('notebookId', currentNotebookId);
   const subject = document.getElementById('mistakeSubjectFilter')?.value;
@@ -1237,6 +1649,40 @@ async function loadMistakes() {
     allMistakes = data.mistakes || [];
     renderMistakeGrid();
     renderNotebookList();
+    loadMistakeStats();
+  } catch(e) { console.error(e); }
+}
+
+async function loadMistakeStats() {
+  if (!currentTenant) return;
+  try {
+    const resp = await fetch('/api/mistakes/stats', { headers: apiHeaders() });
+    if (!resp.ok) return;
+    const s = await resp.json();
+    const dash = document.getElementById('mistakeStats');
+    if (!s.total) { dash.classList.remove('visible'); return; }
+    dash.classList.add('visible');
+
+    let h = '<div class="stat-card"><div class="stat-num">' + s.total + '</div><div class="stat-label">Total Mistakes</div></div>';
+    h += '<div class="stat-card"><div class="stat-num">' + (s.totalReviewed||0) + '</div><div class="stat-label">Times Reviewed</div></div>';
+
+    // By subject
+    if (s.bySubject && Object.keys(s.bySubject).length) {
+      const vals = Object.values(s.bySubject); const maxS = Math.max(...vals);
+      let rows = ''; Object.entries(s.bySubject).forEach(([k,v]) => {
+        rows += '<div class="stat-row"><span class="bar-tag">' + escapeHtml(k) + '</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.round(v/maxS*100) + '%"></div></div><span class="bar-val">' + v + '</span></div>';
+      });
+      h += '<div class="stat-card"><div class="stat-label" style="font-weight:600;margin-bottom:4px;">By Subject</div><div class="stat-bar">' + rows + '</div></div>';
+    }
+    // By mastery
+    if (s.byMastery && Object.keys(s.byMastery).length) {
+      const vals = Object.values(s.byMastery); const maxM = Math.max(...vals);
+      let rows = ''; Object.entries(s.byMastery).forEach(([k,v]) => {
+        rows += '<div class="stat-row"><span class="bar-tag">' + escapeHtml(k) + '</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.round(v/maxM*100) + '%"></div></div><span class="bar-val">' + v + '</span></div>';
+      });
+      h += '<div class="stat-card"><div class="stat-label" style="font-weight:600;margin-bottom:4px;">Mastery</div><div class="stat-bar">' + rows + '</div></div>';
+    }
+    dash.innerHTML = h;
   } catch(e) { console.error(e); }
 }
 
@@ -1252,38 +1698,69 @@ function renderMistakeGrid() {
   empty.style.display = 'none';
   let html = '';
   for (const m of allMistakes) {
-    const subjClass = (m.subject === '数学' ? 'math' : m.subject === '英语' ? 'english' : m.subject === '语文' ? 'chinese' : m.subject === '科学' ? 'science' : 'other');
-    const mClass = m.masteryLevel === '掌握' ? 'good' : m.masteryLevel === '一般' ? 'ok' : 'poor';
+    const checked = selectedMistakeIds.has(m.id) ? 'checked' : '';
+    const subjClass = (m.subject === 'Math' ? 'math' : m.subject === 'English' ? 'english' : m.subject === 'Chinese' ? 'chinese' : m.subject === 'Science' ? 'science' : 'other');
+    const mClass = m.masteryLevel === 'Mastered' ? 'good' : m.masteryLevel === 'Fair' ? 'ok' : 'poor';
     const content = (m.content || '').substring(0, 100);
     html += '<div class="learn-card" onclick="openMistakeDetail(' + m.id + ')">';
-    html += '<div><span class="card-subject ' + subjClass + '">' + (m.subject||'未知') + '</span>';
+    html += '<div><span class="card-subject ' + subjClass + '">' + (m.subject||'Unknown') + '</span>';
     if (m.questionType) html += ' <span style="font-size:11px;color:var(--text-muted);">' + escapeHtml(m.questionType) + '</span>';
     html += '</div>';
-    html += '<div class="card-content">' + escapeHtml(content || '[无题目文本，点击查看图片]') + '</div>';
-    html += '<div class="card-meta">';
+    html += '<div class="card-content">' + escapeHtml(content || '[No text, click to view image]') + '</div>';
+    html += '<div class="card-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:nowrap;">';
+    html += '<div style="display:flex;gap:8px;align-items:center;">';
     if (m.gradeLevel) html += '<span>' + escapeHtml(m.gradeLevel) + '</span>';
     if (m.source) html += '<span>📖 ' + escapeHtml(m.source) + '</span>';
-    html += '<span class="card-mastery ' + mClass + '">' + (m.masteryLevel||'不熟悉') + '</span>';
-    html += '</div></div>';
+    html += '<span class="card-mastery ' + mClass + '">' + (m.masteryLevel||'Unfamiliar') + '</span>';
+    html += '</div>';
+    html += '<label style="display:flex;align-items:center;gap:2px;font-size:10px;color:var(--text-muted);cursor:pointer;" onclick="event.stopPropagation();"><input type="checkbox" onclick="toggleMistakeSelect(' + m.id + ')" ' + checked + '> select</label>';
+    html += '</div>';
+    html += '</div>';
   }
   grid.innerHTML = html;
+  updateExportButton();
+}
+
+// ==================== Mistake Selection ====================
+function toggleMistakeSelect(id) {
+  if (selectedMistakeIds.has(id)) selectedMistakeIds.delete(id);
+  else selectedMistakeIds.add(id);
+  renderMistakeGrid();
+}
+
+function toggleSelectAllMistakes() {
+  if (selectedMistakeIds.size === allMistakes.length) {
+    selectedMistakeIds.clear();
+  } else {
+    selectedMistakeIds = new Set(allMistakes.map(m => m.id));
+  }
+  document.getElementById('btnSelectAllMistakes').textContent =
+    selectedMistakeIds.size === allMistakes.length ? '☑ Deselect All' : '☐ Select All';
+  renderMistakeGrid();
+}
+
+function updateExportButton() {
+  const n = selectedMistakeIds.size;
+  const btn = document.getElementById('btnExportMistakes');
+  if (btn) btn.textContent = n > 0 ? '📄 Export (' + n + ' selected)' : '📄 Export (0 selected)';
 }
 
 async function openMistakeDetail(id) {
   const m = allMistakes.find(x => x.id === id);
   if (!m) return;
-  document.getElementById('detailModalTitle').textContent = '错题详情';
+  document.getElementById('detailModalTitle').textContent = 'Mistake Details';
   let body = '<div style="display:flex;flex-direction:column;gap:12px;">';
-  body += '<div><b>科目：</b>' + escapeHtml(m.subject||'') + ' | <b>题型：</b>' + escapeHtml(m.questionType||'') + ' | <b>年级：</b>' + escapeHtml(m.gradeLevel||'') + '</div>';
-  body += '<div><b>来源：</b>' + escapeHtml(m.source||'') + ' | <b>掌握：</b>' + escapeHtml(m.masteryLevel||'') + '</div>';
+  body += '<div><b>Subject:</b> ' + escapeHtml(m.subject||'') + ' | <b>Type:</b> ' + escapeHtml(m.questionType||'') + ' | <b>Grade:</b> ' + escapeHtml(m.gradeLevel||'') + '</div>';
+  body += '<div><b>Source:</b> ' + escapeHtml(m.source||'') + ' | <b>Mastery:</b> ' + escapeHtml(m.masteryLevel||'') + '</div>';
   if (m.hasImage) body += '<div><img src="/api/mistakes/' + m.id + '/image" style="max-width:100%;border-radius:8px;"></div>';
-  body += '<div style="background:#f8fafc;padding:12px;border-radius:8px;"><b>题目：</b><br>' + escapeHtml(m.content||'[无文本]') + '</div>';
-  body += '<div style="display:none;background:#f0fdf4;padding:12px;border-radius:8px;" id="detailAnswer"><b>答案：</b><br>' + escapeHtml(m.correctAnswer||'') + '</div>';
-  if (m.errorReason) body += '<div style="color:#dc2626;font-size:13px;"><b>错因：</b>' + escapeHtml(m.errorReason) + '</div>';
+  body += '<div style="background:#f8fafc;padding:12px;border-radius:8px;"><b>Question:</b><br>' + escapeHtml(m.content||'[No text]') + '</div>';
+  body += '<div style="display:none;background:#f0fdf4;padding:12px;border-radius:8px;" id="detailAnswer"><b>Answer:</b><br>' + escapeHtml(m.correctAnswer||'') + '</div>';
+  if (m.errorReason) body += '<div style="color:#dc2626;font-size:13px;"><b>Error Reason:</b> ' + escapeHtml(m.errorReason) + '</div>';
   body += '<div style="display:flex;gap:8px;">';
-  body += '<button class="btn" onclick="document.getElementById(\'detailAnswer\').style.display=\'block\';this.style.display=\'none\';">👁 显示答案</button>';
-  body += '<button class="btn" onclick="editMistakeInDetail(' + m.id + ')">✏️ 编辑</button>';
-  body += '<button class="btn" style="color:var(--danger);" onclick="if(confirm(\'确定删除？\'))deleteMistake(' + m.id + ')">🗑 删除</button>';
+  body += '<button class="btn" onclick="document.getElementById(\'detailAnswer\').style.display=\'block\';this.style.display=\'none\';">👁 Show Answer</button>';
+  body += '<button class="btn" onclick="editMistakeInDetail(' + m.id + ')">✏️ Edit</button>';
+  body += '<button class="btn" style="color:var(--danger);" onclick="if(confirm(\'Confirm delete?\'))deleteMistake(' + m.id + ')">🗑 Delete</button>';
+  body += '<button class="btn" onclick="generateSimilarQuestion(' + m.id + ')">🎯 Generate Similar</button>';
   body += '</div></div>';
   document.getElementById('detailModalBody').innerHTML = body;
   document.getElementById('detailModal').classList.add('active');
@@ -1291,30 +1768,40 @@ async function openMistakeDetail(id) {
 
 function closeDetailModal() { document.getElementById('detailModal').classList.remove('active'); }
 
+async function generateSimilarQuestion(id) {
+  try {
+    document.getElementById('detailModalBody').innerHTML += '<div id="similarResult" style="margin-top:8px;padding:12px;background:#f0fdf4;border-radius:8px;"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;"></span> Generating similar question...</div>';
+    const resp = await fetch('/api/mistakes/' + id + '/generate-similar', { method: 'POST', headers: apiHeaders() });
+    if (!resp.ok) { document.getElementById('similarResult').innerHTML = '❌ Failed to generate'; return; }
+    const d = await resp.json();
+    document.getElementById('similarResult').innerHTML = '<b>🎯 Similar Question:</b><br>' + escapeHtml(d.question||'') + '<br><br><b>💡 Answer:</b> ' + escapeHtml(d.answer||'') + (d.hint ? '<br><b>🔍 Hint:</b> ' + escapeHtml(d.hint) : '');
+  } catch(e) { document.getElementById('similarResult').innerHTML = '❌ Error'; }
+}
+
 async function deleteMistake(id) {
   try {
     await fetch('/api/mistakes/' + id, { method: 'DELETE', headers: apiHeaders() });
     closeDetailModal();
     loadMistakes();
-  } catch(e) { alert('删除失败'); }
+  } catch(e) { alert('Delete failed'); }
 }
 
 async function editMistakeInDetail(id) {
   const m = allMistakes.find(x => x.id === id);
   if (!m) return;
   let body = '<div style="display:flex;flex-direction:column;gap:10px;">';
-  body += '<div class="form-group"><label>题目内容</label><textarea id="edContent" style="min-height:80px;">' + cleanText(m.content||'') + '</textarea></div>';
-  body += '<div class="form-group"><label>正确答案</label><input id="edAnswer" value="' + cleanText(m.correctAnswer||'') + '"></div>';
-  body += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>科目</label><select id="edSubject"><option value="">--</option><option>数学</option><option>语文</option><option>英语</option><option>科学</option><option>其他</option></select></div>';
-  body += '<div class="form-group" style="flex:1;"><label>题型</label><input id="edType" value="' + escapeHtml(m.questionType||'') + '"></div></div>';
-  body += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>年级</label><input id="edGrade" value="' + escapeHtml(m.gradeLevel||'') + '"></div>';
-  body += '<div class="form-group" style="flex:1;"><label>来源</label><input id="edSource" value="' + escapeHtml(m.source||'') + '"></div></div>';
-  body += '<div class="form-group"><label>掌握程度</label><select id="edMastery"><option>不熟悉</option><option>一般</option><option>掌握</option></select></div>';
-  body += '<button class="btn btn-primary" onclick="saveMistakeEdit(' + m.id + ')">保存</button>';
+  body += '<div class="form-group"><label>Question Content</label><textarea id="edContent" style="min-height:80px;">' + cleanText(m.content||'') + '</textarea></div>';
+  body += '<div class="form-group"><label>Correct Answer</label><input id="edAnswer" value="' + cleanText(m.correctAnswer||'') + '"></div>';
+  body += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>Subject</label><select id="edSubject"><option value="">--</option><option>Math</option><option>Chinese</option><option>English</option><option>Science</option><option>Other</option></select></div>';
+  body += '<div class="form-group" style="flex:1;"><label>Type</label><input id="edType" value="' + escapeHtml(m.questionType||'') + '"></div></div>';
+  body += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>Grade</label><input id="edGrade" value="' + escapeHtml(m.gradeLevel||'') + '"></div>';
+  body += '<div class="form-group" style="flex:1;"><label>Source</label><input id="edSource" value="' + escapeHtml(m.source||'') + '"></div></div>';
+  body += '<div class="form-group"><label>Mastery Level</label><select id="edMastery"><option>Unfamiliar</option><option>Fair</option><option>Mastered</option></select></div>';
+  body += '<button class="btn btn-primary" onclick="saveMistakeEdit(' + m.id + ')">Save</button>';
   body += '</div>';
   document.getElementById('detailModalBody').innerHTML = body;
   document.getElementById('edSubject').value = m.subject || '';
-  document.getElementById('edMastery').value = m.masteryLevel || '不熟悉';
+  document.getElementById('edMastery').value = m.masteryLevel || 'Unfamiliar';
 }
 
 async function saveMistakeEdit(id) {
@@ -1334,7 +1821,7 @@ async function saveMistakeEdit(id) {
     });
     closeDetailModal();
     loadMistakes();
-  } catch(e) { alert('保存失败'); }
+  } catch(e) { alert('Save failed'); }
 }
 
 // ==================== Mistake Entry (whole page) ====================
@@ -1346,7 +1833,7 @@ async function openMistakeEntry() {
   document.getElementById('mistakeEntryModal').classList.add('active');
   // Load notebooks for dropdown
   const sel = document.getElementById('meNotebook');
-  sel.innerHTML = '<option value="">选择错题本</option>';
+  sel.innerHTML = '<option value="">Select Notebook</option>';
   for (const nb of allNotebooks) sel.innerHTML += '<option value="' + nb.id + '">' + escapeHtml(nb.name) + '</option>';
 }
 
@@ -1366,7 +1853,7 @@ async function handleMistakeEntryFile(file) {
 
   try {
     const resp = await fetch('/api/mistakes/split-page', { method: 'POST', headers: apiHeaders(), body: fd });
-    if (!resp.ok) { alert('AI 拆题失败，请重试'); closeMistakeEntry(); return; }
+    if (!resp.ok) { alert('AI split failed, please retry'); closeMistakeEntry(); return; }
     const data = await resp.json();
 
     // Convert image file to bytes for batch submit
@@ -1378,7 +1865,7 @@ async function handleMistakeEntryFile(file) {
     document.getElementById('meProgress').style.display = 'none';
     document.getElementById('mistakeEntryStep2').style.display = '';
   } catch(e) {
-    alert('拆题出错: ' + e.message);
+    alert('Split error: ' + e.message);
     closeMistakeEntry();
   }
 }
@@ -1391,22 +1878,22 @@ function renderSplitQuestions() {
     html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">';
     html += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">';
     html += '<input type="checkbox" class="me-q-check" style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" data-idx="' + idx + '">';
-    html += '<div style="flex:1;"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">题号: ' + escapeHtml(q.number||'?') + '</div>';
+    html += '<div style="flex:1;"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">Question # ' + escapeHtml(q.number||'?') + '</div>';
     html += '<div style="font-size:12px;color:var(--text);max-height:200px;overflow-y:auto;white-space:pre-wrap;">' + escapeHtml(q.text||'') + '</div></div>';
     html += '</div>';
     html += '<div style="display:flex;gap:6px;margin-left:28px;">';
-    html += '<input class="me-q-answer" data-idx="' + idx + '" placeholder="正确答案（必填）" style="flex:2;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
-    html += '<input class="me-q-type" data-idx="' + idx + '" placeholder="题型，如：分数计算" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
-    html += '<select class="me-q-subject" data-idx="' + idx + '" style="flex:1;padding:6px 4px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;"><option value="">科目</option><option>数学</option><option>语文</option><option>英语</option><option>科学</option><option>其他</option></select>';
-    html += '<input class="me-q-error" data-idx="' + idx + '" placeholder="错误原因（可选）" style="flex:2;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
+    html += '<input class="me-q-answer" data-idx="' + idx + '" placeholder="Correct Answer (required)" style="flex:2;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
+    html += '<input class="me-q-type" data-idx="' + idx + '" placeholder="Type, e.g. Fraction" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
+    html += '<select class="me-q-subject" data-idx="' + idx + '" style="flex:1;padding:6px 4px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;"><option value="">Subject</option><option>Math</option><option>Chinese</option><option>English</option><option>Science</option><option>Other</option></select>';
+    html += '<input class="me-q-error" data-idx="' + idx + '" placeholder="Error Reason (optional)" style="flex:2;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">';
     html += '</div></div>';
   }
-  container.innerHTML = html || '<p style="color:var(--text-muted);">AI 未识别到题目，请确保图片清晰。</p>';
+  container.innerHTML = html || '<p style="color:var(--text-muted);">AI could not recognize any questions. Please ensure the image is clear.</p>';
 }
 
 async function batchSubmitMistakes() {
-  const checks = document.querySelectorAll('.me-q-check:checked');
-  if (!checks.length) { alert('请至少勾选一道错题'); return; }
+  if (!ensureSubscription()) return;
+  if (!checks.length) { alert('Please check at least one mistake'); return; }
 
   const questions = [];
   checks.forEach(cb => {
@@ -1428,7 +1915,7 @@ async function batchSubmitMistakes() {
     });
   });
 
-  if (!questions.length) { alert('请为勾选的错题填入正确答案'); return; }
+  if (!questions.length) { alert('Please fill in the correct answer for checked items'); return; }
 
   const source = document.getElementById('meSource').value.trim();
   const grade = document.getElementById('meGrade').value;
@@ -1446,68 +1933,164 @@ async function batchSubmitMistakes() {
       method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
       body: JSON.stringify(body)
     });
-    if (!resp.ok) { const e = await resp.json(); alert('提交失败: ' + (e.error||resp.status)); return; }
+    if (!resp.ok) { const e = await resp.json(); alert('Submit failed: ' + (e.error||resp.status)); return; }
     closeMistakeEntry();
     loadNotebooks();
     loadMistakes();
-  } catch(e) { alert('网络错误: ' + e.message); }
+  } catch(e) { alert('Network error: ' + e.message); }
 }
 
 // ==================== Word Export ====================
 async function exportMistakeWord() {
-  if (!allMistakes.length) { alert('没有错题可导出'); return; }
-  const ids = allMistakes.map(m => m.id);
-  const mode = prompt('选择导出模式:\\n1 = 纯题目（留空作答）\\n2 = 题目+答案\\n3 = 完整分析', '1');
-  const modeMap = {1:'questions-only', 2:'questions-answers', 3:'full-analysis'};
-  const exportMode = modeMap[mode] || 'questions-only';
+  if (!allMistakes.length) { alert('No mistakes to export'); return; }
+  if (!selectedMistakeIds.size && !confirm('No mistakes selected. Export all?')) return;
+  document.getElementById('exportModal').classList.add('active');
+}
 
+function closeExportModal() { document.getElementById('exportModal').classList.remove('active'); }
+
+async function doExportWord() {
+  const modeEl = document.querySelector('input[name="exportMode"]:checked');
+  const mode = modeEl ? modeEl.value : 'questions-only';
+  let ids;
+  if (selectedMistakeIds.size) {
+    ids = Array.from(selectedMistakeIds);
+  } else {
+    ids = allMistakes.map(m => m.id);
+  }
+  showProcessingMask('Exporting...');
   try {
     const resp = await fetch('/api/mistakes/export-word', {
       method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
-      body: JSON.stringify({ids, mode: exportMode, notebookName: '错题本'})
+      body: JSON.stringify({ids, mode, notebookName: 'Mistake Notebook'})
     });
-    if (!resp.ok) { alert('导出失败'); return; }
+    hideProcessingMask();
+    if (!resp.ok) { alert('Export failed'); return; }
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'mistakes.docx'; a.click();
     URL.revokeObjectURL(url);
-  } catch(e) { alert('导出出错: ' + e.message); }
+    closeExportModal();
+  } catch(e) { alert('Export error: ' + e.message); }
 }
 
 // ==================== Phrases ====================
 async function loadPhrases() {
   if (!currentTenant) return;
+  const searchBox = document.getElementById('phraseSearchBox');
+  const searchQuery = searchBox?.value.trim();
+
+  if (searchQuery) {
+    try {
+      const resp = await fetch('/api/phrases/search?q=' + encodeURIComponent(searchQuery), { headers: apiHeaders() });
+      if (!resp.ok) { renderPhraseGrid([]); return; }
+      const data = await resp.json();
+      renderPhraseGrid(data.phrases || []);
+    } catch(e) { console.error(e); }
+    return;
+  }
+
   const params = new URLSearchParams();
+  if (currentPhraseNotebookId) params.set('notebookId', currentPhraseNotebookId);
   const theme = document.getElementById('phraseThemeFilter')?.value;
   const emotion = document.getElementById('phraseEmotionFilter')?.value;
   const mastery = document.getElementById('phraseMasteryFilter')?.value;
+  const language = document.getElementById('phraseLanguageFilter')?.value;
   if (theme) params.set('theme', theme);
   if (emotion) params.set('emotion', emotion);
   if (mastery) params.set('masteryLevel', mastery);
+  if (language) params.set('language', language);
+  if (phraseTagChips.length > 0) params.set('tags', phraseTagChips.join(','));
 
   try {
     const resp = await fetch('/api/phrases?' + params.toString(), { headers: apiHeaders() });
     if (!resp.ok) return;
     const data = await resp.json();
 
-    // Update filter dropdowns
     const themeSel = document.getElementById('phraseThemeFilter');
     const emotionSel = document.getElementById('phraseEmotionFilter');
     if (data.themes) {
       const curT = themeSel.value;
-      themeSel.innerHTML = '<option value="">全部主题</option>' + data.themes.map(t => '<option>' + t + '</option>').join('');
+      themeSel.innerHTML = '<option value="">All Themes</option>' + data.themes.map(t => '<option>' + t + '</option>').join('');
       themeSel.value = curT;
     }
     if (data.emotions) {
       const curE = emotionSel.value;
-      emotionSel.innerHTML = '<option value="">全部情感</option>' + data.emotions.map(e => '<option>' + e + '</option>').join('');
+      emotionSel.innerHTML = '<option value="">All Emotions</option>' + data.emotions.map(e => '<option>' + e + '</option>').join('');
       emotionSel.value = curE;
     }
+    if (data.tags) allPhraseTags = data.tags;
 
-    const phrases = data.phrases || [];
-    renderPhraseGrid(phrases);
+    renderPhraseGrid(data.phrases || []);
+    loadPhraseStats();
   } catch(e) { console.error(e); }
+}
+
+let phraseSearchTimer = null;
+function handlePhraseSearchInput() {
+  clearTimeout(phraseSearchTimer);
+  phraseSearchTimer = setTimeout(loadPhrases, 300);
+}
+
+async function loadPhraseStats() {
+  if (!currentTenant) return;
+  try {
+    const resp = await fetch('/api/phrases/stats', { headers: apiHeaders() });
+    if (!resp.ok) return;
+    const s = await resp.json();
+    const dash = document.getElementById('phraseStats');
+    if (!s.total) { dash.classList.remove('visible'); return; }
+    dash.classList.add('visible');
+
+    let h = '<div class="stat-card"><div class="stat-num">' + s.total + '</div><div class="stat-label">Total Phrases</div></div>';
+
+    if (s.byTheme && Object.keys(s.byTheme).length) {
+      const vals = Object.values(s.byTheme); const maxT = Math.max(...vals);
+      let rows = ''; let i = 0;
+      for (const [k,v] of Object.entries(s.byTheme)) {
+        if (i++ > 6) break;
+        rows += '<div class="stat-row"><span class="bar-tag">' + escapeHtml(k) + '</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.round(v/maxT*100) + '%"></div></div><span class="bar-val">' + v + '</span></div>';
+      }
+      h += '<div class="stat-card"><div class="stat-label" style="font-weight:600;margin-bottom:4px;">Top Themes</div><div class="stat-bar">' + rows + '</div></div>';
+    }
+    if (s.byMastery && Object.keys(s.byMastery).length) {
+      const vals = Object.values(s.byMastery); const maxM = Math.max(...vals);
+      let rows = '';
+      for (const [k,v] of Object.entries(s.byMastery)) {
+        rows += '<div class="stat-row"><span class="bar-tag">' + escapeHtml(k) + '</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.round(v/maxM*100) + '%"></div></div><span class="bar-val">' + v + '</span></div>';
+      }
+      h += '<div class="stat-card"><div class="stat-label" style="font-weight:600;margin-bottom:4px;">Mastery</div><div class="stat-bar">' + rows + '</div></div>';
+    }
+    dash.innerHTML = h;
+  } catch(e) { console.error(e); }
+}
+
+async function exportPhraseWord() {
+  let ids = Array.from(selectedPhraseIds);
+  if (!ids.length) {
+    const allCards = document.querySelectorAll('#phraseGrid .learn-card');
+    if (!allCards.length) { alert('No phrases to export'); return; }
+    if (!confirm('No phrases selected. Export all visible?')) return;
+    ids = Array.from(allCards).map(el => {
+      const m = el.getAttribute('onclick').match(/openPhraseEdit\((\d+)\)/);
+      return m ? parseInt(m[1]) : null;
+    }).filter(Boolean);
+  }
+  showProcessingMask('Exporting...');
+  try {
+    const resp = await fetch('/api/phrases/export-word', {
+      method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({ids})
+    });
+    hideProcessingMask();
+    if (!resp.ok) { alert('Export failed'); return; }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'phrases.docx'; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) { hideProcessingMask(); alert('Export error: ' + e.message); }
 }
 
 function renderPhraseGrid(phrases) {
@@ -1522,8 +2105,9 @@ function renderPhraseGrid(phrases) {
   empty.style.display = 'none';
   let html = '';
   for (const p of phrases) {
-    const mClass = p.masteryLevel === '掌握' ? 'good' : p.masteryLevel === '一般' ? 'ok' : 'poor';
-    html += '<div class="learn-card phrase-card">';
+    const checked = selectedPhraseIds.has(p.id) ? 'checked' : '';
+    const mClass = p.masteryLevel === 'Mastered' ? 'good' : p.masteryLevel === 'Fair' ? 'ok' : 'poor';
+    html += '<div class="learn-card phrase-card" onclick="openPhraseEdit(' + p.id + ')">';
     html += '<div class="card-content">' + escapeHtml(p.content || '') + '</div>';
     html += '<div class="card-tags">';
     if (p.theme) html += '<span>' + escapeHtml(p.theme) + '</span>';
@@ -1531,42 +2115,338 @@ function renderPhraseGrid(phrases) {
     if (p.usageType) html += '<span>' + escapeHtml(p.usageType) + '</span>';
     if (p.tags) p.tags.split(',').forEach(t => { if (t.trim()) html += '<span>' + escapeHtml(t.trim()) + '</span>'; });
     html += '</div>';
-    html += '<div class="card-meta">';
+    html += '<div class="card-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:nowrap;">';
+    html += '<div style="display:flex;gap:8px;align-items:center;">';
     if (p.source) html += '<span>📖 ' + escapeHtml(p.source) + '</span>';
-    html += '<span class="card-mastery ' + mClass + '">' + (p.masteryLevel||'不熟悉') + '</span>';
+    html += '<span class="card-mastery ' + mClass + '">' + (p.masteryLevel||'Unfamiliar') + '</span>';
+    html += '</div>';
+    html += '<div style="display:flex;align-items:center;gap:6px;">';
+    html += '<label style="display:flex;align-items:center;gap:2px;font-size:10px;color:var(--text-muted);cursor:pointer;" onclick="event.stopPropagation();"><input type="checkbox" onclick="togglePhraseSelect(' + p.id + ')" ' + checked + '> select</label>';
+    html += '</div>';
     html += '</div></div>';
   }
   grid.innerHTML = html;
+}
+
+let phraseEntryTab = 'text';
+
+function switchPhraseTab(tab) {
+  phraseEntryTab = tab;
+  document.getElementById('peTextTab').style.display = tab === 'text' ? '' : 'none';
+  document.getElementById('peOCRTab').style.display = tab === 'ocr' ? '' : 'none';
+  document.getElementById('peTabText').style.background = tab === 'text' ? 'var(--primary)' : '';
+  document.getElementById('peTabText').style.color = tab === 'text' ? 'white' : '';
+  document.getElementById('peTabOCR').style.background = tab === 'ocr' ? 'var(--primary)' : '';
+  document.getElementById('peTabOCR').style.color = tab === 'ocr' ? 'white' : '';
 }
 
 function openPhraseEntry() {
   document.getElementById('peContent').value = '';
   document.getElementById('peSource').value = '';
   document.getElementById('peAITags').textContent = '';
+  document.getElementById('peLanguage').value = 'zh';
+  document.getElementById('peLangDetect').textContent = '';
+  document.getElementById('ocrProgress').style.display = 'none';
+  document.getElementById('ocrCandidates').style.display = 'none';
+  document.getElementById('ocrCandidates').innerHTML = '';
+  document.getElementById('ocrUploadZone').style.display = '';
+  document.getElementById('ocrFileInput').value = '';
+  ocrCandidates = [];
+  // Populate phrase notebook selector, pre-select current
+  const sel = document.getElementById('peNotebook');
+  sel.innerHTML = '<option value="">(None)</option>';
+  for (const nb of allPhraseNotebooks) {
+    sel.innerHTML += '<option value="' + nb.id + '"' + (nb.id === currentPhraseNotebookId ? ' selected' : '') + '>' + escapeHtml(nb.name) + '</option>';
+  }
+  switchPhraseTab('text');
   document.getElementById('phraseEntryModal').classList.add('active');
 }
 
 function closePhraseEntry() { document.getElementById('phraseEntryModal').classList.remove('active'); }
 
+function autoDetectPhraseLanguage() {
+  const text = document.getElementById('peContent').value;
+  const sel = document.getElementById('peLanguage');
+  const hint = document.getElementById('peLangDetect');
+  if (!text || text.length < 2) { hint.textContent = ''; return; }
+  const hasCJK = /[一-鿿㐀-䶿豈-﫿]/.test(text);
+  sel.value = hasCJK ? 'zh' : 'en';
+  hint.textContent = hasCJK ? '(detected: Chinese)' : '(detected: English)';
+}
+
 async function submitPhrase() {
+  if (!ensureSubscription()) return;
   const content = document.getElementById('peContent').value.trim();
-  if (!content) { alert('请输入内容'); return; }
+  if (!content) { alert('Please enter content'); return; }
   const source = document.getElementById('peSource').value.trim();
+  const language = document.getElementById('peLanguage').value;
 
   const fd = new FormData();
   fd.append('content', content);
   if (source) fd.append('source', source);
+  fd.append('language', language);
+  const peNbId = document.getElementById('peNotebook').value;
+  if (peNbId) fd.append('notebookId', peNbId);
 
+  showProcessingMask('Saving...');
   try {
     const resp = await fetch('/api/phrases', { method: 'POST', headers: apiHeaders(), body: fd });
-    if (!resp.ok) { const e = await resp.json(); alert('录入失败: ' + (e.error||resp.status)); return; }
+    hideProcessingMask();
+    if (!resp.ok) { const e = await resp.json(); alert('Save failed: ' + (e.error||resp.status)); return; }
     const data = await resp.json();
-    document.getElementById('peAITags').textContent = '✅ 已录入 | 主题:' + (data.theme||'') + ' | 情感:' + (data.emotion||'') + ' | 用途:' + (data.usageType||'');
+    document.getElementById('peAITags').textContent = 'Saved | Theme:' + (data.theme||'') + ' | Emotion:' + (data.emotion||'') + ' | Usage:' + (data.usageType||'');
     document.getElementById('peContent').value = '';
     document.getElementById('peSource').value = '';
     closePhraseEntry();
     loadPhrases();
-  } catch(e) { alert('网络错误: ' + e.message); }
+  } catch(e) { alert('Network error: ' + e.message); }
+}
+
+// ==================== Phrase Edit/Delete ====================
+function openPhraseEdit(id) {
+  document.getElementById('edPhNotebook').innerHTML = '<option value="">(None)</option>' +
+    allPhraseNotebooks.map(nb => '<option value="' + nb.id + '">' + escapeHtml(nb.name) + '</option>').join('');
+
+  fetch('/api/phrases/' + id, { headers: apiHeaders() })
+    .then(r => r.json())
+    .then(p => {
+      editingPhraseId = p.id;
+      document.getElementById('edPhContent').value = cleanText(p.content || '');
+      document.getElementById('edPhSource').value = p.source || '';
+      populateEditDropdowns(p);
+      document.getElementById('edPhTags').value = p.tags || '';
+      document.getElementById('edPhMastery').value = p.masteryLevel || 'Unfamiliar';
+      document.getElementById('edPhLanguage').value = p.language || 'zh';
+      document.getElementById('edPhNotebook').value = p.notebookId || '';
+      document.getElementById('phraseEditModal').classList.add('active');
+    })
+    .catch(e => alert('Failed to load phrase: ' + e.message));
+}
+
+function populateEditDropdowns(p) {
+  const themeSel = document.getElementById('phraseThemeFilter');
+  const emotionSel = document.getElementById('phraseEmotionFilter');
+  const themes = Array.from(themeSel.options).filter(o => o.value).map(o => o.value);
+  const emotions = Array.from(emotionSel.options).filter(o => o.value).map(o => o.value);
+  const usageTypes = ['开头', '结尾', '描写人物', '描写景物', '修辞手法', '抒情', '议论', '过渡', '其他'];
+
+  document.getElementById('edPhTheme').innerHTML = '<option value="">--</option>' + themes.map(t => '<option>' + t + '</option>').join('');
+  document.getElementById('edPhEmotion').innerHTML = '<option value="">--</option>' + emotions.map(e => '<option>' + e + '</option>').join('');
+  document.getElementById('edPhUsageType').innerHTML = '<option value="">--</option>' + usageTypes.map(u => '<option>' + u + '</option>').join('');
+
+  if (p.theme) document.getElementById('edPhTheme').value = p.theme;
+  if (p.emotion) document.getElementById('edPhEmotion').value = p.emotion;
+  if (p.usageType) document.getElementById('edPhUsageType').value = p.usageType;
+}
+
+function closePhraseEdit() {
+  document.getElementById('phraseEditModal').classList.remove('active');
+  editingPhraseId = null;
+}
+
+async function savePhraseEdit() {
+  if (!editingPhraseId) return;
+  const body = {
+    content: document.getElementById('edPhContent').value.trim(),
+    source: document.getElementById('edPhSource').value.trim() || null,
+    theme: document.getElementById('edPhTheme').value.trim() || null,
+    emotion: document.getElementById('edPhEmotion').value.trim() || null,
+    usageType: document.getElementById('edPhUsageType').value.trim() || null,
+    tags: document.getElementById('edPhTags').value.trim() || null,
+    masteryLevel: document.getElementById('edPhMastery').value,
+    language: document.getElementById('edPhLanguage').value
+  };
+  const edNbId = document.getElementById('edPhNotebook').value;
+  body.notebookId = edNbId ? parseInt(edNbId) : 0;
+  if (!body.content) { alert('Content is required'); return; }
+
+  showProcessingMask('Saving...');
+  try {
+    const resp = await fetch('/api/phrases/' + editingPhraseId, {
+      method: 'PUT', headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) { hideProcessingMask(); const e = await resp.json(); alert('Update failed: ' + (e.error||resp.status)); return; }
+    hideProcessingMask();
+    closePhraseEdit();
+    loadPhrases();
+  } catch(e) { hideProcessingMask(); alert('Network error: ' + e.message); }
+}
+
+async function deletePhrase() {
+  if (!editingPhraseId) return;
+  if (!confirm('Delete this phrase? This cannot be undone.')) return;
+  try {
+    const resp = await fetch('/api/phrases/' + editingPhraseId, { method: 'DELETE', headers: apiHeaders() });
+    if (!resp.ok) { const e = await resp.json(); alert('Delete failed: ' + (e.error||resp.status)); return; }
+    closePhraseEdit();
+    loadPhrases();
+  } catch(e) { alert('Network error: ' + e.message); }
+}
+
+// ==================== Phrase Tag Search ====================
+function handleTagSearchInput() {
+  const input = document.getElementById('phraseTagSearch');
+  const query = input.value.toLowerCase().trim();
+  const dd = document.getElementById('tagDropdown');
+  if (!query) { dd.style.display = 'none'; return; }
+  const matches = allPhraseTags.filter(t =>
+    t.toLowerCase().includes(query) && !phraseTagChips.includes(t)
+  ).slice(0, 8);
+  if (matches.length === 0) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(t =>
+    '<div class="tag-dd-item" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);" onmousedown="addTagChip(\'' + t.replace(/'/g,"\\'") + '\')">' + escapeHtml(t) + '</div>'
+  ).join('');
+  dd.style.display = '';
+}
+
+function handleTagSearchFocus() {
+  if (allPhraseTags.length > 0 && document.getElementById('phraseTagSearch').value.trim() === '') {
+    const dd = document.getElementById('tagDropdown');
+    const available = allPhraseTags.filter(t => !phraseTagChips.includes(t));
+    dd.innerHTML = available.slice(0, 20).map(t =>
+      '<div class="tag-dd-item" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);" onmousedown="addTagChip(\'' + t.replace(/'/g,"\\'") + '\')">' + escapeHtml(t) + '</div>'
+    ).join('');
+    dd.style.display = '';
+  }
+}
+
+function closeTagDropdown() {
+  setTimeout(() => { document.getElementById('tagDropdown').style.display = 'none'; }, 200);
+}
+
+function addTagChip(tag) {
+  if (phraseTagChips.includes(tag)) return;
+  phraseTagChips.push(tag);
+  renderTagChips();
+  document.getElementById('phraseTagSearch').value = '';
+  document.getElementById('tagDropdown').style.display = 'none';
+  loadPhrases();
+}
+
+function removeTagChip(tag) {
+  phraseTagChips = phraseTagChips.filter(t => t !== tag);
+  renderTagChips();
+  loadPhrases();
+}
+
+function renderTagChips() {
+  document.getElementById('phraseTagChips').innerHTML = phraseTagChips.map(t =>
+    '<span style="background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:12px;font-size:11px;display:inline-flex;align-items:center;gap:3px;">' +
+    escapeHtml(t) + ' <span style="cursor:pointer;font-weight:bold;" onclick="event.stopPropagation();removeTagChip(\'' + t.replace(/'/g,"\\'") + '\')">&times;</span></span>'
+  ).join('');
+}
+
+// ==================== Phrase OCR ====================
+async function handleOCRFile(file) {
+  if (!file) return;
+  document.getElementById('ocrUploadZone').style.display = 'none';
+  document.getElementById('ocrProgress').style.display = '';
+  document.getElementById('ocrCandidates').style.display = 'none';
+
+  const standard = document.getElementById('ocrStandard').value;
+  const fd = new FormData();
+  fd.append('image', file);
+  fd.append('standard', standard);
+
+  try {
+    const resp = await fetch('/api/phrases/ocr', { method: 'POST', headers: apiHeaders(), body: fd });
+    if (!resp.ok) { const e = await resp.json(); alert('OCR failed: ' + (e.error||resp.status)); closePhraseEntry(); return; }
+    const data = await resp.json();
+    ocrCandidates = (data.candidates || []).map(text => ({ text, saved: false, skipped: false }));
+    renderOCRCandidates();
+    document.getElementById('ocrProgress').style.display = 'none';
+    document.getElementById('ocrCandidates').style.display = '';
+  } catch(e) {
+    alert('OCR error: ' + e.message);
+    closePhraseEntry();
+  }
+}
+
+function renderOCRCandidates() {
+  const container = document.getElementById('ocrCandidates');
+  let unsaved = ocrCandidates.filter(c => !c.saved && !c.skipped).length;
+  let html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+  html += '<span style="font-size:13px;color:var(--text-muted);">Extracted ' + ocrCandidates.length + ' phrase(s). Confirm or skip each:</span>';
+  html += '<span style="margin-left:auto;"></span>';
+  if (unsaved > 0) html += '<button class="btn btn-sm" onclick="saveAllOCRCandidates()" style="background:var(--success);color:white;border:none;padding:4px 12px;font-size:12px;">✅ Save All (' + unsaved + ')</button>';
+  html += '</div>';
+  for (let i = 0; i < ocrCandidates.length; i++) {
+    const c = ocrCandidates[i];
+    html += '<div class="ocr-candidate" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:stretch;gap:10px;">';
+    html += '<div style="flex:1;font-size:15px;font-weight:600;line-height:1.5;display:flex;align-items:center;">' + escapeHtml(c.text) + '</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;min-width:80px;">';
+    if (c.saved) {
+      html += '<span style="color:var(--success);font-size:12px;font-weight:600;text-align:center;">Saved</span>';
+    } else if (c.skipped) {
+      html += '<span style="color:var(--text-muted);font-size:12px;text-align:center;">Skipped</span>';
+    } else {
+      html += '<button class="btn btn-sm btn-primary" onclick="confirmOCRCandidate(' + i + ')" style="width:100%;">Confirm</button>';
+      html += '<button class="btn btn-sm" onclick="skipOCRCandidate(' + i + ')" style="width:100%;">Skip</button>';
+    }
+    html += '</div></div>';
+  }
+  const confirmed = ocrCandidates.filter(c => c.saved).length;
+  const total = ocrCandidates.length;
+  const allDone = ocrCandidates.every(c => c.saved || c.skipped);
+  if (allDone && confirmed > 0) {
+    html += '<div style="text-align:center;padding:12px;"><p style="color:var(--success);font-weight:600;">' + confirmed + ' of ' + total + ' saved!</p></div>';
+  } else if (allDone) {
+    html += '<div style="text-align:center;padding:12px;"><p style="color:var(--text-muted);">No phrases saved.</p></div>';
+  }
+  container.innerHTML = html;
+}
+
+async function confirmOCRCandidate(idx) {
+  const c = ocrCandidates[idx];
+  if (c.saved || c.skipped) return;
+  const fd = new FormData();
+  fd.append('content', c.text);
+  fd.append('entryMethod', 'photo');
+  const peNbId = document.getElementById('peNotebook').value;
+  if (peNbId) fd.append('notebookId', peNbId);
+  try {
+    const resp = await fetch('/api/phrases', { method: 'POST', headers: apiHeaders(), body: fd });
+    if (!resp.ok) { const e = await resp.json(); alert('Save failed: ' + (e.error||resp.status)); return; }
+    ocrCandidates[idx].saved = true;
+    renderOCRCandidates();
+  } catch(e) { alert('Network error: ' + e.message); }
+}
+
+async function saveAllOCRCandidates() {
+  const unsaved = ocrCandidates.filter(c => !c.saved && !c.skipped);
+  if (!unsaved.length) return;
+
+  showProcessingMask('Saving 0/' + unsaved.length + '...');
+  let done = 0;
+  for (let i = 0; i < ocrCandidates.length; i++) {
+    if (!ocrCandidates[i].saved && !ocrCandidates[i].skipped) {
+      try {
+        const c = ocrCandidates[i];
+        const fd = new FormData();
+        fd.append('content', c.text);
+        fd.append('entryMethod', 'photo');
+        const peNbId = document.getElementById('peNotebook').value;
+        if (peNbId) fd.append('notebookId', peNbId);
+        const resp = await fetch('/api/phrases', { method: 'POST', headers: apiHeaders(), body: fd });
+        if (resp.ok) {
+          ocrCandidates[i].saved = true;
+        } else {
+          const e = await resp.json();
+          console.warn('Save failed for: ' + c.text.substring(0, 30), e.error);
+        }
+      } catch(e) { console.warn('Network error for item ' + i, e); }
+      done++;
+      updateProcessingMaskText('Saving ' + done + '/' + unsaved.length + '...');
+    }
+  }
+  hideProcessingMask();
+  renderOCRCandidates();
+}
+
+function skipOCRCandidate(idx) {
+  ocrCandidates[idx].skipped = true;
+  renderOCRCandidates();
 }
 
 // ==================== Review ====================
@@ -1585,14 +2465,15 @@ async function loadReviews() {
     document.getElementById('reviewUpcoming7').textContent = upcoming7;
 
     const cards = data.cards || [];
-    renderReviewCards(cards);
+    const phraseCards = data.phraseCards || [];
+    renderReviewCards(cards, phraseCards);
   } catch(e) { console.error(e); }
 }
 
-function renderReviewCards(cards) {
+function renderReviewCards(cards, phraseCards) {
   const list = document.getElementById('reviewCardList');
   let empty = document.getElementById('reviewEmpty');
-  if (!cards.length) {
+  if (!cards.length && !(phraseCards && phraseCards.length)) {
     if (!empty) empty = ensureReviewEmpty(list);
     list.innerHTML = '';
     list.appendChild(empty);
@@ -1600,18 +2481,36 @@ function renderReviewCards(cards) {
     return;
   }
   let html = '';
+
+  // Mistake cards
   for (const c of cards) {
     html += '<div class="review-card">';
-    html += '<div class="q-meta">' + (c.subject||'') + ' | ' + (c.questionType||'') + ' | 第' + c.reviewStage + '轮复习</div>';
-    html += '<div class="q-content">' + escapeHtml(c.content||'[无文本]') + '</div>';
-    html += '<div class="q-answer" id="ans' + c.mistakeId + '">✅ ' + escapeHtml(c.correctAnswer||'暂无答案') + '</div>';
-    html += '<button class="btn" style="width:100%;margin-bottom:8px;" onclick="document.getElementById(\'ans' + c.mistakeId + '\').classList.toggle(\'show\')">👁 显示/隐藏答案</button>';
+    html += '<div class="q-meta">📝 ' + (c.subject||'') + ' | ' + (c.questionType||'') + ' | Round ' + c.reviewStage + ' Review</div>';
+    html += '<div class="q-content">' + escapeHtml(c.content||'[No text]') + '</div>';
+    html += '<div class="q-answer" id="ans' + c.mistakeId + '">✅ ' + escapeHtml(c.correctAnswer||'No answer yet') + '</div>';
+    html += '<button class="btn" style="width:100%;margin-bottom:8px;" onclick="document.getElementById(\'ans' + c.mistakeId + '\').classList.toggle(\'show\')">👁 Show/Hide Answer</button>';
     html += '<div class="review-actions">';
-    html += '<button class="btn-again" onclick="submitReview(' + c.mistakeId + ',0)">❌ 又错了</button>';
-    html += '<button class="btn-hard" onclick="submitReview(' + c.mistakeId + ',1)">😐 不太熟</button>';
-    html += '<button class="btn-good" onclick="submitReview(' + c.mistakeId + ',2)">✅ 掌握了</button>';
+    html += '<button class="btn-again" onclick="submitReview(' + c.mistakeId + ',0)">❌ Wrong Again</button>';
+    html += '<button class="btn-hard" onclick="submitReview(' + c.mistakeId + ',1)">😐 Not Sure</button>';
+    html += '<button class="btn-good" onclick="submitReview(' + c.mistakeId + ',2)">✅ Mastered</button>';
     html += '</div></div>';
   }
+
+  // Phrase cards
+  if (phraseCards && phraseCards.length) {
+    html += '<h3 style="margin-top:16px;margin-bottom:8px;color:var(--text-muted);">✨ Phrase Review</h3>';
+    for (const p of phraseCards) {
+      html += '<div class="review-card" style="border-left:3px solid var(--primary);">';
+      html += '<div class="q-meta">✨ ' + (p.theme||'') + ' | ' + (p.emotion||'') + ' | Round ' + p.reviewStage + ' Review</div>';
+      html += '<div class="q-content" style="font-size:18px;">' + escapeHtml(p.content||'') + '</div>';
+      html += '<div class="review-actions">';
+      html += '<button class="btn-again" onclick="submitPhraseReview(' + p.phraseId + ',0)">❌ Forgot</button>';
+      html += '<button class="btn-hard" onclick="submitPhraseReview(' + p.phraseId + ',1)">😐 Hard</button>';
+      html += '<button class="btn-good" onclick="submitPhraseReview(' + p.phraseId + ',2)">✅ Good</button>';
+      html += '</div></div>';
+    }
+  }
+
   list.innerHTML = html + '<div class="empty-state" id="reviewEmpty" style="display:none;width:100%;min-height:200px;"></div>';
 }
 function ensureReviewEmpty(list) {
@@ -1619,21 +2518,46 @@ function ensureReviewEmpty(list) {
   d.className = 'empty-state';
   d.id = 'reviewEmpty';
   d.style.cssText = 'display:none;width:100%;min-height:200px;';
-  d.innerHTML = '<div class="icon">🎉</div><h3>今天没有要复习的错题</h3><p>继续加油！</p>';
+  d.innerHTML = '<div class="icon">🎉</div><h3>No mistakes to review today</h3><p>Keep up the good work!</p>';
   return d;
 }
 
 async function submitReview(mistakeId, quality) {
+  if (!ensureSubscription()) return;
   try {
     const resp = await fetch('/api/reviews/' + mistakeId, {
       method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
       body: JSON.stringify({quality})
     });
-    if (!resp.ok) { alert('提交失败'); return; }
+    if (!resp.ok) { alert('Submit failed'); return; }
     loadReviews();
-  } catch(e) { alert('网络错误'); }
+  } catch(e) { alert('Network error'); }
 }
 
+async function submitPhraseReview(phraseId, quality) {
+  if (!ensureSubscription()) return;
+  try {
+    const resp = await fetch('/api/reviews/phrase/' + phraseId, {
+      method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({quality})
+    });
+    if (!resp.ok) { alert('Submit failed'); return; }
+    loadReviews();
+  } catch(e) { alert('Network error'); }
+}
+
+
+// ——— Processing mask ———
+function showProcessingMask(text) {
+  document.getElementById('processingMaskText').textContent = text || 'Processing...';
+  document.getElementById('processingMask').classList.add('active');
+}
+function updateProcessingMaskText(text) {
+  document.getElementById('processingMaskText').textContent = text;
+}
+function hideProcessingMask() {
+  document.getElementById('processingMask').classList.remove('active');
+}
 
 // ——— Util ———
 function escapeHtml(text) {
@@ -1757,5 +2681,10 @@ function cleanText(text) {
 		  toast._tid = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
 		}
 </script>
+
+<div class="processing-mask" id="processingMask">
+  <div class="spinner"></div>
+  <div class="text" id="processingMaskText">Processing...</div>
+</div>
 </body>
 </html>

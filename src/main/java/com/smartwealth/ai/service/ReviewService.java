@@ -1,6 +1,8 @@
 package com.smartwealth.ai.service;
 
+import com.smartwealth.ai.domain.GoodPhrase;
 import com.smartwealth.ai.domain.ReviewSchedule;
+import com.smartwealth.ai.repository.GoodPhraseRepository;
 import com.smartwealth.ai.repository.MistakeQuestionRepository;
 import com.smartwealth.ai.repository.ReviewScheduleRepository;
 import org.springframework.stereotype.Service;
@@ -15,10 +17,14 @@ public class ReviewService {
 
     private final ReviewScheduleRepository scheduleRepo;
     private final MistakeQuestionRepository mistakeRepo;
+    private final GoodPhraseRepository phraseRepo;
 
-    public ReviewService(ReviewScheduleRepository scheduleRepo, MistakeQuestionRepository mistakeRepo) {
+    public ReviewService(ReviewScheduleRepository scheduleRepo,
+                        MistakeQuestionRepository mistakeRepo,
+                        GoodPhraseRepository phraseRepo) {
         this.scheduleRepo = scheduleRepo;
         this.mistakeRepo = mistakeRepo;
+        this.phraseRepo = phraseRepo;
     }
 
     /**
@@ -136,6 +142,83 @@ public class ReviewService {
                 .ifPresent(scheduleRepo::delete);
     }
 
+    public long getTotalReviewedCount(String tenantId) {
+        return scheduleRepo.countReviewed(tenantId);
+    }
+
+    // ==================== Phrase review ====================
+
+    @Transactional
+    public ReviewSchedule schedulePhraseForReview(String tenantId, Long phraseId) {
+        ReviewSchedule rs = new ReviewSchedule();
+        rs.setTenantId(tenantId);
+        rs.setPhraseId(phraseId);
+        rs.setReviewStage(1);
+        rs.setEaseFactor(2.5);
+        rs.setIntervalDays(1);
+        rs.setNextReviewDate(LocalDate.now().plusDays(1));
+        return scheduleRepo.save(rs);
+    }
+
+    @Transactional
+    public ReviewResult submitPhraseReview(String tenantId, Long phraseId, int quality) {
+        ReviewSchedule rs = scheduleRepo.findByTenantIdAndPhraseId(tenantId, phraseId).orElse(null);
+        if (rs == null) {
+            rs = schedulePhraseForReview(tenantId, phraseId);
+        }
+
+        double ef = rs.getEaseFactor();
+        int interval = rs.getIntervalDays();
+        int stage = rs.getReviewStage();
+
+        if (quality < 2) {
+            stage = 1;
+            interval = 1;
+            ef = Math.max(1.3, ef - 0.2);
+        } else {
+            stage = Math.min(stage + 1, 7);
+            if (stage == 2) interval = 1;
+            else if (stage == 3) interval = 3;
+            else interval = (int) Math.round(interval * ef);
+            ef = ef + (0.1 - (3 - quality) * (0.08 + (3 - quality) * 0.02));
+            ef = Math.max(1.3, ef);
+        }
+
+        rs.setReviewStage(stage);
+        rs.setIntervalDays(interval);
+        rs.setEaseFactor(Math.round(ef * 10.0) / 10.0);
+        rs.setNextReviewDate(LocalDate.now().plusDays(interval));
+        rs.setLastReviewed(LocalDateTime.now());
+        scheduleRepo.save(rs);
+
+        String mastery;
+        if (quality == 2 && stage >= 3) mastery = "掌握";
+        else if (quality >= 1) mastery = "一般";
+        else mastery = "不熟悉";
+
+        phraseRepo.findById(phraseId).ifPresent(p -> {
+            p.setMasteryLevel(mastery);
+            phraseRepo.save(p);
+        });
+
+        long dueTomorrow = scheduleRepo.countDueReviews(tenantId, LocalDate.now().plusDays(1));
+        return new ReviewResult(stage, interval, ef, rs.getNextReviewDate().toString(), mastery, dueTomorrow);
+    }
+
+    public List<PhraseReviewCard> getDuePhraseReviews(String tenantId) {
+        List<ReviewSchedule> due = scheduleRepo.findDueReviews(tenantId, LocalDate.now());
+        List<PhraseReviewCard> cards = new ArrayList<>();
+        for (ReviewSchedule rs : due) {
+            if (rs.getPhraseId() == null) continue;
+            phraseRepo.findByIdAndTenantId(rs.getPhraseId(), tenantId).ifPresent(p -> {
+                cards.add(new PhraseReviewCard(rs.getId(), p.getId(), p.getContent(),
+                        p.getTheme(), p.getEmotion(), p.getUsageType(),
+                        p.getMasteryLevel(), rs.getReviewStage(), rs.getNextReviewDate().toString()));
+            });
+        }
+        return cards;
+    }
+
     // ==================== Record types ====================
 
     public record ReviewResult(int stage, int intervalDays, double easeFactor,
@@ -143,4 +226,7 @@ public class ReviewService {
     public record ReviewCard(Long scheduleId, Long mistakeId, String content, String correctAnswer,
                               String subject, String questionType, String masteryLevel,
                               int reviewStage, String nextReviewDate) {}
+    public record PhraseReviewCard(Long scheduleId, Long phraseId, String content,
+                                    String theme, String emotion, String usageType,
+                                    String masteryLevel, int reviewStage, String nextReviewDate) {}
 }

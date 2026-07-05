@@ -241,6 +241,48 @@ public class LearningAIService {
         }
     }
 
+    /**
+     * Semantic search for mistakes by query text. Returns matching mistake IDs.
+     */
+    public List<Long> searchMistakes(String tenantId, String query, int limit) {
+        var results = vectorStore.similaritySearch(
+                org.springframework.ai.vectorstore.SearchRequest.builder()
+                        .query(query)
+                        .topK(limit)
+                        .similarityThreshold(0.3)
+                        .filterExpression("tenantId == '" + tenantId + "' AND type == 'mistake'")
+                        .build());
+        List<Long> ids = new ArrayList<>();
+        for (var doc : results) {
+            try {
+                String idStr = doc.getMetadata().get("mistakeId").toString();
+                ids.add(Long.parseLong(idStr));
+            } catch (Exception ignored) {}
+        }
+        return ids;
+    }
+
+    /**
+     * Semantic search for phrases by query text. Returns matching phrase IDs.
+     */
+    public List<Long> searchPhrases(String tenantId, String query, int limit) {
+        var results = vectorStore.similaritySearch(
+                org.springframework.ai.vectorstore.SearchRequest.builder()
+                        .query(query)
+                        .topK(limit)
+                        .similarityThreshold(0.3)
+                        .filterExpression("tenantId == '" + tenantId + "' AND type == 'phrase'")
+                        .build());
+        List<Long> ids = new ArrayList<>();
+        for (var doc : results) {
+            try {
+                String idStr = doc.getMetadata().get("phraseId").toString();
+                ids.add(Long.parseLong(idStr));
+            } catch (Exception ignored) {}
+        }
+        return ids;
+    }
+
     // ==================== Internals ====================
 
     private String callVisionModel(String model, String base64Image, String textPrompt, int maxTokens, double temp) {
@@ -312,6 +354,13 @@ public class LearningAIService {
             log.warn("Text model call error", e);
             return "";
         }
+    }
+
+    /**
+     * Public entry point for raw text model calls (used by OCR phrase filtering).
+     */
+    public String callTextModelRaw(String model, String prompt, int maxTokens) {
+        return callTextModel(model, prompt, maxTokens);
     }
 
     private static String extractJsonObject(String response) {

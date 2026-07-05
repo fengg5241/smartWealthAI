@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartRAG — Login</title>
+<style>
+:root {
+  --primary: #2563eb; --primary-light: #eff6ff; --success: #16a34a; --danger: #dc2626;
+  --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --text-muted: #64748b; --radius: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 400px; max-width: 90vw; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+.logo { font-size: 24px; font-weight: 700; color: var(--primary); text-align: center; margin-bottom: 8px; }
+.subtitle { text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+
+.tabs { display: flex; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: none; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.form-group input:focus { outline: none; border-color: var(--primary); }
+
+.btn { width: 100%; padding: 12px; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+.btn-link { background: none; border: none; color: var(--primary); font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0; }
+
+.toast { font-size: 13px; text-align: center; min-height: 20px; margin-top: 12px; }
+.toast.error { color: var(--danger); }
+.toast.success { color: var(--success); }
+
+.forgot-row { text-align: right; margin-top: -8px; margin-bottom: 12px; }
+.back-link { display: block; text-align: center; margin-top: 16px; font-size: 13px; color: var(--primary); cursor: pointer; text-decoration: underline; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">SmartRAG</div>
+  <div class="subtitle" id="subtitle">AI-driven learning assistant</div>
+
+  <!-- Normal Login/Register -->
+  <div id="view-normal">
+    <div class="tabs" id="tabs">
+      <button class="tab active" onclick="switchTab('login')">Log In</button>
+      <button class="tab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <div id="form-login">
+      <div class="form-group">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="forgot-row">
+        <button class="btn-link" onclick="showForgotPassword()">Forgot password?</button>
+      </div>
+      <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Log In</button>
+    </div>
+
+    <div id="form-register" style="display:none;">
+      <div class="form-group">
+        <label for="regEmail">Email</label>
+        <input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Password</label>
+        <input type="password" id="regPassword" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="btn btn-primary" id="regBtn" onclick="doRegister()">Start Free Trial</button>
+    </div>
+  </div>
+
+  <!-- Forgot Password -->
+  <div id="view-forgot" style="display:none;">
+    <p style="font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:20px;">Enter your email and we'll send you a reset link.</p>
+    <div class="form-group">
+      <label for="forgotEmail">Email</label>
+      <input type="email" id="forgotEmail" placeholder="your@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()">
+    </div>
+    <button class="btn btn-primary" id="forgotBtn" onclick="doForgotPassword()">Send Reset Link</button>
+    <div class="back-link" onclick="showNormal()">Back to login</div>
+  </div>
+
+  <!-- Reset Password -->
+  <div id="view-reset" style="display:none;">
+    <p style="font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:20px;">Enter your new password.</p>
+    <div class="form-group">
+      <label for="resetPassword">New Password</label>
+      <input type="password" id="resetPassword" placeholder="At least 6 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter')doResetPassword()">
+    </div>
+    <div class="form-group">
+      <label for="resetPassword2">Confirm Password</label>
+      <input type="password" id="resetPassword2" placeholder="Enter again" autocomplete="new-password" onkeydown="if(event.key==='Enter')doResetPassword()">
+    </div>
+    <button class="btn btn-primary" id="resetBtn" onclick="doResetPassword()">Reset Password</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+let currentTab = 'login';
+let resetToken = '';
+
+// Check for reset token in URL
+const urlParams = new URLSearchParams(window.location.search);
+resetToken = urlParams.get('reset') || '';
+if (resetToken) {
+  showResetForm();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('#tabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`#tabs .tab:nth-child(${tab === 'register' ? 2 : 1})`).classList.add('active');
+  document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+  clearToast();
+}
+
+function showNormal() {
+  document.getElementById('view-normal').style.display = '';
+  document.getElementById('view-forgot').style.display = 'none';
+  document.getElementById('view-reset').style.display = 'none';
+  document.getElementById('tabs').style.display = '';
+  clearToast();
+}
+
+function showForgotPassword() {
+  document.getElementById('view-normal').style.display = 'none';
+  document.getElementById('view-forgot').style.display = '';
+  document.getElementById('view-reset').style.display = 'none';
+  document.getElementById('tabs').style.display = 'none';
+  clearToast();
+}
+
+function showResetForm() {
+  document.getElementById('view-normal').style.display = 'none';
+  document.getElementById('view-forgot').style.display = 'none';
+  document.getElementById('view-reset').style.display = '';
+  document.getElementById('tabs').style.display = 'none';
+  clearToast();
+}
+
+function clearToast() {
+  document.getElementById('toast').textContent = '';
+  document.getElementById('toast').className = 'toast';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const toast = document.getElementById('toast');
+  const btn = document.getElementById('loginBtn');
+
+  if (!email || !password) { toast.textContent = 'Please fill in all fields'; toast.className = 'toast error'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Logging in...';
+
+  try {
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || 'Login failed'; toast.className = 'toast error'; btn.disabled = false; btn.textContent = 'Log In'; return; }
+
+    toast.textContent = 'Logged in! Redirecting...';
+    toast.className = 'toast success';
+    setTimeout(() => { window.location.href = '/index.html?tenant=' + data.tenantId; }, 600);
+  } catch (err) {
+    toast.textContent = 'Network error'; toast.className = 'toast error';
+    btn.disabled = false; btn.textContent = 'Log In';
+  }
+}
+
+async function doRegister() {
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const toast = document.getElementById('toast');
+  const btn = document.getElementById('regBtn');
+
+  if (!email || !password) { toast.textContent = 'Please fill in all fields'; toast.className = 'toast error'; return; }
+  if (password.length < 6) { toast.textContent = 'Password must be at least 6 characters'; toast.className = 'toast error'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Creating account...';
+
+  try {
+    const resp = await fetch('/api/auth/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || 'Registration failed'; toast.className = 'toast error'; btn.disabled = false; btn.textContent = 'Start Free Trial'; return; }
+
+    toast.textContent = 'Account created! Starting your 7-day free trial...';
+    toast.className = 'toast success';
+    setTimeout(() => { window.location.href = '/index.html?tenant=' + data.tenantId; }, 800);
+  } catch (err) {
+    toast.textContent = 'Network error'; toast.className = 'toast error';
+    btn.disabled = false; btn.textContent = 'Start Free Trial';
+  }
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  const toast = document.getElementById('toast');
+  const btn = document.getElementById('forgotBtn');
+
+  if (!email) { toast.textContent = 'Please enter your email'; toast.className = 'toast error'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending...';
+
+  try {
+    const resp = await fetch('/api/auth/forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await resp.json();
+    toast.textContent = data.message || 'If this email is registered, a reset link has been sent';
+    toast.className = 'toast success';
+    btn.disabled = false; btn.textContent = 'Send Reset Link';
+  } catch (err) {
+    toast.textContent = 'Network error'; toast.className = 'toast error';
+    btn.disabled = false; btn.textContent = 'Send Reset Link';
+  }
+}
+
+async function doResetPassword() {
+  const password = document.getElementById('resetPassword').value;
+  const password2 = document.getElementById('resetPassword2').value;
+  const toast = document.getElementById('toast');
+  const btn = document.getElementById('resetBtn');
+
+  if (!password || password.length < 6) { toast.textContent = 'Password must be at least 6 characters'; toast.className = 'toast error'; return; }
+  if (password !== password2) { toast.textContent = 'Passwords do not match'; toast.className = 'toast error'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Resetting...';
+
+  try {
+    const resp = await fetch('/api/auth/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: resetToken, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast.textContent = data.error || 'Reset failed'; toast.className = 'toast error'; btn.disabled = false; btn.textContent = 'Reset Password'; return; }
+
+    toast.textContent = 'Password reset! Redirecting to login...';
+    toast.className = 'toast success';
+    setTimeout(() => {
+      window.location.href = '/login.html';
+    }, 1500);
+  } catch (err) {
+    toast.textContent = 'Network error'; toast.className = 'toast error';
+    btn.disabled = false; btn.textContent = 'Reset Password';
+  }
+}
+</script>
+</body>
+</html>
