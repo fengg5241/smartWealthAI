@@ -865,7 +865,7 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const FETCH_TIMEOUT = 45000;
 let currentTenant = '', isAdmin = false, adminKey = '', tenantMap = {};
 let currentTenantGroup = 'all';
-let subscriptionActive = true, inTrial = false, subscriptionExpiry = null;
+let subscriptionActive = true, inTrial = false, subscriptionExpiry = null, trialEndsAt = null;
 let allProducts = [], allCategories = [];
 let modalFile = null, modalImageBytes = null;
 // Phrase state
@@ -991,6 +991,7 @@ async function fetchTenantGroup() {
         subscriptionActive = data.subscriptionActive === true;
         inTrial = data.inTrial === true;
         subscriptionExpiry = data.subscriptionExpiry || null;
+        trialEndsAt = data.trialEndsAt || null;
         updateSubscriptionBadge();
       }
     }
@@ -1012,7 +1013,8 @@ function updateSubscriptionBadge() {
     badge.innerHTML = '<span class="sub-badge active">Subscribed until ' + expiryDate + '</span>';
     banner.classList.remove('show');
   } else if (inTrial) {
-    badge.innerHTML = '<span class="sub-badge trial" onclick="openPlanModal()" title="Click to subscribe">Free Trial — Subscribe Now</span>';
+    const trialDate = trialEndsAt || '';
+    badge.innerHTML = '<span class="sub-badge trial" onclick="openPlanModal()" title="Click to subscribe">Free trial until ' + trialDate + '</span>';
     banner.classList.remove('show');
   } else {
     badge.innerHTML = '<span class="sub-badge expired" onclick="openPlanModal()">Expired — Renew Now</span>';

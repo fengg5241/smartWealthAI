@@ -168,8 +168,8 @@ public class AdminController {
             return ResponseEntity.badRequest().body(Map.of("error",
                     "platform, platformTeamId, and tenantId are required"));
         }
-        if (!platform.equals("slack") && !platform.equals("wecom")) {
-            return ResponseEntity.badRequest().body(Map.of("error", "platform must be 'slack' or 'wecom'"));
+        if (!platform.equals("slack") && !platform.equals("wecom") && !platform.equals("whatsapp")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "platform must be 'slack', 'wecom', or 'whatsapp'"));
         }
 
         ImTenantMapping existing = imTenantMappingRepository

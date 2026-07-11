@@ -190,3 +190,76 @@ CREATE TABLE IF NOT EXISTS sync_file_status (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(platform, tenant_id, file_id)
 );
+
+-- ============================================================
+-- WhatsApp AI Chatbot tables
+-- ============================================================
+
+-- WhatsApp customer profiles
+CREATE TABLE IF NOT EXISTS wa_customers (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    wa_phone VARCHAR(30) NOT NULL,
+    display_name VARCHAR(200),
+    tags VARCHAR(500),
+    budget VARCHAR(100),
+    requirement TEXT,
+    source VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tenant_id, wa_phone)
+);
+CREATE INDEX IF NOT EXISTS idx_wc_tenant ON wa_customers(tenant_id);
+
+-- WhatsApp conversations (state machine: ai_active / pending_human / human_assigned / closed)
+CREATE TABLE IF NOT EXISTS wa_conversations (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    customer_id BIGINT NOT NULL REFERENCES wa_customers(id),
+    status VARCHAR(20) DEFAULT 'ai_active',
+    assigned_agent VARCHAR(100),
+    last_customer_message_at TIMESTAMP,
+    unread_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE wa_conversations ADD COLUMN IF NOT EXISTS last_customer_message_at TIMESTAMP;
+ALTER TABLE wa_conversations ALTER COLUMN status SET DEFAULT 'ai_active';
+CREATE INDEX IF NOT EXISTS idx_wconv_tenant ON wa_conversations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_wconv_customer ON wa_conversations(customer_id);
+CREATE INDEX IF NOT EXISTS idx_wconv_status ON wa_conversations(tenant_id, status);
+
+-- WhatsApp messages (with idempotency via provider_message_id)
+CREATE TABLE IF NOT EXISTS wa_messages (
+    id BIGSERIAL PRIMARY KEY,
+    conversation_id BIGINT NOT NULL REFERENCES wa_conversations(id),
+    direction VARCHAR(10) NOT NULL,
+    sender_type VARCHAR(20),
+    message_type VARCHAR(20) DEFAULT 'session',
+    provider_message_id VARCHAR(100),
+    content TEXT NOT NULL,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE wa_messages ADD COLUMN IF NOT EXISTS message_type VARCHAR(20) DEFAULT 'session';
+ALTER TABLE wa_messages ADD COLUMN IF NOT EXISTS provider_message_id VARCHAR(100);
+CREATE INDEX IF NOT EXISTS idx_wm_conv ON wa_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_wm_created ON wa_messages(conversation_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wm_provider_msg ON wa_messages(provider_message_id) WHERE provider_message_id IS NOT NULL;
+
+-- Usage log (for billing, rate limiting, reconciliation)
+CREATE TABLE IF NOT EXISTS wa_usage_log (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    conversation_id BIGINT,
+    direction VARCHAR(10) NOT NULL,
+    message_type VARCHAR(20) DEFAULT 'session',
+    twilio_message_sid VARCHAR(100),
+    provider_message_id VARCHAR(100),
+    cost DECIMAL(10, 4) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_wul_tenant_date ON wa_usage_log(tenant_id, created_at);
+
+-- im_tenant_mapping: add is_active for soft-disable
+ALTER TABLE im_tenant_mapping ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;

@@ -4,12 +4,10 @@ import com.smartwealth.ai.domain.Tenant;
 import com.smartwealth.ai.repository.TenantRepository;
 import com.smartwealth.ai.tenant.TenantContext;
 import com.stripe.Stripe;
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Event;
 import com.stripe.model.Subscription;
-import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +22,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/stripe")
 public class StripeController {
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private final TenantRepository tenantRepository;
     private final String secretKey;
@@ -113,14 +113,13 @@ public class StripeController {
                 builder.setCustomerEmail(tenant.getEmail());
             }
 
-            // Add trial if tenant is within trial period
             if (!tenant.isSubscriptionActive() && tenant.getSubscriptionExpiry() == null) {
                 builder.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
                         .setTrialPeriodDays((long) trialDays)
                         .build());
             }
 
-            Session session = Session.create(builder.build());
+            com.stripe.model.checkout.Session session = com.stripe.model.checkout.Session.create(builder.build());
             return ResponseEntity.ok(Map.of("url", session.getUrl()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -131,121 +130,57 @@ public class StripeController {
     @PostMapping("/webhook")
     public ResponseEntity<?> webhook(@RequestBody String payload,
                                      @RequestHeader("Stripe-Signature") String sigHeader) {
+        System.err.println("=== STRIPE WEBHOOK RECEIVED, payload length=" + payload.length());
         if (webhookSecret == null || webhookSecret.isBlank()) {
             return ResponseEntity.ok(Map.of("received", true));
         }
 
-        Event event;
         try {
-            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
-        } catch (SignatureVerificationException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Invalid signature"));
-        }
+            // Verify signature
+            com.stripe.model.Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+            String eventType = event.getType();
+            System.err.println("=== WEBHOOK EVENT TYPE: " + eventType);
 
-        switch (event.getType()) {
-            case "checkout.session.completed" -> {
-                Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
-                if (session == null) break;
-                String tenantId = session.getMetadata().get("tenant_id");
-                String customerId = session.getCustomer();
-                String subscriptionId = session.getSubscription();
-                String plan = session.getMetadata().get("plan");
+            if ("checkout.session.completed".equals(eventType)) {
+                // Parse JSON manually instead of relying on SDK deserialization
+                var root = mapper.readTree(payload);
+                var obj = root.path("data").path("object");
+                var metadata = obj.path("metadata");
+                String tenantId = metadata.has("tenant_id") ? metadata.get("tenant_id").asText() : null;
+                String plan = metadata.has("plan") ? metadata.get("plan").asText() : null;
+                String customerId = obj.has("customer") ? obj.get("customer").asText() : null;
+                String subscriptionId = obj.has("subscription") ? obj.get("subscription").asText() : null;
+                System.err.println("=== tenantId=" + tenantId + " cust=" + customerId + " sub=" + subscriptionId + " plan=" + plan);
+
                 if (tenantId != null) {
+                    String finalCustomerId = customerId;
+                    String finalSubscriptionId = subscriptionId;
+                    String finalPlan = plan;
                     tenantRepository.findByTenantId(tenantId).ifPresent(tenant -> {
-                        if (customerId != null) tenant.setStripeCustomerId(customerId);
-                        if (subscriptionId != null) tenant.setStripeSubscriptionId(subscriptionId);
-                        if (plan != null) tenant.setSubscriptionPlan(plan);
-                        // Fetch actual period end from Stripe subscription
+                        if (finalCustomerId != null) tenant.setStripeCustomerId(finalCustomerId);
+                        if (finalSubscriptionId != null) tenant.setStripeSubscriptionId(finalSubscriptionId);
+                        if (finalPlan != null) tenant.setSubscriptionPlan(finalPlan);
                         try {
-                            if (subscriptionId != null) {
-                                Subscription sub = Subscription.retrieve(subscriptionId);
-                                long periodEnd = sub.getCurrentPeriodEnd();
-                                tenant.setSubscriptionExpiry(
-                                        LocalDate.ofInstant(Instant.ofEpochSecond(periodEnd), ZoneId.systemDefault()));
+                            if (finalSubscriptionId != null) {
+                                Subscription sub = Subscription.retrieve(finalSubscriptionId);
+                                tenant.setSubscriptionExpiry(LocalDate.ofInstant(
+                                        Instant.ofEpochSecond(sub.getCurrentPeriodEnd()),
+                                        ZoneId.systemDefault()));
                             }
                         } catch (Exception e) {
-                            // Fallback: 30 days from now
                             tenant.setSubscriptionExpiry(LocalDate.now().plusDays(30));
                         }
                         tenantRepository.save(tenant);
+                        System.err.println("=== TENANT SAVED OK, expiry=" + tenant.getSubscriptionExpiry());
                     });
                 }
             }
-            case "invoice.paid" -> {
-                handleInvoiceEvent(event, false);
-            }
-            case "invoice.payment_failed" -> {
-                handleInvoiceEvent(event, true);
-            }
-            case "customer.subscription.deleted" -> {
-                Subscription sub = (Subscription) event.getDataObjectDeserializer().getObject().orElse(null);
-                if (sub == null) break;
-                String customerId = sub.getCustomer();
-                tenantRepository.findAll().stream()
-                        .filter(t -> customerId.equals(t.getStripeCustomerId()))
-                        .findFirst()
-                        .ifPresent(tenant -> {
-                            tenant.setStripeSubscriptionId(null);
-                            tenantRepository.save(tenant);
-                        });
-            }
+            return ResponseEntity.ok(Map.of("received", true));
+        } catch (Exception e) {
+            System.err.println("=== WEBHOOK FAILED: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Internal server error"));
         }
-
-        return ResponseEntity.ok(Map.of("received", true));
-    }
-
-    private void handleInvoiceEvent(Event event, boolean failed) {
-        com.stripe.model.Invoice invoice =
-                (com.stripe.model.Invoice) event.getDataObjectDeserializer().getObject().orElse(null);
-        if (invoice == null) return;
-        String customerId = invoice.getCustomer();
-        String subscriptionId = invoice.getSubscription();
-
-        tenantRepository.findAll().stream()
-                .filter(t -> subscriptionId != null && subscriptionId.equals(t.getStripeSubscriptionId()))
-                .findFirst()
-                .ifPresentOrElse(
-                        tenant -> updateExpiryFromStripe(tenant, subscriptionId, failed),
-                        () -> {
-                            if (customerId != null) {
-                                tenantRepository.findAll().stream()
-                                        .filter(t -> customerId.equals(t.getStripeCustomerId()))
-                                        .findFirst()
-                                        .ifPresent(tenant -> updateExpiryFromStripe(tenant, subscriptionId, failed));
-                            }
-                        }
-                );
-    }
-
-    private void updateExpiryFromStripe(Tenant tenant, String subscriptionId, boolean failed) {
-        if (failed) {
-            if (tenant.getSubscriptionExpiry() != null &&
-                    tenant.getSubscriptionExpiry().isBefore(LocalDate.now())) {
-                tenant.setSubscriptionExpiry(LocalDate.now());
-            }
-        } else {
-            try {
-                if (subscriptionId != null) {
-                    Subscription sub = Subscription.retrieve(subscriptionId);
-                    long periodEnd = sub.getCurrentPeriodEnd();
-                    tenant.setSubscriptionExpiry(
-                            LocalDate.ofInstant(Instant.ofEpochSecond(periodEnd), ZoneId.systemDefault()));
-                } else {
-                    // Fallback
-                    LocalDate base = tenant.getSubscriptionExpiry();
-                    if (base == null || base.isBefore(LocalDate.now())) {
-                        base = LocalDate.now();
-                    }
-                    tenant.setSubscriptionExpiry(base.plusDays(30));
-                }
-            } catch (Exception e) {
-                LocalDate base = tenant.getSubscriptionExpiry();
-                if (base == null || base.isBefore(LocalDate.now())) {
-                    base = LocalDate.now();
-                }
-                tenant.setSubscriptionExpiry(base.plusDays(30));
-            }
-        }
-        tenantRepository.save(tenant);
     }
 }

@@ -25,6 +25,10 @@ public class TenantInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
         String tenantId = request.getHeader("X-Tenant-ID");
+        // Fallback to query param for SSE EventSource (which can't set headers)
+        if ((tenantId == null || tenantId.isBlank()) && "GET".equalsIgnoreCase(request.getMethod())) {
+            tenantId = request.getParameter("tid");
+        }
         if (tenantId != null && !tenantId.isBlank()) {
             String tid = tenantId.trim();
             if (!request.getRequestURI().startsWith("/api/admin/tenants")) {
@@ -44,13 +48,19 @@ public class TenantInterceptor implements HandlerInterceptor {
                             && !tenant.getTrialEndsAt().isBefore(LocalDate.now());
 
                     if (!hasActiveSub && !hasTrial) {
-                        String method = request.getMethod();
-                        if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
-                            response.setStatus(402);
-                            response.setContentType("application/json");
-                            response.getWriter().write(
-                                    "{\"error\":\"Subscription expired\",\"subscriptionExpired\":true}");
-                            return false;
+                        // Allow checkout requests so expired users can still pay
+                        String uri = request.getRequestURI();
+                        if (uri.startsWith("/api/stripe/")) {
+                            // pass through — payment flow needs X-Tenant-ID context
+                        } else {
+                            String method = request.getMethod();
+                            if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
+                                response.setStatus(402);
+                                response.setContentType("application/json");
+                                response.getWriter().write(
+                                        "{\"error\":\"Subscription expired\",\"subscriptionExpired\":true}");
+                                return false;
+                            }
                         }
                     }
                 }

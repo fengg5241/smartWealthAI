@@ -100,6 +100,7 @@ public class RagChatService {
 
             sources = chunks.stream()
                     .map(doc -> (String) doc.getMetadata().get("fileName"))
+                    .filter(name -> name != null)
                     .distinct()
                     .toList();
         }

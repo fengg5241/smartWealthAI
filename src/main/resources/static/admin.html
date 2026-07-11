@@ -207,9 +207,10 @@ tr:hover td { background: var(--primary-light); }
       <div class="form-row" style="margin-bottom:16px;">
         <div class="form-group">
           <label>Platform</label>
-          <select id="imPlatform">
+          <select id="imPlatform" onchange="updatePlatformLabel()">
             <option value="wecom">WeChat Work (WeCom)</option>
             <option value="slack">Slack</option>
+            <option value="whatsapp">WhatsApp</option>
           </select>
         </div>
         <div class="form-group">
@@ -441,7 +442,9 @@ init();
 
 function updatePlatformLabel() {
   const p = document.getElementById('imPlatform').value;
-  document.getElementById('imIdLabel').textContent = p === 'wecom' ? 'CorpID' : 'Slack Team ID';
+  const labels = { wecom: 'CorpID', slack: 'Slack Team ID', whatsapp: 'Phone Number' };
+  document.getElementById('imIdLabel').textContent = labels[p] || 'ID';
+  document.getElementById('imPlatformId').placeholder = p === 'whatsapp' ? '+14155238886' : '';
 }
 
 function showWeComGuide() { document.getElementById('wecomGuideModal').classList.add('active'); }
@@ -560,7 +563,7 @@ async function loadImMappings() {
     }
     body.innerHTML = mappings.map(m => `
       <tr>
-        <td>${m.platform === 'wecom' ? '💬 WeChat Work' : '💬 Slack'}</td>
+        <td>${m.platform === 'wecom' ? '\u{1F4AC} WeChat Work' : m.platform === 'slack' ? '\u{1F4AC} Slack' : '\u{1F4AC} WhatsApp'}</td>
         <td><code style="font-size:12px;">${esc(m.platformTeamId)}</code></td>
         <td><strong>${esc(tenantMap[m.tenantId]?.name || m.tenantId)}</strong></td>
         <td style="text-align:right;">

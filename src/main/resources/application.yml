@@ -107,6 +107,14 @@ onedrive:
   folder-name: SmartRAG
   sync-interval-minutes: 10
 
+# --- WhatsApp Bot Config ---
+
+whatsapp:
+  enabled: ${WHATSAPP_ENABLED:false}
+  account-sid: ${WHATSAPP_ACCOUNT_SID:}
+  auth-token: ${WHATSAPP_AUTH_TOKEN:}
+  phone-number: ${WHATSAPP_PHONE_NUMBER:}
+
 # --- Stripe ---
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}

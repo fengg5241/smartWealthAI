@@ -26,6 +26,9 @@ public class ImTenantMapping {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "is_active")
+    private boolean isActive = true;
+
     public ImTenantMapping() {}
 
     public ImTenantMapping(String platform, String platformTeamId, String tenantId) {
@@ -46,4 +49,6 @@ public class ImTenantMapping {
     public void setBotToken(String botToken) { this.botToken = botToken; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
 }

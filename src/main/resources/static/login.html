@@ -179,7 +179,10 @@ async function doLogin() {
 
     toast.textContent = 'Logged in! Redirecting...';
     toast.className = 'toast success';
-    setTimeout(() => { window.location.href = '/index.html?tenant=' + data.tenantId; }, 600);
+    const target = (data.tenantGroup === 'enterprise' || data.tenantGroup === 'all')
+        ? '/agent/index.html?tenant=' + data.tenantId
+        : '/index.html?tenant=' + data.tenantId;
+    setTimeout(() => { window.location.href = target; }, 600);
   } catch (err) {
     toast.textContent = 'Network error'; toast.className = 'toast error';
     btn.disabled = false; btn.textContent = 'Log In';
