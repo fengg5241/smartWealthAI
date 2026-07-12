@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:smart_wealth_ai}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  sql:
+    init:
+      mode: never
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+stripe:
+  secret-key: sk_test_dummy
+  webhook-secret: whsec_test_secret
+  domain: http://localhost:8080
+  pricing:
+    currency: SGD
+    trial-days: 7
+    monthly:
+      price-id: price_dummy_monthly
+      amount: 5.90
+      label: "Monthly"
+    annual:
+      price-id: price_dummy_annual
+      amount: 59.00
+      label: "Annual"

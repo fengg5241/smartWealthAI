@@ -51,6 +51,9 @@ public class Tenant {
     @Column(name = "subscription_plan", length = 20)
     private String subscriptionPlan;
 
+    @Column(name = "cancel_at_period_end")
+    private Boolean cancelAtPeriodEnd = false;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -96,4 +99,7 @@ public class Tenant {
 
     public String getSubscriptionPlan() { return subscriptionPlan; }
     public void setSubscriptionPlan(String subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; }
+
+    public Boolean getCancelAtPeriodEnd() { return cancelAtPeriodEnd; }
+    public void setCancelAtPeriodEnd(Boolean cancelAtPeriodEnd) { this.cancelAtPeriodEnd = cancelAtPeriodEnd; }
 }

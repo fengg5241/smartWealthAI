@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -175,12 +176,145 @@ public class StripeController {
                     });
                 }
             }
+
+            if ("invoice.payment_succeeded".equals(eventType) || "invoice.paid".equals(eventType)) {
+                var root = mapper.readTree(payload);
+                var obj = root.path("data").path("object");
+                String subscriptionId = obj.has("subscription") ? obj.get("subscription").asText() : null;
+                String invoiceId = obj.has("id") ? obj.get("id").asText() : "unknown";
+                System.err.println("=== INVOICE PAID: invoice=" + invoiceId + " sub=" + subscriptionId);
+
+                if (subscriptionId != null) {
+                    tenantRepository.findByStripeSubscriptionId(subscriptionId).ifPresentOrElse(tenant -> {
+                        try {
+                            Subscription sub = Subscription.retrieve(subscriptionId);
+                            tenant.setSubscriptionExpiry(LocalDate.ofInstant(
+                                    Instant.ofEpochSecond(sub.getCurrentPeriodEnd()),
+                                    ZoneId.systemDefault()));
+                            tenant.setCancelAtPeriodEnd(false);
+                            tenantRepository.save(tenant);
+                            System.err.println("=== RENEWAL SAVED: tenant=" + tenant.getTenantId()
+                                    + " expiry=" + tenant.getSubscriptionExpiry());
+                        } catch (Exception e) {
+                            System.err.println("=== RENEWAL Stripe retrieve failed: " + e.getMessage());
+                        }
+                    }, () -> {
+                        try {
+                            Subscription sub = Subscription.retrieve(subscriptionId);
+                            String tidFromMeta = sub.getMetadata().get("tenant_id");
+                            if (tidFromMeta != null) {
+                                tenantRepository.findByTenantId(tidFromMeta).ifPresent(t -> {
+                                    t.setSubscriptionExpiry(LocalDate.ofInstant(
+                                            Instant.ofEpochSecond(sub.getCurrentPeriodEnd()),
+                                            ZoneId.systemDefault()));
+                                    t.setCancelAtPeriodEnd(false);
+                                    tenantRepository.save(t);
+                                    System.err.println("=== RENEWAL SAVED (via metadata): tenant=" + tidFromMeta);
+                                });
+                            } else {
+                                System.err.println("=== RENEWAL: could not find tenant for sub=" + subscriptionId);
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("=== RENEWAL fallback failed: " + ex.getMessage());
+                        }
+                    });
+                }
+            }
+
+            if ("invoice.payment_failed".equals(eventType)) {
+                var root = mapper.readTree(payload);
+                var obj = root.path("data").path("object");
+                String subscriptionId = obj.has("subscription") ? obj.get("subscription").asText() : null;
+                String invoiceId = obj.has("id") ? obj.get("id").asText() : "unknown";
+                System.err.println("=== INVOICE FAILED: invoice=" + invoiceId + " sub=" + subscriptionId);
+
+                if (subscriptionId != null) {
+                    tenantRepository.findByStripeSubscriptionId(subscriptionId).ifPresent(tenant -> {
+                        System.err.println("=== PAYMENT FAILED for tenant=" + tenant.getTenantId()
+                                + " sub=" + subscriptionId + " expiry=" + tenant.getSubscriptionExpiry());
+                    });
+                }
+            }
+
+            if ("customer.subscription.updated".equals(eventType)) {
+                var root = mapper.readTree(payload);
+                var obj = root.path("data").path("object");
+                String subscriptionId = obj.has("id") ? obj.get("id").asText() : null;
+                boolean cancelAtPeriodEnd = obj.has("cancel_at_period_end") && obj.get("cancel_at_period_end").asBoolean();
+                System.err.println("=== SUBSCRIPTION UPDATED: sub=" + subscriptionId + " cancelAtPeriodEnd=" + cancelAtPeriodEnd);
+
+                if (subscriptionId != null) {
+                    tenantRepository.findByStripeSubscriptionId(subscriptionId).ifPresent(tenant -> {
+                        tenant.setCancelAtPeriodEnd(cancelAtPeriodEnd);
+                        tenantRepository.save(tenant);
+                        System.err.println("=== SUBSCRIPTION CANCEL FLAG SYNCED: tenant=" + tenant.getTenantId()
+                                + " cancelAtPeriodEnd=" + cancelAtPeriodEnd);
+                    });
+                }
+            }
+
+            if ("customer.subscription.deleted".equals(eventType)) {
+                var root = mapper.readTree(payload);
+                var obj = root.path("data").path("object");
+                String subscriptionId = obj.has("id") ? obj.get("id").asText() : null;
+                System.err.println("=== SUBSCRIPTION DELETED: sub=" + subscriptionId);
+
+                if (subscriptionId != null) {
+                    tenantRepository.findByStripeSubscriptionId(subscriptionId).ifPresent(tenant -> {
+                        tenant.setStripeSubscriptionId(null);
+                        tenant.setSubscriptionPlan(null);
+                        tenant.setSubscriptionExpiry(null);
+                        tenant.setCancelAtPeriodEnd(false);
+                        tenantRepository.save(tenant);
+                        System.err.println("=== SUBSCRIPTION CLEARED: tenant=" + tenant.getTenantId());
+                    });
+                }
+            }
             return ResponseEntity.ok(Map.of("received", true));
         } catch (Exception e) {
             System.err.println("=== WEBHOOK FAILED: " + e.getClass().getName() + " - " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Internal server error"));
+        }
+    }
+
+    @PostMapping("/cancel")
+    public ResponseEntity<?> cancelSubscription() {
+        String tenantId = TenantContext.getCurrentTenantId();
+        if (tenantId == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing X-Tenant-ID header"));
+        }
+        Tenant tenant = tenantRepository.findByTenantId(tenantId).orElse(null);
+        if (tenant == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Tenant not found"));
+        }
+        String subscriptionId = tenant.getStripeSubscriptionId();
+        if (subscriptionId == null || subscriptionId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No active subscription to cancel"));
+        }
+
+        try {
+            com.stripe.param.SubscriptionUpdateParams params =
+                    com.stripe.param.SubscriptionUpdateParams.builder()
+                            .setCancelAtPeriodEnd(true)
+                            .build();
+            Subscription subscription = Subscription.retrieve(subscriptionId);
+            subscription.update(params);
+
+            tenant.setCancelAtPeriodEnd(true);
+            tenantRepository.save(tenant);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("cancelAtPeriodEnd", true);
+            result.put("currentPeriodEnd", subscription.getCurrentPeriodEnd());
+            result.put("subscriptionExpiry", tenant.getSubscriptionExpiry() != null
+                    ? tenant.getSubscriptionExpiry().toString() : null);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            System.err.println("=== CANCEL FAILED: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to cancel subscription: " + e.getMessage()));
         }
     }
 }

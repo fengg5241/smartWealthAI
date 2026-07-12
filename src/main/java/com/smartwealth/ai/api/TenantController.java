@@ -49,6 +49,7 @@ public class TenantController {
         info.put("trialEndsAt", tenant.getTrialEndsAt() != null ? tenant.getTrialEndsAt().toString() : null);
         info.put("subscriptionActive", hasActiveSub);
         info.put("inTrial", hasTrial);
+        info.put("cancelAtPeriodEnd", tenant.getCancelAtPeriodEnd() != null && tenant.getCancelAtPeriodEnd());
 
         return ResponseEntity.ok(info);
     }
