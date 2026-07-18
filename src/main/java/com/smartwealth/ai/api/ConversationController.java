@@ -12,6 +12,7 @@ import com.smartwealth.ai.service.WhatsAppBotService;
 import com.smartwealth.ai.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/conversations")
+@ConditionalOnProperty(prefix = "whatsapp", name = "enabled", havingValue = "true")
 public class ConversationController {
 
     private static final Logger log = LoggerFactory.getLogger(ConversationController.class);
