@@ -9,9 +9,22 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.*;
+import java.util.Base64;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 
 @RestController
 @RequestMapping("/api/mistakes")
@@ -42,21 +55,35 @@ public class MistakeController {
     // ==================== Page split ====================
 
     @PostMapping("/split-page")
-    public ResponseEntity<Map<String, Object>> splitPage(@RequestParam("image") MultipartFile file) {
+    public ResponseEntity<Map<String, Object>> splitPage(@RequestParam("image") MultipartFile file,
+            @RequestParam(value = "cropX", required = false) Integer cropX,
+            @RequestParam(value = "cropY", required = false) Integer cropY,
+            @RequestParam(value = "cropW", required = false) Integer cropW,
+            @RequestParam(value = "cropH", required = false) Integer cropH) {
         String tenantId = TenantContext.getCurrentTenantId();
         if (tenantId == null) return bad("Missing X-Tenant-ID header");
 
         try {
             byte[] imageBytes = file.getBytes();
-            List<LearningAIService.QuestionSplit> questions = learningAI.splitPageToQuestions(imageBytes);
 
-            // Upload page image to OSS for later reference
-            String pageKey = tenantId + "/mistakes/pages/" + UUID.randomUUID() + ".jpg";
-            uploadToOss(pageKey, imageBytes, file.getContentType());
+            // Apply crop if all coordinates provided
+            if (cropX != null && cropY != null && cropW != null && cropH != null) {
+                long t0 = System.currentTimeMillis();
+                imageBytes = cropImage(imageBytes, cropX, cropY, cropW, cropH);
+                log.info("Image cropped: {}x{}+{}+{} -> {}KB in {}ms",
+                        cropW, cropH, cropX, cropY, imageBytes.length / 1024, System.currentTimeMillis() - t0);
+            }
 
-            return ResponseEntity.ok(Map.of(
-                    "pageImageKey", pageKey,
-                    "questions", questions));
+            // Compress for faster AI transfer and OSS upload
+            long t0 = System.currentTimeMillis();
+            byte[] compressed = compressImage(imageBytes);
+            log.info("Image compressed: {}KB -> {}KB in {}ms",
+                    imageBytes.length / 1024, compressed.length / 1024, System.currentTimeMillis() - t0);
+
+            List<LearningAIService.QuestionSplit> questions = learningAI.splitPageToQuestions(compressed);
+
+            String pageImageBase64 = Base64.getEncoder().encodeToString(compressed);
+            return ResponseEntity.ok(Map.of("questions", questions, "pageImage", pageImageBase64));
         } catch (Exception e) {
             log.error("Page split failed", e);
             return bad(e.getMessage());
@@ -160,6 +187,7 @@ public class MistakeController {
             Long notebookId = body.get("notebookId") instanceof Number n ? n.longValue() : null;
             String source = body.get("source") instanceof String s && !s.isBlank() ? s : null;
             String gradeLevel = body.get("gradeLevel") instanceof String s && !s.isBlank() ? s : null;
+            String pageImageBase64 = body.get("pageImage") instanceof String s && !s.isBlank() ? s : null;
 
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> items = (List<Map<String, Object>>) body.getOrDefault("questions", List.of());
@@ -180,8 +208,25 @@ public class MistakeController {
                 inputs.add(input);
             }
 
+            // Upload page image to OSS before batch create (with timeout).
+            // If OSS fails or times out, proceed without pageKey — View Original just won't work.
+            String pageKey = null;
+            if (pageImageBase64 != null) {
+                final String pk = tenantId + "/mistakes/pages/" + UUID.randomUUID() + ".jpg";
+                byte[] pageImageBytes = Base64.getDecoder().decode(pageImageBase64);
+                try {
+                    CompletableFuture.runAsync(() -> uploadToOss(pk, pageImageBytes, "image/jpeg"))
+                            .get(5, TimeUnit.SECONDS);
+                    pageKey = pk;
+                } catch (TimeoutException e) {
+                    log.warn("OSS upload timed out for {}", pk);
+                } catch (Exception e) {
+                    log.warn("OSS upload failed for {}: {}", pk, e.getMessage());
+                }
+            }
+
             List<MistakeQuestion> created = mistakeService.batchCreate(tenantId, notebookId, source, gradeLevel,
-                    inputs, null, null);
+                    inputs, pageKey, null, null);
 
             for (MistakeQuestion mq : created) {
                 reviewService.scheduleForReview(tenantId, mq.getId());
@@ -229,6 +274,11 @@ public class MistakeController {
                 .filter(m -> m.getOrigImage() != null)
                 .map(m -> streamOssImage(m.getOrigImage()))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/page-image")
+    public ResponseEntity<byte[]> getPageImage(@RequestParam("key") String key) {
+        return streamOssImage(key);
     }
 
     @PutMapping("/{id}")
@@ -379,6 +429,62 @@ public class MistakeController {
         ossClient.putObject(ossProperties.getBucket(), key, new java.io.ByteArrayInputStream(bytes), meta);
     }
 
+    /** Crop image to the given rectangle (in source image pixels). Outputs as JPEG. */
+    static byte[] cropImage(byte[] src, int x, int y, int w, int h) {
+        try {
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(src));
+            if (img == null) return src;
+            int iw = img.getWidth(), ih = img.getHeight();
+            x = Math.max(0, Math.min(x, iw - 1));
+            y = Math.max(0, Math.min(y, ih - 1));
+            w = Math.min(w, iw - x);
+            h = Math.min(h, ih - y);
+            BufferedImage cropped = img.getSubimage(x, y, w, h);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(cropped, "jpeg", out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            return src;
+        }
+    }
+
+    /** Compress image to max 1280px wide, JPEG quality 85%. */
+    static byte[] compressImage(byte[] original) {
+        try {
+            BufferedImage src = ImageIO.read(new ByteArrayInputStream(original));
+            if (src == null) return original; // unsupported format, passthrough
+
+            int w = src.getWidth();
+            int h = src.getHeight();
+            int maxW = 1280;
+            if (w <= maxW) return original; // already small enough
+            int newH = (int) ((double) h / w * maxW);
+
+            BufferedImage scaled = new BufferedImage(maxW, newH, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = scaled.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.drawImage(src, 0, 0, maxW, newH, null);
+            g.dispose();
+
+            ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+            ImageWriteParam param = writer.getDefaultWriteParam();
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality(0.85f);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (ImageOutputStream ios = ImageIO.createImageOutputStream(out)) {
+                writer.setOutput(ios);
+                writer.write(null, new IIOImage(scaled, null, null), param);
+            }
+            writer.dispose();
+            return out.toByteArray();
+        } catch (Exception e) {
+            log.warn("Image compression failed, using original: {}", e.getMessage());
+            return original;
+        }
+    }
+
     private Map<String, Object> toMap(MistakeQuestion m) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", m.getId());
@@ -393,6 +499,7 @@ public class MistakeController {
         map.put("masteryLevel", m.getMasteryLevel());
         map.put("handwriteRemoved", m.getHandwriteRemoved());
         map.put("hasImage", m.getOrigImage() != null);
+        map.put("pageImageKey", m.getPageImageKey());
         map.put("createdTime", m.getCreatedTime() != null ? m.getCreatedTime().toString() : "");
         map.put("updatedTime", m.getUpdatedTime() != null ? m.getUpdatedTime().toString() : "");
         return map;

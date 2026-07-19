@@ -601,10 +601,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
         <div class="modal-upload-zone" onclick="document.getElementById('meFileInput').click()">
           <div class="icon">📄</div><p>Click to take a photo or select a page image</p><p class="hint">AI will split questions automatically; check the ones you got wrong</p>
         </div>
-        <input type="file" id="meFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleMistakeEntryFile(this.files[0])">
-        <div id="meProgress" style="display:none;text-align:center;padding:20px;">
-          <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--primary);width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;"></div><span> AI is analyzing questions...</span>
+        <input type="file" id="meFileInput" accept="image/*" capture="environment" style="display:none">
+      </div>
+      <!-- Crop step: shown after image selected -->
+      <div id="meCropStep" style="display:none;">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Drag the rectangle to select the area to scan, or leave as-is for the full page.</p>
+        <div id="meCropContainer" style="position:relative;display:inline-block;max-width:100%;cursor:crosshair;user-select:none;touch-action:none;">
+          <img id="meCropImage" style="display:block;max-width:100%;max-height:50vh;pointer-events:none;">
+          <canvas id="meCropCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
         </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn" onclick="resetFileInput()">Back</button>
+          <button class="btn btn-primary" onclick="confirmCropAndScan()" style="flex:1;">Confirm &amp; Scan</button>
+        </div>
+      </div>
+      <div id="meProgress" style="display:none;text-align:center;padding:20px;">
+        <div class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--primary);width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;"></div><span> AI is analyzing questions...</span>
       </div>
       <div id="mistakeEntryStep2" style="display:none;">
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">AI recognized the following questions. Please <strong>check the ones you got wrong</strong> and fill in the correct answers:</p>
@@ -1555,7 +1567,9 @@ let allMistakes = [];
 let selectedMistakeIds = new Set();
 let selectedPhraseIds = new Set();
 let meSplitQuestions = [];
-let mePageImageBytes = null;
+let mePageImageBase64 = null;
+// Crop state
+let meCropFile = null, meCropImg = null, meCropRect = null; // rect: {x,y,w,h} in natural image pixels
 
 // ==================== Page switching ====================
 const origSwitchPage = switchPage;
@@ -1794,6 +1808,7 @@ async function openMistakeDetail(id) {
   body += '<button class="btn" onclick="editMistakeInDetail(' + m.id + ')">✏️ Edit</button>';
   body += '<button class="btn" style="color:var(--danger);" onclick="if(confirm(\'Confirm delete?\'))deleteMistake(' + m.id + ')">🗑 Delete</button>';
   body += '<button class="btn" onclick="generateSimilarQuestion(' + m.id + ')">🎯 Generate Similar</button>';
+  if (m.pageImageKey) body += ' <button class="btn" onclick="window.open(\'/api/mistakes/page-image?key=\' + encodeURIComponent(\'' + escapeHtml(m.pageImageKey) + '\'), \'_blank\')">📄 View Original</button>';
   body += '</div></div>';
   document.getElementById('detailModalBody').innerHTML = body;
   document.getElementById('detailModal').classList.add('active');
@@ -1860,9 +1875,11 @@ async function saveMistakeEdit(id) {
 // ==================== Mistake Entry (whole page) ====================
 async function openMistakeEntry() {
   document.getElementById('mistakeEntryStep1').style.display = '';
+  document.getElementById('meCropStep').style.display = 'none';
   document.getElementById('mistakeEntryStep2').style.display = 'none';
   document.getElementById('meProgress').style.display = 'none';
   document.getElementById('meFileInput').value = '';
+  meCropFile = null; meCropImg = null; meCropRect = null;
   document.getElementById('mistakeEntryModal').classList.add('active');
   // Load notebooks for dropdown
   const sel = document.getElementById('meNotebook');
@@ -1873,26 +1890,174 @@ async function openMistakeEntry() {
 function closeMistakeEntry() {
   document.getElementById('mistakeEntryModal').classList.remove('active');
   meSplitQuestions = [];
-  mePageImageBytes = null;
+  mePageImageBase64 = null;
+  meCropFile = null; meCropImg = null; meCropRect = null;
 }
 
-async function handleMistakeEntryFile(file) {
+function resetFileInput() {
+  document.getElementById('meCropStep').style.display = 'none';
+  document.getElementById('mistakeEntryStep1').style.display = '';
+  document.getElementById('meFileInput').value = '';
+  meCropFile = null; meCropImg = null; meCropRect = null;
+}
+
+// ——— Crop UI ———
+
+document.getElementById('meFileInput').addEventListener('change', function() {
+  const file = this.files[0];
   if (!file) return;
-  document.getElementById('mistakeEntryStep1').style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    meCropFile = file;
+    const img = new Image();
+    img.onload = function() {
+      meCropImg = img;
+      // Default crop rect: 90% of image centered (user can adjust)
+      const margin = 0.05;
+      meCropRect = {
+        x: Math.round(img.width * margin),
+        y: Math.round(img.height * margin),
+        w: Math.round(img.width * (1 - 2 * margin)),
+        h: Math.round(img.height * (1 - 2 * margin))
+      };
+      document.getElementById('mistakeEntryStep1').style.display = 'none';
+      document.getElementById('meCropStep').style.display = '';
+      document.getElementById('meCropImage').src = e.target.result;
+      drawCropOverlay();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+const meCropCanvas = document.getElementById('meCropCanvas');
+const meCropImgEl = document.getElementById('meCropImage');
+
+function drawCropOverlay() {
+  if (!meCropImg || !meCropRect) return;
+  const el = meCropImgEl;
+  const canvas = meCropCanvas;
+  const scaleX = el.offsetWidth / meCropImg.width;
+  const scaleY = el.offsetHeight / meCropImg.height;
+  canvas.width = el.offsetWidth;
+  canvas.height = el.offsetHeight;
+  const ctx = canvas.getContext('2d');
+
+  const rx = meCropRect.x * scaleX, ry = meCropRect.y * scaleY;
+  const rw = meCropRect.w * scaleX, rh = meCropRect.h * scaleY;
+
+  // Dim outside the crop rect
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(rx, ry, rw, rh);
+  // Crop rect border
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(rx, ry, rw, rh);
+  // Corner handles
+  ctx.fillStyle = '#2563eb';
+  [[rx, ry], [rx+rw, ry], [rx, ry+rh], [rx+rw, ry+rh]].forEach(([cx, cy]) => {
+    ctx.fillRect(cx - 5, cy - 5, 10, 10);
+  });
+}
+
+// Debounced resize observer
+let cropResizeTimer;
+new ResizeObserver(() => { clearTimeout(cropResizeTimer); cropResizeTimer = setTimeout(drawCropOverlay, 50); })
+  .observe(meCropImgEl);
+
+// Mouse/touch drag
+let dragMode = null; // 'move' | resize handle
+meCropCanvas.addEventListener('mousedown', cropStart);
+meCropCanvas.addEventListener('touchstart', function(e) {
+  if (e.touches.length === 1) { e.preventDefault(); cropStart(e.touches[0]); }
+}, {passive: false});
+
+function cropStart(ev) {
+  if (!meCropImg || !meCropRect) return;
+  const el = meCropImgEl;
+  const sx = el.offsetWidth / meCropImg.width;
+  const sy = el.offsetHeight / meCropImg.height;
+  const mx = ev.clientX - el.getBoundingClientRect().left;
+  const my = ev.clientY - el.getBoundingClientRect().top;
+  const rx = meCropRect.x * sx, ry = meCropRect.y * sy;
+  const rw = meCropRect.w * sx, rh = meCropRect.h * sy;
+
+  // Check if near a corner (resize mode)
+  const near = (cx, cy) => Math.hypot(mx - cx, my - cy) < 15;
+  if (near(rx, ry)) dragMode = {type: 'nw'};
+  else if (near(rx + rw, ry)) dragMode = {type: 'ne', ox: mx, oy: my, rx, ry, rw, rh};
+  else if (near(rx, ry + rh)) dragMode = {type: 'sw'};
+  else if (near(rx + rw, ry + rh)) dragMode = {type: 'se', ox: mx, oy: my, rx, ry, rw, rh};
+  else if (mx > rx && mx < rx + rw && my > ry && my < ry + rh) {
+    dragMode = {type: 'move', ox: mx - rx, oy: my - ry};
+  }
+  if (dragMode) {
+    dragMode.sx = sx; dragMode.sy = sy;
+    window.addEventListener('mousemove', cropMove);
+    window.addEventListener('mouseup', cropEnd);
+    window.addEventListener('touchmove', cropTouchMove, {passive: false});
+    window.addEventListener('touchend', cropTouchEnd);
+  }
+}
+
+function cropMove(e) { cropDrag(e.clientX, e.clientY); }
+function cropTouchMove(e) {
+  if (e.touches.length === 1) { e.preventDefault(); cropDrag(e.touches[0].clientX, e.touches[0].clientY); }
+}
+
+function cropDrag(cx, cy) {
+  if (!dragMode || !meCropImg || !meCropRect) return;
+  const el = meCropImgEl;
+  const mx = (cx - el.getBoundingClientRect().left) / dragMode.sx;
+  const my = (cy - el.getBoundingClientRect().top) / dragMode.sy;
+  const r = meCropRect;
+
+  if (dragMode.type === 'move') {
+    r.x = Math.max(0, Math.min(meCropImg.width - r.w, Math.round(mx - dragMode.ox)));
+    r.y = Math.max(0, Math.min(meCropImg.height - r.h, Math.round(my - dragMode.oy)));
+  } else {
+    let nx = r.x, ny = r.y, nw = r.w, nh = r.h;
+    if (dragMode.type.includes('e')) nw = Math.max(20, Math.round(mx - r.x));
+    if (dragMode.type.includes('s')) nh = Math.max(20, Math.round(my - r.y));
+    if (dragMode.type.includes('w')) { nw = Math.max(20, Math.round(r.x + r.w - mx)); nx = Math.round(mx); }
+    if (dragMode.type.includes('n')) { nh = Math.max(20, Math.round(r.y + r.h - my)); ny = Math.round(my); }
+    nx = Math.max(0, nx); ny = Math.max(0, ny);
+    nw = Math.min(meCropImg.width - nx, nw);
+    nh = Math.min(meCropImg.height - ny, nh);
+    r.x = nx; r.y = ny; r.w = nw; r.h = nh;
+  }
+  drawCropOverlay();
+}
+
+function cropEnd() {
+  window.removeEventListener('mousemove', cropMove);
+  window.removeEventListener('mouseup', cropEnd);
+  window.removeEventListener('touchmove', cropTouchMove);
+  window.removeEventListener('touchend', cropTouchEnd);
+  dragMode = null;
+}
+function cropTouchEnd() { cropEnd(); }
+
+// ——— Confirm & Scan ———
+async function confirmCropAndScan() {
+  if (!meCropFile || !meCropImg || !meCropRect) return;
+  document.getElementById('meCropStep').style.display = 'none';
   document.getElementById('meProgress').style.display = '';
 
   const fd = new FormData();
-  fd.append('image', file);
+  fd.append('image', meCropFile);
+  fd.append('cropX', Math.round(meCropRect.x));
+  fd.append('cropY', Math.round(meCropRect.y));
+  fd.append('cropW', Math.round(meCropRect.w));
+  fd.append('cropH', Math.round(meCropRect.h));
 
   try {
     const resp = await fetch('/api/mistakes/split-page', { method: 'POST', headers: apiHeaders(), body: fd });
     if (!resp.ok) { alert('AI split failed, please retry'); closeMistakeEntry(); return; }
     const data = await resp.json();
 
-    // Convert image file to bytes for batch submit
-    const buf = await file.arrayBuffer();
-    mePageImageBytes = new Uint8Array(buf);
-
+    mePageImageBase64 = data.pageImage || null;
     meSplitQuestions = data.questions || [];
     renderSplitQuestions();
     document.getElementById('meProgress').style.display = 'none';
@@ -1926,6 +2091,7 @@ function renderSplitQuestions() {
 
 async function batchSubmitMistakes() {
   if (!ensureSubscription()) return;
+  const checks = document.querySelectorAll('.me-q-check:checked');
   if (!checks.length) { alert('Please check at least one mistake'); return; }
 
   const questions = [];
@@ -1958,19 +2124,23 @@ async function batchSubmitMistakes() {
     notebookId: notebookId ? parseInt(notebookId) : null,
     source: source || null,
     gradeLevel: grade || null,
+    pageImage: mePageImageBase64,
     questions: questions
   };
+
+  const btn = document.querySelector('#mistakeEntryStep2 .btn-primary');
+  btn.disabled = true; btn.textContent = 'Submitting...';
 
   try {
     const resp = await fetch('/api/mistakes/batch', {
       method: 'POST', headers: {...apiHeaders(), 'Content-Type': 'application/json'},
       body: JSON.stringify(body)
     });
-    if (!resp.ok) { const e = await resp.json(); alert('Submit failed: ' + (e.error||resp.status)); return; }
+    if (!resp.ok) { const e = await resp.json(); alert('Submit failed: ' + (e.error||resp.status)); btn.disabled = false; btn.textContent = 'Submit Checked Mistakes'; return; }
     closeMistakeEntry();
     loadNotebooks();
     loadMistakes();
-  } catch(e) { alert('Network error: ' + e.message); }
+  } catch(e) { alert('Network error: ' + e.message); btn.disabled = false; btn.textContent = 'Submit Checked Mistakes'; }
 }
 
 // ==================== Word Export ====================

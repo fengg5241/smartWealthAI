@@ -134,6 +134,8 @@ CREATE INDEX IF NOT EXISTS idx_mq_subject_type ON mistake_question(tenant_id, su
 CREATE INDEX IF NOT EXISTS idx_mq_mastery ON mistake_question(tenant_id, mastery_level);
 CREATE INDEX IF NOT EXISTS idx_mq_grade ON mistake_question(tenant_id, grade_level);
 CREATE INDEX IF NOT EXISTS idx_mq_source ON mistake_question(tenant_id, source);
+ALTER TABLE mistake_question ADD COLUMN IF NOT EXISTS handwrite_removed BOOLEAN DEFAULT FALSE;
+ALTER TABLE mistake_question ADD COLUMN IF NOT EXISTS page_image_key VARCHAR(255);
 
 -- Good phrase (好词好句)
 CREATE TABLE IF NOT EXISTS good_phrase (

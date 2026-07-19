@@ -47,6 +47,9 @@ public class MistakeQuestion extends TenantAwareEntity {
     @Column(name = "handwrite_removed")
     private Boolean handwriteRemoved = false;
 
+    @Column(name = "page_image_key", length = 255)
+    private String pageImageKey;
+
     @Column(name = "vector_id", length = 100)
     private String vectorId;
 
@@ -106,6 +109,9 @@ public class MistakeQuestion extends TenantAwareEntity {
 
     public Boolean getHandwriteRemoved() { return handwriteRemoved; }
     public void setHandwriteRemoved(Boolean handwriteRemoved) { this.handwriteRemoved = handwriteRemoved; }
+
+    public String getPageImageKey() { return pageImageKey; }
+    public void setPageImageKey(String pageImageKey) { this.pageImageKey = pageImageKey; }
 
     public String getVectorId() { return vectorId; }
     public void setVectorId(String vectorId) { this.vectorId = vectorId; }

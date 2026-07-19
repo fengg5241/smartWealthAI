@@ -81,7 +81,7 @@ public class MistakeQuestionService {
     @Transactional
     public List<MistakeQuestion> batchCreate(String tenantId, Long notebookId, String source,
                                               String gradeLevel, List<MistakeInput> inputs,
-                                              byte[] pageImage, String contentType) {
+                                              String pageImageKey, byte[] pageImage, String contentType) {
         List<MistakeQuestion> results = new ArrayList<>();
         for (MistakeInput input : inputs) {
             MistakeQuestion entity = new MistakeQuestion();
@@ -96,6 +96,7 @@ public class MistakeQuestionService {
             entity.setErrorReason(input.errorReason);
             entity.setMasteryLevel(input.masteryLevel != null ? input.masteryLevel : "不熟悉");
             entity.setHandwriteRemoved(input.handwriteRemoved != null && input.handwriteRemoved);
+            if (pageImageKey != null) entity.setPageImageKey(pageImageKey);
             entity = repository.save(entity);
 
             // Upload page image as reference for the first item; subsequent items share
