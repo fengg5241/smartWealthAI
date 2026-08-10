@@ -16,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,30 +47,26 @@ public class GoodPhraseService {
         entity.setContent(input.content);
         entity.setSource(input.source);
         entity.setMasteryLevel(input.masteryLevel != null ? input.masteryLevel : "不熟悉");
-        entity.setEntryMethod(imageBytes != null ? "photo" : "text");
+        entity.setEntryMethod(imageBytes != null || input.imageKey != null ? "photo" : "text");
 
-        // Language detection
+        // Language detection (fast, no network call)
         if (!isEmpty(input.language)) {
             entity.setLanguage(input.language);
         } else {
             entity.setLanguage(detectLanguage(input.content));
         }
 
-        // AI auto-tag if tags are empty
-        if (isEmpty(input.theme) && isEmpty(input.emotion) && isEmpty(input.usageType) && isEmpty(input.tags)) {
-            LearningAIService.PhraseTags aiTags = learningAI.tagPhrase(input.content);
-            entity.setTheme(aiTags.theme());
-            entity.setEmotion(aiTags.emotion());
-            entity.setUsageType(aiTags.usageType());
-            entity.setTags(aiTags.tags());
-        } else {
+        // Use pre-set tags if provided, otherwise leave blank for async enrichment
+        if (!isEmpty(input.theme) || !isEmpty(input.emotion) || !isEmpty(input.usageType) || !isEmpty(input.tags)) {
             entity.setTheme(input.theme);
             entity.setEmotion(input.emotion);
             entity.setUsageType(input.usageType);
             entity.setTags(input.tags);
         }
 
-        if (imageBytes != null) {
+        if (input.imageKey != null) {
+            entity.setImagePath(input.imageKey);
+        } else if (imageBytes != null) {
             entity = repository.save(entity);
             String key = tenantId + "/phrases/" + entity.getId() + ".jpg";
             uploadToOss(key, imageBytes, contentType);
@@ -78,15 +75,43 @@ public class GoodPhraseService {
 
         entity = repository.save(entity);
 
-        // Vector index
-        String searchable = buildSearchableText(entity);
-        try {
-            entity.setVectorId(learningAI.indexPhraseText(tenantId, entity.getId(), searchable));
-        } catch (Exception e) {
-            log.warn("Vector index failed for phrase id={}: {}", entity.getId(), e.getMessage());
-        }
+        // Async: AI tagging + vector indexing (don't block the response)
+        final Long phraseId = entity.getId();
+        final boolean needsAiTag = isEmpty(input.theme) && isEmpty(input.emotion)
+                && isEmpty(input.usageType) && isEmpty(input.tags);
+        CompletableFuture.runAsync(() -> enrichPhrase(tenantId, phraseId, needsAiTag));
 
-        return repository.save(entity);
+        return entity;
+    }
+
+    private void enrichPhrase(String tenantId, Long phraseId, boolean needsAiTag) {
+        try {
+            GoodPhrase entity = repository.findById(phraseId).orElse(null);
+            if (entity == null) return;
+
+            if (needsAiTag) {
+                try {
+                    LearningAIService.PhraseTags aiTags = learningAI.tagPhrase(entity.getContent());
+                    entity.setTheme(aiTags.theme());
+                    entity.setEmotion(aiTags.emotion());
+                    entity.setUsageType(aiTags.usageType());
+                    entity.setTags(aiTags.tags());
+                } catch (Exception e) {
+                    log.warn("Async AI tagging failed for phrase id={}: {}", phraseId, e.getMessage());
+                }
+            }
+
+            String searchable = buildSearchableText(entity);
+            try {
+                entity.setVectorId(learningAI.indexPhraseText(tenantId, phraseId, searchable));
+            } catch (Exception e) {
+                log.warn("Async vector index failed for phrase id={}: {}", phraseId, e.getMessage());
+            }
+
+            repository.save(entity);
+        } catch (Exception e) {
+            log.warn("Async enrichment failed for phrase id={}: {}", phraseId, e.getMessage());
+        }
     }
 
     public List<GoodPhrase> list(String tenantId, String theme, String emotion, String masteryLevel,
@@ -282,5 +307,6 @@ public class GoodPhraseService {
         public String tags;
         public String masteryLevel;
         public String language;
+        public String imageKey;
     }
 }

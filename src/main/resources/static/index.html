@@ -640,7 +640,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
 <!-- ===== Phrase Entry Modal ===== -->
 <div class="modal-mask" id="phraseEntryModal" onclick="if(event.target===this)closePhraseEntry()">
-  <div class="modal" style="width:500px;">
+  <div class="modal" style="width:800px;max-width:95vw;">
     <div class="modal-header"><h3>✨ Add Good Phrase</h3><button class="close" onclick="closePhraseEntry()">&times;</button></div>
     <div class="modal-body">
       <!-- Tab switcher -->
@@ -681,14 +681,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
             <option value="A_LEVEL">A Level (Junior College)</option>
           </select>
         </div>
+        <!-- Step 1: Upload zone -->
         <div id="ocrUploadZone" class="modal-upload-zone" onclick="document.getElementById('ocrFileInput').click()">
           <div class="icon">📷</div><p>Tap to take photo or select image</p><p class="hint">AI will extract good phrases from the image</p>
         </div>
-        <input type="file" id="ocrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleOCRFile(this.files[0])">
+        <input type="file" id="ocrFileInput" accept="image/*" capture="environment" style="display:none">
+        <!-- Step 2: Crop -->
+        <div id="ocrCropStep" style="display:none;">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Drag the rectangle to select the area to scan, or leave as-is for the full page.</p>
+          <div id="ocrCropContainer" style="position:relative;display:inline-block;max-width:100%;cursor:crosshair;user-select:none;touch-action:none;">
+            <img id="ocrCropImage" style="display:block;max-width:100%;max-height:50vh;pointer-events:none;">
+            <canvas id="ocrCropCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn" onclick="resetOCRCrop()">Back</button>
+            <button class="btn btn-primary" onclick="confirmOCRCropAndScan()" style="flex:1;">Confirm &amp; Scan</button>
+          </div>
+        </div>
+        <!-- Step 3: Progress -->
         <div id="ocrProgress" style="display:none;text-align:center;padding:16px;">
           <span style="display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px;"></span>
           <span>Extracting phrases...</span>
         </div>
+        <!-- Step 4: Candidates -->
         <div id="ocrCandidates" style="display:none;max-height:60vh;overflow-y:auto;"></div>
       </div>
     </div>
@@ -2324,6 +2339,7 @@ function renderPhraseGrid(phrases) {
     html += '<span class="card-mastery ' + mClass + '">' + (p.masteryLevel||'Unfamiliar') + '</span>';
     html += '</div>';
     html += '<div style="display:flex;align-items:center;gap:6px;">';
+    if (p.hasImage) html += '<button class="btn btn-sm" onclick="event.stopPropagation();window.open(\'/api/phrases/' + p.id + '/image\', \'_blank\')" title="View Original">View Original</button>';
     html += '<label style="display:flex;align-items:center;gap:2px;font-size:10px;color:var(--text-muted);cursor:pointer;" onclick="event.stopPropagation();"><input type="checkbox" onclick="togglePhraseSelect(' + p.id + ')" ' + checked + '> select</label>';
     html += '</div>';
     html += '</div></div>';
@@ -2353,8 +2369,10 @@ function openPhraseEntry() {
   document.getElementById('ocrCandidates').style.display = 'none';
   document.getElementById('ocrCandidates').innerHTML = '';
   document.getElementById('ocrUploadZone').style.display = '';
+  document.getElementById('ocrCropStep').style.display = 'none';
   document.getElementById('ocrFileInput').value = '';
   ocrCandidates = [];
+  ocrCropFile = null; ocrCropImg = null; ocrCropRect = null; ocrPageImageKey = null;
   // Populate phrase notebook selector, pre-select current
   const sel = document.getElementById('peNotebook');
   sel.innerHTML = '<option value="">(None)</option>';
@@ -2365,7 +2383,10 @@ function openPhraseEntry() {
   document.getElementById('phraseEntryModal').classList.add('active');
 }
 
-function closePhraseEntry() { document.getElementById('phraseEntryModal').classList.remove('active'); }
+function closePhraseEntry() {
+  document.getElementById('phraseEntryModal').classList.remove('active');
+  ocrCropFile = null; ocrCropImg = null; ocrCropRect = null; ocrPageImageKey = null;
+}
 
 function autoDetectPhraseLanguage() {
   const text = document.getElementById('peContent').value;
@@ -2541,21 +2562,175 @@ function renderTagChips() {
 }
 
 // ==================== Phrase OCR ====================
-async function handleOCRFile(file) {
+
+let ocrCropFile = null, ocrCropImg = null, ocrCropRect = null;
+let ocrPageImageKey = null;
+
+// File input change → show crop step
+document.getElementById('ocrFileInput').addEventListener('change', function() {
+  const file = this.files[0];
   if (!file) return;
-  document.getElementById('ocrUploadZone').style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    ocrCropFile = file;
+    const img = new Image();
+    img.onload = function() {
+      ocrCropImg = img;
+      const margin = 0.05;
+      ocrCropRect = {
+        x: Math.round(img.width * margin),
+        y: Math.round(img.height * margin),
+        w: Math.round(img.width * (1 - 2 * margin)),
+        h: Math.round(img.height * (1 - 2 * margin))
+      };
+      document.getElementById('ocrUploadZone').style.display = 'none';
+      document.getElementById('ocrCropStep').style.display = '';
+      document.getElementById('ocrCropImage').src = e.target.result;
+      drawOCRCropOverlay();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function resetOCRCrop() {
+  document.getElementById('ocrCropStep').style.display = 'none';
+  document.getElementById('ocrUploadZone').style.display = '';
+  document.getElementById('ocrFileInput').value = '';
+  ocrCropFile = null; ocrCropImg = null; ocrCropRect = null;
+}
+
+// ——— OCR Crop UI (matches mistake entry pattern) ———
+
+const ocrCropCanvas = document.getElementById('ocrCropCanvas');
+const ocrCropImgEl = document.getElementById('ocrCropImage');
+
+function drawOCRCropOverlay() {
+  if (!ocrCropImg || !ocrCropRect) return;
+  const el = ocrCropImgEl;
+  const canvas = ocrCropCanvas;
+  const scaleX = el.offsetWidth / ocrCropImg.width;
+  const scaleY = el.offsetHeight / ocrCropImg.height;
+  canvas.width = el.offsetWidth;
+  canvas.height = el.offsetHeight;
+  const ctx = canvas.getContext('2d');
+
+  const rx = ocrCropRect.x * scaleX, ry = ocrCropRect.y * scaleY;
+  const rw = ocrCropRect.w * scaleX, rh = ocrCropRect.h * scaleY;
+
+  // Dim outside the crop rect
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(rx, ry, rw, rh);
+  // Crop rect border
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(rx, ry, rw, rh);
+  // Corner handles
+  ctx.fillStyle = '#2563eb';
+  [[rx, ry], [rx+rw, ry], [rx, ry+rh], [rx+rw, ry+rh]].forEach(([cx, cy]) => {
+    ctx.fillRect(cx - 5, cy - 5, 10, 10);
+  });
+}
+
+// Debounced resize observer
+let ocrCropResizeTimer;
+new ResizeObserver(() => { clearTimeout(ocrCropResizeTimer); ocrCropResizeTimer = setTimeout(drawOCRCropOverlay, 50); })
+  .observe(ocrCropImgEl);
+
+// Mouse/touch drag (listeners on window — same as mistake entry)
+let ocrDragMode = null;
+
+ocrCropCanvas.addEventListener('mousedown', ocrCropStart);
+ocrCropCanvas.addEventListener('touchstart', function(e) {
+  if (e.touches.length === 1) { e.preventDefault(); ocrCropStart(e.touches[0]); }
+}, {passive: false});
+
+function ocrCropStart(ev) {
+  if (!ocrCropImg || !ocrCropRect) return;
+  const el = ocrCropImgEl;
+  const sx = el.offsetWidth / ocrCropImg.width;
+  const sy = el.offsetHeight / ocrCropImg.height;
+  const mx = ev.clientX - el.getBoundingClientRect().left;
+  const my = ev.clientY - el.getBoundingClientRect().top;
+  const rx = ocrCropRect.x * sx, ry = ocrCropRect.y * sy;
+  const rw = ocrCropRect.w * sx, rh = ocrCropRect.h * sy;
+
+  const near = (cx, cy) => Math.hypot(mx - cx, my - cy) < 15;
+  if (near(rx, ry)) ocrDragMode = {type: 'nw'};
+  else if (near(rx + rw, ry)) ocrDragMode = {type: 'ne', ox: mx, oy: my, rx, ry, rw, rh};
+  else if (near(rx, ry + rh)) ocrDragMode = {type: 'sw'};
+  else if (near(rx + rw, ry + rh)) ocrDragMode = {type: 'se', ox: mx, oy: my, rx, ry, rw, rh};
+  else if (mx > rx && mx < rx + rw && my > ry && my < ry + rh) {
+    ocrDragMode = {type: 'move', ox: mx - rx, oy: my - ry};
+  }
+  if (ocrDragMode) {
+    ocrDragMode.sx = sx; ocrDragMode.sy = sy;
+    window.addEventListener('mousemove', ocrCropMove);
+    window.addEventListener('mouseup', ocrCropEnd);
+    window.addEventListener('touchmove', ocrCropTouchMove, {passive: false});
+    window.addEventListener('touchend', ocrCropTouchEnd);
+  }
+}
+
+function ocrCropMove(e) { ocrCropDrag(e.clientX, e.clientY); }
+function ocrCropTouchMove(e) {
+  if (e.touches.length === 1) { e.preventDefault(); ocrCropDrag(e.touches[0].clientX, e.touches[0].clientY); }
+}
+
+function ocrCropDrag(cx, cy) {
+  if (!ocrDragMode || !ocrCropImg || !ocrCropRect) return;
+  const el = ocrCropImgEl;
+  const mx = (cx - el.getBoundingClientRect().left) / ocrDragMode.sx;
+  const my = (cy - el.getBoundingClientRect().top) / ocrDragMode.sy;
+  const r = ocrCropRect;
+
+  if (ocrDragMode.type === 'move') {
+    r.x = Math.max(0, Math.min(ocrCropImg.width - r.w, Math.round(mx - ocrDragMode.ox)));
+    r.y = Math.max(0, Math.min(ocrCropImg.height - r.h, Math.round(my - ocrDragMode.oy)));
+  } else {
+    let nx = r.x, ny = r.y, nw = r.w, nh = r.h;
+    if (ocrDragMode.type.includes('e')) nw = Math.max(20, Math.round(mx - r.x));
+    if (ocrDragMode.type.includes('s')) nh = Math.max(20, Math.round(my - r.y));
+    if (ocrDragMode.type.includes('w')) { nw = Math.max(20, Math.round(r.x + r.w - mx)); nx = Math.round(mx); }
+    if (ocrDragMode.type.includes('n')) { nh = Math.max(20, Math.round(r.y + r.h - my)); ny = Math.round(my); }
+    nx = Math.max(0, nx); ny = Math.max(0, ny);
+    nw = Math.min(ocrCropImg.width - nx, nw);
+    nh = Math.min(ocrCropImg.height - ny, nh);
+    r.x = nx; r.y = ny; r.w = nw; r.h = nh;
+  }
+  drawOCRCropOverlay();
+}
+
+function ocrCropEnd() {
+  ocrDragMode = null;
+  window.removeEventListener('mousemove', ocrCropMove);
+  window.removeEventListener('mouseup', ocrCropEnd);
+  window.removeEventListener('touchmove', ocrCropTouchMove);
+  window.removeEventListener('touchend', ocrCropTouchEnd);
+}
+function ocrCropTouchEnd() { ocrCropEnd(); }
+
+async function confirmOCRCropAndScan() {
+  if (!ocrCropFile || !ocrCropImg || !ocrCropRect) return;
+  document.getElementById('ocrCropStep').style.display = 'none';
   document.getElementById('ocrProgress').style.display = '';
   document.getElementById('ocrCandidates').style.display = 'none';
 
   const standard = document.getElementById('ocrStandard').value;
   const fd = new FormData();
-  fd.append('image', file);
+  fd.append('image', ocrCropFile);
   fd.append('standard', standard);
+  fd.append('cropX', Math.round(ocrCropRect.x));
+  fd.append('cropY', Math.round(ocrCropRect.y));
+  fd.append('cropW', Math.round(ocrCropRect.w));
+  fd.append('cropH', Math.round(ocrCropRect.h));
 
   try {
     const resp = await fetch('/api/phrases/ocr', { method: 'POST', headers: apiHeaders(), body: fd });
     if (!resp.ok) { const e = await resp.json(); alert('OCR failed: ' + (e.error||resp.status)); closePhraseEntry(); return; }
     const data = await resp.json();
+    ocrPageImageKey = data.pageImageKey || null;
     ocrCandidates = (data.candidates || []).map(text => ({ text, saved: false, skipped: false }));
     renderOCRCandidates();
     document.getElementById('ocrProgress').style.display = 'none';
@@ -2583,6 +2758,8 @@ function renderOCRCandidates() {
       html += '<span style="color:var(--success);font-size:12px;font-weight:600;text-align:center;">Saved</span>';
     } else if (c.skipped) {
       html += '<span style="color:var(--text-muted);font-size:12px;text-align:center;">Skipped</span>';
+    } else if (c.__saving) {
+      html += '<span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite;"></span>';
     } else {
       html += '<button class="btn btn-sm btn-primary" onclick="confirmOCRCandidate(' + i + ')" style="width:100%;">Confirm</button>';
       html += '<button class="btn btn-sm" onclick="skipOCRCandidate(' + i + ')" style="width:100%;">Skip</button>';
@@ -2603,17 +2780,22 @@ function renderOCRCandidates() {
 async function confirmOCRCandidate(idx) {
   const c = ocrCandidates[idx];
   if (c.saved || c.skipped) return;
+
+  c.__saving = true;
+  renderOCRCandidates();
+
   const fd = new FormData();
   fd.append('content', c.text);
   fd.append('entryMethod', 'photo');
+  if (ocrPageImageKey) fd.append('imageKey', ocrPageImageKey);
   const peNbId = document.getElementById('peNotebook').value;
   if (peNbId) fd.append('notebookId', peNbId);
   try {
     const resp = await fetch('/api/phrases', { method: 'POST', headers: apiHeaders(), body: fd });
     if (!resp.ok) { const e = await resp.json(); alert('Save failed: ' + (e.error||resp.status)); return; }
     ocrCandidates[idx].saved = true;
-    renderOCRCandidates();
   } catch(e) { alert('Network error: ' + e.message); }
+  finally { c.__saving = false; renderOCRCandidates(); }
 }
 
 async function saveAllOCRCandidates() {
@@ -2629,6 +2811,7 @@ async function saveAllOCRCandidates() {
         const fd = new FormData();
         fd.append('content', c.text);
         fd.append('entryMethod', 'photo');
+        if (ocrPageImageKey) fd.append('imageKey', ocrPageImageKey);
         const peNbId = document.getElementById('peNotebook').value;
         if (peNbId) fd.append('notebookId', peNbId);
         const resp = await fetch('/api/phrases', { method: 'POST', headers: apiHeaders(), body: fd });

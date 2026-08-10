@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/documents")
 public class DocumentController {
 
-    private static final long MAX_TEXT_LENGTH = 500_000;
+    private static final long MAX_TEXT_LENGTH = 2_000_000;
 
     private final DocumentParserService parserService;
     private final RagDocumentService ragDocumentService;

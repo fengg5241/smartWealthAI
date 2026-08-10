@@ -12,9 +12,22 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.*;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 
 @RestController
 @RequestMapping("/api/phrases")
@@ -55,6 +68,7 @@ public class PhraseController {
             @RequestParam(value = "language", required = false, defaultValue = "") String language,
             @RequestParam(value = "entryMethod", required = false, defaultValue = "") String entryMethod,
             @RequestParam(value = "notebookId", required = false) Long notebookId,
+            @RequestParam(value = "imageKey", required = false) String imageKey,
             @RequestParam(value = "image", required = false) MultipartFile file) {
 
         String tenantId = TenantContext.getCurrentTenantId();
@@ -73,6 +87,7 @@ public class PhraseController {
             input.masteryLevel = masteryLevel;
             input.language = blankToNull(language);
             input.notebookId = notebookId;
+            input.imageKey = blankToNull(imageKey);
 
             byte[] imageBytes = file != null ? file.getBytes() : null;
             String contentType = file != null ? file.getContentType() : null;
@@ -82,7 +97,9 @@ public class PhraseController {
             }
 
             GoodPhrase phrase = phraseService.create(tenantId, input, imageBytes, contentType);
-            reviewService.schedulePhraseForReview(tenantId, phrase.getId());
+            CompletableFuture.runAsync(() -> {
+                try { reviewService.schedulePhraseForReview(tenantId, phrase.getId()); } catch (Exception ignored) {}
+            });
             return ResponseEntity.ok(toMap(phrase));
         } catch (Exception e) {
             log.error("Create phrase failed", e);
@@ -195,7 +212,11 @@ public class PhraseController {
     @PostMapping("/ocr")
     public ResponseEntity<Map<String, Object>> ocrPhrases(
             @RequestParam("image") MultipartFile file,
-            @RequestParam(value = "standard", required = false, defaultValue = "PSLE") String standard) {
+            @RequestParam(value = "standard", required = false, defaultValue = "PSLE") String standard,
+            @RequestParam(value = "cropX", required = false) Integer cropX,
+            @RequestParam(value = "cropY", required = false) Integer cropY,
+            @RequestParam(value = "cropW", required = false) Integer cropW,
+            @RequestParam(value = "cropH", required = false) Integer cropH) {
 
         String tenantId = TenantContext.getCurrentTenantId();
         if (tenantId == null) return bad("Missing X-Tenant-ID header");
@@ -203,10 +224,29 @@ public class PhraseController {
 
         try {
             byte[] imageBytes = file.getBytes();
-            String ocrText = ocrService.ocrImage(imageBytes);
+
+            // Apply crop if all coordinates provided
+            if (cropX != null && cropY != null && cropW != null && cropH != null) {
+                imageBytes = cropImage(imageBytes, cropX, cropY, cropW, cropH);
+            }
+
+            // Compress for faster AI transfer and OSS upload
+            byte[] compressed = compressImage(imageBytes);
+
+            // Upload to OSS and OCR in parallel (independent operations on same bytes)
+            String pageImageKey = tenantId + "/phrases/pages/" + UUID.randomUUID() + ".jpg";
+            CompletableFuture<Void> ossFuture = CompletableFuture.runAsync(() ->
+                uploadToOss(pageImageKey, compressed, "image/jpeg"));
+
+            String ocrText = ocrService.ocrImage(compressed);
+
+            // Wait for OSS upload to finish (should already be done by now)
+            try { ossFuture.get(10, TimeUnit.SECONDS); } catch (Exception e) {
+                log.warn("OSS upload for {} did not complete in time: {}", pageImageKey, e.getMessage());
+            }
 
             if (ocrText == null || ocrText.isBlank()) {
-                return ResponseEntity.ok(Map.of("candidates", List.of()));
+                return ResponseEntity.ok(Map.of("candidates", List.of(), "pageImageKey", pageImageKey));
             }
 
             // Build grading-standard-specific filter prompt
@@ -214,35 +254,67 @@ public class PhraseController {
                 case "O_LEVEL", "OLEVEL" -> """
                     O Level (Secondary 4): Sophisticated vocabulary, effective metaphors,
                     nuanced emotional language, rhetorical devices, mature sentence
-                    structure. A "good phrase" demonstrates stylistic control.""";
+                    structure. Look for precise word choices, figurative language,
+                    and stylistic control.""";
                 case "A_LEVEL", "ALEVEL" -> """
                     A Level (JC/MI Year 2): Advanced literary techniques, precise diction,
-                    complex rhetorical strategies, original voice. A "good phrase" shows
-                    mastery of language for effect.""";
+                    complex rhetorical strategies, original voice. Look for striking word
+                    choices, layered meaning, and masterful language for effect.""";
                 default -> """
                     PSLE (Primary 6): Vivid adjectives, similes, emotional expressions,
-                    appropriate idioms, varied sentence starters. A "good phrase" at this
-                    level shows effort beyond basic description.""";
+                    appropriate idioms, varied sentence starters, and noteworthy word
+                    choices. A sentence is worth collecting if any part of it shows
+                    writing effort beyond basic description.""";
             };
 
+            // Split OCR text into complete sentences
+            List<String> sentences = splitSentences(ocrText);
+            if (sentences.isEmpty()) {
+                sentences = List.of(ocrText.trim());
+            }
+
+            // Build numbered sentence list for the prompt
+            StringBuilder numberedSentences = new StringBuilder();
+            for (int i = 0; i < sentences.size(); i++) {
+                numberedSentences.append(i + 1).append(". ").append(sentences.get(i)).append("\n");
+            }
+
             String prompt = """
-                You are a writing evaluator. Given the extracted text from a student's notebook,
-                identify and extract sentences/phrases that qualify as "good phrases"
-                according to the grading criteria below.
+                You are a writing evaluator. Below are complete sentences extracted from
+                a student's notebook, each prefixed with a number. Select every sentence
+                that has noteworthy writing quality — interesting vocabulary, vivid imagery,
+                emotional depth, figurative language, strong word choices, or varied sentence
+                structure.
 
-                Grading Standard:
+                Key: a sentence is worth collecting if ANY of these is true:
+                - It uses a striking or unusual word combination (e.g. "accomplished liar",
+                  "bitter sweetness", "deafening silence")
+                - It expresses emotion in a vivid or relatable way
+                - It uses simile, metaphor, personification, or other figurative language
+                - It contains a descriptive adjective or adverb that makes the writing stand out
+                - It has a sentence structure that shows effort (varied length, clause stacking)
+
+                A single strong word choice in an otherwise ordinary sentence is enough.
+                For example, for these sentences:
+                1. The sky was grey.
+                2. She felt like an accomplished liar — polished, professional, and utterly false.
+                3. He went to the store.
+
+                You should select [2], because "accomplished liar" and "polished, professional,
+                and utterly false" are striking word combinations. Sentence 1 and 3 are too
+                generic.
+
                 %s
 
-                Extracted text:
+                Numbered sentences:
                 %s
+                Return ONLY a JSON array of the numbers (integers) of the qualifying sentences.
+                Example: [2]
+                If none qualify, return an empty array [].""".formatted(gradingCriteria, numberedSentences.toString());
 
-                Return ONLY a JSON array of the qualifying sentences/phrases.
-                Each element should be the full sentence/phrase text, nothing else.
-                If none qualify, return an empty array [].""".formatted(gradingCriteria, ocrText);
+            String response = learningAI.callTextModelRaw("qwen-turbo", prompt, 200);
 
-            String response = learningAI.callTextModelRaw("qwen-turbo", prompt, 1000);
-
-            // Parse JSON array from response
+            // Parse JSON array of sentence numbers, map back to full sentence text
             List<String> candidates = new ArrayList<>();
             try {
                 com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -253,22 +325,21 @@ public class PhraseController {
                     com.fasterxml.jackson.databind.JsonNode arr = om.readTree(jsonArr);
                     if (arr.isArray()) {
                         for (com.fasterxml.jackson.databind.JsonNode node : arr) {
-                            String text = node.asText().trim();
-                            if (!text.isBlank() && text.length() > 1) {
-                                candidates.add(text);
+                            if (node.isInt()) {
+                                int idx = node.asInt() - 1;
+                                if (idx >= 0 && idx < sentences.size()) {
+                                    candidates.add(sentences.get(idx));
+                                }
                             }
                         }
                     }
                 }
             } catch (Exception e) {
-                log.warn("Failed to parse OCR candidates, falling back to line split: {}", e.getMessage());
-                candidates = Arrays.stream(ocrText.split("\\n"))
-                        .map(String::trim)
-                        .filter(s -> s.length() > 1)
-                        .toList();
+                log.warn("Failed to parse OCR selection by numbers, falling back to all sentences: {}", e.getMessage());
+                candidates = sentences;
             }
 
-            return ResponseEntity.ok(Map.of("candidates", candidates));
+            return ResponseEntity.ok(Map.of("candidates", candidates, "pageImageKey", pageImageKey));
         } catch (Exception e) {
             log.error("OCR phrase extraction failed", e);
             return bad("OCR failed: " + e.getMessage());
@@ -347,6 +418,70 @@ public class PhraseController {
 
     // ==================== Helpers ====================
 
+    private void uploadToOss(String key, byte[] bytes, String contentType) {
+        var meta = new com.aliyun.oss.model.ObjectMetadata();
+        meta.setContentType(contentType != null ? contentType : "image/jpeg");
+        ossClient.putObject(ossProperties.getBucket(), key,
+                new java.io.ByteArrayInputStream(bytes), meta);
+    }
+
+    /** Crop image to the given rectangle (in source image pixels). Outputs as JPEG. */
+    static byte[] cropImage(byte[] src, int x, int y, int w, int h) {
+        try {
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(src));
+            if (img == null) return src;
+            int iw = img.getWidth(), ih = img.getHeight();
+            x = Math.max(0, Math.min(x, iw - 1));
+            y = Math.max(0, Math.min(y, ih - 1));
+            w = Math.min(w, iw - x);
+            h = Math.min(h, ih - y);
+            BufferedImage cropped = img.getSubimage(x, y, w, h);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(cropped, "jpeg", out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            return src;
+        }
+    }
+
+    /** Compress image to max 1024px wide, JPEG quality 75%. */
+    static byte[] compressImage(byte[] original) {
+        try {
+            BufferedImage src = ImageIO.read(new ByteArrayInputStream(original));
+            if (src == null) return original;
+
+            int w = src.getWidth();
+            int h = src.getHeight();
+            int maxW = 1024;
+            if (w <= maxW) return original;
+
+            int newH = (int) ((double) h / w * maxW);
+
+            BufferedImage scaled = new BufferedImage(maxW, newH, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = scaled.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.drawImage(src, 0, 0, maxW, newH, null);
+            g.dispose();
+
+            ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+            ImageWriteParam param = writer.getDefaultWriteParam();
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality(0.75f);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (ImageOutputStream ios = ImageIO.createImageOutputStream(out)) {
+                writer.setOutput(ios);
+                writer.write(null, new IIOImage(scaled, null, null), param);
+            }
+            writer.dispose();
+            return out.toByteArray();
+        } catch (Exception e) {
+            log.warn("Image compression failed, using original: {}", e.getMessage());
+            return original;
+        }
+    }
+
     private Map<String, Object> toMap(GoodPhrase p) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", p.getId());
@@ -375,5 +510,30 @@ public class PhraseController {
     private static String stringField(Map<String, Object> map, String key) {
         Object v = map.get(key);
         return v instanceof String s && !s.isBlank() ? s : null;
+    }
+
+    /**
+     * Split text into complete sentences using sentence-ending punctuation.
+     * Delimiters: . ! ? (English) and 。！？ (Chinese).
+     */
+    private static List<String> splitSentences(String text) {
+        List<String> result = new ArrayList<>();
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("[^。！？.!?]+[。！？.!?]+");
+        java.util.regex.Matcher matcher = pattern.matcher(text);
+        int lastEnd = 0;
+        while (matcher.find()) {
+            String sentence = matcher.group().trim();
+            if (sentence.length() > 1) {
+                result.add(sentence);
+            }
+            lastEnd = matcher.end();
+        }
+        if (lastEnd < text.length()) {
+            String remainder = text.substring(lastEnd).trim();
+            if (remainder.length() > 1) {
+                result.add(remainder);
+            }
+        }
+        return result;
     }
 }
