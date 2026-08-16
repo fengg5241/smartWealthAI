@@ -60,7 +60,7 @@ public class GoogleDriveSyncService {
                 + "&response_type=code"
                 + "&access_type=offline"
                 + "&prompt=consent"
-                + "&scope=" + urlEncode("https://www.googleapis.com/auth/drive.file")
+                + "&scope=" + urlEncode("https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file")
                 + "&state=" + urlEncode(tenantId + ":" + state);
     }
 
