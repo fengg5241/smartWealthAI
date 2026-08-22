@@ -70,8 +70,8 @@ public class RagDocumentService {
         }
 
         documentRepository.saveAll(entities);
-        for (int i = 0; i < vectorDocs.size(); i += 100) {
-            int end = Math.min(i + 100, vectorDocs.size());
+        for (int i = 0; i < vectorDocs.size(); i += 10) {
+            int end = Math.min(i + 10, vectorDocs.size());
             vectorStore.add(vectorDocs.subList(i, end));
         }
 
