@@ -3,8 +3,12 @@ package com.smartwealth.ai.api;
 import com.smartwealth.ai.domain.EnterpriseDocument;
 import com.smartwealth.ai.repository.EnterpriseDocumentRepository;
 import com.smartwealth.ai.service.DocumentParserService;
+import com.smartwealth.ai.service.GoogleDriveSyncService;
 import com.smartwealth.ai.service.RagDocumentService;
 import com.smartwealth.ai.tenant.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,10 +23,14 @@ import java.util.stream.Collectors;
 public class DocumentController {
 
     private static final long MAX_TEXT_LENGTH = 2_000_000;
+    private static final Logger log = LoggerFactory.getLogger(DocumentController.class);
 
     private final DocumentParserService parserService;
     private final RagDocumentService ragDocumentService;
     private final EnterpriseDocumentRepository documentRepository;
+
+    @Autowired(required = false)
+    private GoogleDriveSyncService syncService;
 
     public DocumentController(DocumentParserService parserService, RagDocumentService ragDocumentService,
                               EnterpriseDocumentRepository documentRepository) {
@@ -51,6 +59,7 @@ public class DocumentController {
                         "error", "Document text content exceeds " + MAX_TEXT_LENGTH + " characters. Please upload a smaller file or split it into multiple documents."));
             }
             int chunkCount = ragDocumentService.indexDocument(tenantId, fileName, fileType, content);
+            pushToGoogleDrive(tenantId, fileName, file);
 
             return ResponseEntity.ok(Map.of(
                     "message", "Document uploaded and indexed",
@@ -87,9 +96,28 @@ public class DocumentController {
             return ResponseEntity.badRequest().body(Map.of("error", "Missing X-Tenant-ID header"));
         }
         ragDocumentService.deleteDocument(tenantId, fileName);
+        deleteFromGoogleDrive(tenantId, fileName);
         return ResponseEntity.ok(Map.of(
                 "message", "Document deleted",
                 "fileName", fileName));
+    }
+
+    private void pushToGoogleDrive(String tenantId, String fileName, MultipartFile file) {
+        if (syncService == null || !syncService.isConnected(tenantId)) return;
+        try {
+            syncService.pushFileToDrive(tenantId, fileName, file.getBytes());
+        } catch (Exception e) {
+            log.warn("Failed to push file to Google Drive: {}", fileName, e);
+        }
+    }
+
+    private void deleteFromGoogleDrive(String tenantId, String fileName) {
+        if (syncService == null || !syncService.isConnected(tenantId)) return;
+        try {
+            syncService.deleteFileFromDrive(tenantId, fileName);
+        } catch (Exception e) {
+            log.warn("Failed to delete file from Google Drive: {}", fileName, e);
+        }
     }
 
     private String detectFileType(String fileName) {

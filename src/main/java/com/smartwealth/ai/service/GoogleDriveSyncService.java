@@ -60,7 +60,7 @@ public class GoogleDriveSyncService {
                 + "&response_type=code"
                 + "&access_type=offline"
                 + "&prompt=consent"
-                + "&scope=" + urlEncode("https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file")
+                + "&scope=" + urlEncode("https://www.googleapis.com/auth/drive.file")
                 + "&state=" + urlEncode(tenantId + ":" + state);
     }
 
@@ -115,6 +115,80 @@ public class GoogleDriveSyncService {
     public void disconnect(String tenantId) {
         tokenRepo.findByPlatformAndTenantId("google_drive", tenantId).ifPresent(tokenRepo::delete);
         log.info("Google Drive disconnected for tenant={}", tenantId);
+    }
+
+    /**
+     * Push a file from the system to the tenant's Google Drive SmartRAG folder.
+     * Creates the file if absent, overwrites it if a same-named file already exists.
+     * Returns true on success.
+     */
+    public boolean pushFileToDrive(String tenantId, String fileName, byte[] content) {
+        String accessToken = getValidAccessToken(tenantId);
+        if (accessToken == null) {
+            log.warn("Cannot push file to Drive — no valid token for tenant={}", tenantId);
+            return false;
+        }
+        String folderId = findOrCreateFolder(accessToken, props.getFolderName());
+        if (folderId == null) {
+            return false;
+        }
+
+        try {
+            String mimeType = mimeTypeFor(fileName);
+            String existingId = findFileByName(accessToken, folderId, fileName);
+            Map<String, Object> result = existingId != null
+                    ? updateMedia(accessToken, existingId, mimeType, content)
+                    : uploadMultipart(accessToken, folderId, fileName, mimeType, content);
+
+            if (result.containsKey("error")) {
+                log.error("Push to Drive failed for {}: {}", fileName, result.get("error"));
+                return false;
+            }
+            String fileId = (String) result.get("id");
+            if (fileId == null) {
+                log.error("Push to Drive failed for {}: no file id in response", fileName);
+                return false;
+            }
+            updateSyncStatus(tenantId, fileId, fileName, (String) result.get("modifiedTime"), "synced", null);
+            log.info("Pushed file to Drive: {} (id={})", fileName, fileId);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to push file to Drive: {}", fileName, e);
+            return false;
+        }
+    }
+
+    /**
+     * Delete a file from the tenant's Google Drive SmartRAG folder, mirroring a system-side delete.
+     */
+    public boolean deleteFileFromDrive(String tenantId, String fileName) {
+        String accessToken = getValidAccessToken(tenantId);
+        if (accessToken == null) {
+            return false;
+        }
+        String folderId = findOrCreateFolder(accessToken, props.getFolderName());
+        if (folderId == null) {
+            return false;
+        }
+
+        try {
+            String fileId = findFileByName(accessToken, folderId, fileName);
+            if (fileId != null) {
+                deleteFile(accessToken, fileId);
+                syncRepo.deleteByPlatformAndTenantIdAndFileId("google_drive", tenantId, fileId);
+                log.info("Deleted file from Drive: {} (id={})", fileName, fileId);
+            } else {
+                for (SyncFileStatus s : syncRepo.findByPlatformAndTenantId("google_drive", tenantId)) {
+                    if (fileName.equals(s.getFileName())) {
+                        syncRepo.delete(s);
+                    }
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to delete file from Drive: {}", fileName, e);
+            return false;
+        }
     }
 
     /**
@@ -295,6 +369,24 @@ public class GoogleDriveSyncService {
         }
     }
 
+    private String findFileByName(String accessToken, String folderId, String fileName) {
+        try {
+            String query = "'" + folderId + "' in parents and name='" + escapeQueryValue(fileName)
+                    + "' and trashed=false";
+            String url = DRIVE_API_BASE + "/files?q=" + urlEncode(query)
+                    + "&fields=files(id,name)&pageSize=1";
+            Map<String, Object> resp = getJson(url, accessToken);
+            List<Map<String, Object>> files = (List<Map<String, Object>>) resp.get("files");
+            if (files != null && !files.isEmpty()) {
+                return (String) files.get(0).get("id");
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Error finding file by name in Google Drive: {}", e.getMessage());
+            return null;
+        }
+    }
+
     private List<FileInfo> listChangedFiles(String accessToken, String folderId, String tenantId) {
         return listFilesInFolder(accessToken, folderId, tenantId, true);
     }
@@ -441,6 +533,60 @@ public class GoogleDriveSyncService {
         return readResponse(conn);
     }
 
+    private Map<String, Object> uploadMultipart(String accessToken, String folderId, String fileName,
+                                                String mimeType, byte[] content) throws Exception {
+        String boundary = "smartrag_" + UUID.randomUUID().toString().replace("-", "");
+        String url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+        HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(60000);
+        conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+        conn.setRequestProperty("Content-Type", "multipart/related; boundary=" + boundary);
+
+        String metadata = "{\"name\":\"" + escapeJson(fileName) + "\",\"parents\":[\"" + escapeJson(folderId) + "\"]}";
+
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            os.write("Content-Type: application/json; charset=UTF-8\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+            os.write((metadata + "\r\n").getBytes(StandardCharsets.UTF_8));
+            os.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            os.write(("Content-Type: " + mimeType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            os.write(content);
+            os.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+        }
+        return readResponse(conn);
+    }
+
+    private Map<String, Object> updateMedia(String accessToken, String fileId, String mimeType, byte[] content) throws Exception {
+        String url = "https://www.googleapis.com/upload/drive/v3/files/" + fileId + "?uploadType=media";
+        HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+        conn.setRequestMethod("PATCH");
+        conn.setDoOutput(true);
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(60000);
+        conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+        conn.setRequestProperty("Content-Type", mimeType);
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(content);
+        }
+        return readResponse(conn);
+    }
+
+    private void deleteFile(String accessToken, String fileId) throws Exception {
+        String url = DRIVE_API_BASE + "/files/" + fileId;
+        HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+        conn.setRequestMethod("DELETE");
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(15000);
+        conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+        int status = conn.getResponseCode();
+        if (status != 204 && status != 404) {
+            log.warn("Unexpected status {} deleting Drive file {}", status, fileId);
+        }
+    }
+
     private Map<String, Object> readResponse(HttpURLConnection conn) throws Exception {
         int status = conn.getResponseCode();
         try (InputStream in = status >= 400 ? conn.getErrorStream() : conn.getInputStream()) {
@@ -559,5 +705,26 @@ public class GoogleDriveSyncService {
 
     private static String urlEncode(String s) {
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
+    }
+
+    private static String mimeTypeFor(String fileName) {
+        if (fileName == null) return "application/octet-stream";
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".pdf")) return "application/pdf";
+        if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        if (lower.endsWith(".xls")) return "application/vnd.ms-excel";
+        return "application/octet-stream";
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+    private static String escapeQueryValue(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("'", "\\'");
     }
 }
